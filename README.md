@@ -13,16 +13,16 @@
 * скрытие комментариев;
 * отключение автозапуска;
 * очистка бокового меню от ТВ-разделов, промо и саморекламы RUTUBE;
-* импорт и экспорт списков блокировок.
+* импорт и экспорт черного списка.
 
 ## Установка
 
 Скрипт можно установить через AdGuard, Tampermonkey или другой менеджер userscript-ов.
 
 В AdGuard:
-А) Автоматически:
 
-[Установить в AdGuard](adguard:userscript?location=https://github.com/npekpacHo/rutubochist/raw/refs/heads/main/rutube_sans_tv_adguard.user.js) https://github.com/npekpacHo/rutubochist/raw/refs/heads/main/rutube_sans_tv_adguard.user.js
+А) Автоматически:
+https://github.com/npekpacHo/rutubochist/raw/refs/heads/main/rutube_sans_tv_adguard.user.js
 
 Б) Вручную
 1. Откройте **Настройки → Расширения**.
@@ -30,6 +30,8 @@
 3. Выберите файл скрипта или вставьте URL.
 4. Подтвердите установку.
 5. Обновите страницу RUTUBE.
+
+Скрипт обновляется с Гитхаба автоматически
 
 
 ## Лицензия
