@@ -1,5 +1,9 @@
 **Рутубочист** — userscript для AdGuard/Tampermonkey, который делает RUTUBE более пригодным для просмотра.
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Chrome](https://img.shields.io/badge/Chrome-Compatible-green.svg)](https://www.google.com/chrome/)
+[![Version](https://img.shields.io/badge/version-1.1.18-blue.svg)](https://github.com/npekpacHo/kincony-smart-control/releases)
+
 Скрипт добавляет пользовательский контроль над лентой и страницей просмотра: позволяет скрывать нежелательные каналы, Shorts, рекомендации под видео, комментарии, телевизионные разделы, промо-блоки и лишние элементы бокового меню, не вмешивается в видеопотоки, не ломает плеер, ничего никуда не отправляет и работает только на стороне пользователя.
 
 ## Возможности
