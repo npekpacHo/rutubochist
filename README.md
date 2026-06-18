@@ -6,9 +6,11 @@
 [![AdGuard](https://img.shields.io/badge/AdGuard-Compatible-67b279.svg)](https://adguard.com/)
 [![Tampermonkey](https://img.shields.io/badge/Tampermonkey-Compatible-00485b.svg)](https://www.tampermonkey.net/)
 [![Userscript](https://img.shields.io/badge/type-userscript-blue.svg)](https://en.wikipedia.org/wiki/Userscript)
-[![Version](https://img.shields.io/badge/version-1.1.18-blue.svg)](https://github.com/npekpacHo/rutubochist)
-[![Last commit](https://img.shields.io/github/last-commit/npekpacHo/rutubochist?label=last%20update)](https://github.com/npekpacHo/rutubochist/commits/main)
 [![RUTUBE](https://img.shields.io/badge/site-RUTUBE-111111.svg)](https://rutube.ru/)
+
+[![Last commit](https://img.shields.io/github/last-commit/npekpacHo/rutubochist?label=last%20update)](https://github.com/npekpacHo/rutubochist/commits/main)
+[![Version](https://img.shields.io/badge/version-1.1.18-blue.svg)](https://github.com/npekpacHo/rutubochist)
+
 
 Скрипт добавляет пользовательский контроль над лентой и страницей просмотра: позволяет скрывать нежелательные каналы, Shorts, рекомендации под видео, комментарии, телевизионные разделы, промо-блоки и лишние элементы бокового меню.
 
@@ -52,8 +54,4 @@ https://github.com/npekpacHo/rutubochist/raw/refs/heads/main/rutube_sans_tv_adgu
 
 <img width="2134" height="1294" alt="rutubochist1" src="https://github.com/user-attachments/assets/cea0b098-3b2a-4870-b074-f02758733abb" />
 
-<img width="338" height="753" alt="rutubochist2" src="https://github.com/user-attachments/assets/92231920-0e06-4986-82af-02db2eb2cea1" />
-
-
-<img width="2134" height="1294" alt="rutubochist1" src="https://github.com/user-attachments/assets/cea0b098-3b2a-4870-b074-f02758733abb" />
 <img width="338" height="753" alt="rutubochist2" src="https://github.com/user-attachments/assets/92231920-0e06-4986-82af-02db2eb2cea1" />
