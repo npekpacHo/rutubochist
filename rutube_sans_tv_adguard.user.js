@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist/blob/main/rutube_sans_tv_adguard.user.js
-// @version      1.1.11
+// @version      1.1.13
 // @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии и лишнее вокруг просмотра. Есть чистый просмотр, анти-автозапуск, импорт/экспорт.
 // @author       elekt_riki
 // @match        https://rutube.ru/*
@@ -14,7 +14,7 @@
   'use strict';
 
   const STORE_KEY = 'rtSansTvSettings:v1';
-  const UI_VERSION = '1.1.11';
+  const UI_VERSION = '1.1.13';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -79,6 +79,8 @@
   let removedCount = 0;
   let suspendScanUntil = 0;
   let lastUserGestureAt = 0;
+  let nextAutoplayBlockUntil = 0;
+  let lastVideoEndedAt = 0;
   let autoplayGuardInstalled = false;
 
   function loadSettings() {
@@ -303,10 +305,10 @@
     panel.dataset.rtstUiVersion = UI_VERSION;
 
     panel.innerHTML = `
-      <div class="rtst-panel-head" data-rtst-action="toggle-panel" title="Открыть Рутубочист">
+      <div class="rtst-panel-head" data-rtst-action="toggle-panel" title="Свернуть / Развернуть">
         <div class="rtst-panel-main">
           <div class="rtst-panel-title">Рутубочист</div>
-          <div class="rtst-panel-subtitle">Мне это не нравится!</div>
+          <div class="rtst-panel-subtitle">🤮 Мне это совсем не нравится!</div>
           <div class="rtst-panel-counter" id="rtst-counter">скрыто: 0</div>
         </div>
         <div class="rtst-panel-compact" aria-hidden="true">
@@ -330,12 +332,12 @@
           <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-menu"> чистить боковое меню</label></div>
           <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-shorts"> скрывать Shorts</label></div>
           <div class="rtst-row"><label><input type="checkbox" id="rtst-clean-watch"> чистый просмотр видео</label></div>
-          <div class="rtst-row"><label><input type="checkbox" id="rtst-disable-autoplay"> отключать автозапуск</label></div>
+          <div class="rtst-row"><label><input type="checkbox" id="rtst-disable-autoplay"> подавлять автовоспроизведение</label></div>
           <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-comments"> скрывать комментарии</label></div>
         </div>
 
         <div class="rtst-section">
-          <div class="rtst-section-title">Быстро добавить</div>
+          <div class="rtst-section-title">Быстро добавить в ЧС</div>
           <input type="text" id="rtst-add-input" placeholder="Название канала или слово/фраза">
           <div class="rtst-actions">
             <button type="button" class="rtst-mini-btn" data-rtst-action="add-channel">Добавить канал</button>
@@ -542,7 +544,7 @@
 
   function exportSettings() {
     const payload = {
-      app: 'RUTUBE Sans TV', version: '1.1.1', exportedAt: new Date().toISOString(),
+      app: 'RUTUBE Sans TV', version: '1.1.13', exportedAt: new Date().toISOString(),
       settings: {
         enabled: settings.enabled, showHidden: settings.showHidden, hideSideMenuPolitics: settings.hideSideMenuPolitics,
         hideShorts: settings.hideShorts, hardRemove: settings.hardRemove, cleanRutubeChrome: settings.cleanRutubeChrome,
@@ -1199,20 +1201,69 @@
   }
 
   function shouldBlockAutoplay(video) {
-    if (!video || !(video instanceof HTMLMediaElement) || Date.now() - lastUserGestureAt < 1800) return false;
-    if (video.dataset && video.dataset.rtstManualStarted === '1') return false;
-    return /rutube\.ru$/i.test(location.hostname) || /rutube\.ru/i.test(location.hostname);
+    if (!video || !(video instanceof HTMLMediaElement)) return false;
+    if (!/rutube\.ru$/i.test(location.hostname) && !/rutube\.ru/i.test(location.hostname)) return false;
+
+    const now = Date.now();
+    const recentUserGesture = now - lastUserGestureAt < 1800;
+    if (recentUserGesture) return false;
+
+    // Блокируем только автозапуск следующего ролика после реального завершения текущего.
+    // Обычное воспроизведение не трогаем: Rutube не всегда надёжно помечает ручной запуск.
+    return Boolean(lastVideoEndedAt && now < nextAutoplayBlockUntil);
   }
 
   function scanAutoplayVideos() {
     if (!settings.disableAutoplay) return;
     document.querySelectorAll('video').forEach((video) => {
-      video.autoplay = false; video.removeAttribute('autoplay'); video.setAttribute('preload', 'metadata');
+      video.autoplay = false;
+      video.removeAttribute('autoplay');
+      video.setAttribute('preload', 'metadata');
+
       if (!video.dataset.rtstAutoplayWatched) {
         video.dataset.rtstAutoplayWatched = '1';
-        video.addEventListener('play', () => { if (Date.now() - lastUserGestureAt < 1800) video.dataset.rtstManualStarted = '1'; }, true);
+
+        video.addEventListener('play', () => {
+          if (Date.now() - lastUserGestureAt < 1800) {
+            video.dataset.rtstManualStarted = '1';
+          }
+        }, true);
+
+        video.addEventListener('ended', () => {
+          lastVideoEndedAt = Date.now();
+          nextAutoplayBlockUntil = lastVideoEndedAt + 120000;
+          delete video.dataset.rtstManualStarted;
+          video.dataset.rtstEnded = '1';
+          video.autoplay = false;
+          video.removeAttribute('autoplay');
+        }, true);
+
+        const resetManualFlagForNextMedia = () => {
+          video.autoplay = false;
+          video.removeAttribute('autoplay');
+          // Не сбрасываем rtstManualStarted во время обычной загрузки/буферизации.
+          // Иначе через пару секунд честно запущенное пользователем видео может быть принято за автозапуск.
+        };
+
+        video.addEventListener('loadstart', resetManualFlagForNextMedia, true);
+        video.addEventListener('loadedmetadata', resetManualFlagForNextMedia, true);
+        video.addEventListener('emptied', resetManualFlagForNextMedia, true);
+
+        video.addEventListener('playing', () => {
+          const now = Date.now();
+          if (
+            settings.disableAutoplay &&
+            lastVideoEndedAt &&
+            now < nextAutoplayBlockUntil &&
+            now - lastUserGestureAt > 1800 &&
+            video.dataset.rtstManualStarted !== '1'
+          ) {
+            try { video.pause(); } catch (e) {}
+          }
+        }, true);
       }
-      if (!video.paused && video.dataset.rtstManualStarted !== '1' && Date.now() - lastUserGestureAt > 1800) {
+
+      if (!video.paused && shouldBlockAutoplay(video)) {
         try { video.pause(); } catch (e) {}
       }
     });
