@@ -22,7 +22,7 @@
 В AdGuard:
 А) Автоматически:
 
-[Установить в AdGuard](adguard:userscript?location=https://github.com/npekpacHo/rutubochist/raw/refs/heads/main/rutube_sans_tv_adguard.user.js) adguard:userscript?location=https://github.com/npekpacHo/rutubochist/raw/refs/heads/main/rutube_sans_tv_adguard.user.js
+[Установить в AdGuard](adguard:userscript?location=https://github.com/npekpacHo/rutubochist/raw/refs/heads/main/rutube_sans_tv_adguard.user.js) https://github.com/npekpacHo/rutubochist/raw/refs/heads/main/rutube_sans_tv_adguard.user.js
 
 Б) Вручную
 1. Откройте **Настройки → Расширения**.
