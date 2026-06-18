@@ -1,9 +1,14 @@
 // ==UserScript==
 // @name         Рутубочист
-// @namespace    https://github.com/npekpacHo/rutubochist/blob/main/rutube_sans_tv_adguard.user.js
-// @version      1.1.13
+// @namespace    https://github.com/npekpacHo/rutubochist
+// @version      1.1.18
 // @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии и лишнее вокруг просмотра. Есть чистый просмотр, анти-автозапуск, импорт/экспорт.
 // @author       elekt_riki
+// @license      MIT
+// @homepageURL  https://github.com/npekpacHo/rutubochist
+// @supportURL   https://github.com/npekpacHo/rutubochist/issues
+// @updateURL    https://raw.githubusercontent.com/npekpacHo/rutubochist/main/rutube_sans_tv_adguard.user.js
+// @downloadURL  https://raw.githubusercontent.com/npekpacHo/rutubochist/main/rutube_sans_tv_adguard.user.js
 // @match        https://rutube.ru/*
 // @match        https://*.rutube.ru/*
 // @run-at       document-start
@@ -14,7 +19,7 @@
   'use strict';
 
   const STORE_KEY = 'rtSansTvSettings:v1';
-  const UI_VERSION = '1.1.13';
+  const UI_VERSION = '1.1.18';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -337,7 +342,7 @@
         </div>
 
         <div class="rtst-section">
-          <div class="rtst-section-title">Быстро добавить в ЧС</div>
+          <div class="rtst-section-title">Добавить в Черный Список</div>
           <input type="text" id="rtst-add-input" placeholder="Название канала или слово/фраза">
           <div class="rtst-actions">
             <button type="button" class="rtst-mini-btn" data-rtst-action="add-channel">Добавить канал</button>
@@ -544,7 +549,7 @@
 
   function exportSettings() {
     const payload = {
-      app: 'RUTUBE Sans TV', version: '1.1.13', exportedAt: new Date().toISOString(),
+      app: 'RUTUBE Sans TV', version: '1.1.18', exportedAt: new Date().toISOString(),
       settings: {
         enabled: settings.enabled, showHidden: settings.showHidden, hideSideMenuPolitics: settings.hideSideMenuPolitics,
         hideShorts: settings.hideShorts, hardRemove: settings.hardRemove, cleanRutubeChrome: settings.cleanRutubeChrome,
@@ -683,6 +688,19 @@
 
     hiddenCount = removedCount;
 
+    // Личный раздел /my/... не фильтруем как обычную выдачу.
+    // Иначе можно случайно спрятать весь список подписок, потому что Rutube разметил всё как карточки.
+    if (isMyPage()) {
+      if (settings.hideSideMenuPolitics || settings.cleanRutubeChrome) {
+        scanNavigationLinks();
+        cleanRutubeChrome();
+        reorderSidebar();
+      }
+      applyHiddenVisibility();
+      updateCounter();
+      return;
+    }
+
     scanCards();
     if (settings.hideSideMenuPolitics || settings.cleanRutubeChrome) {
       scanNavigationLinks();
@@ -721,6 +739,7 @@
   }
 
   function isWatchPage() { return /\/video\/|\/plst\//.test(location.pathname); }
+  function isMyPage() { return /^\/my(?:\/|$)/.test(location.pathname); }
   function isProtectedHeader(el) { return Boolean(el && el.closest('header, [role="banner"], .wdp-header-module__header, [class*="header-module__header"], [class*="Header-module__header"]')); }
 
   function cleanWatchPage() {
@@ -904,12 +923,22 @@
     const exactItems = ['rutube для блогеров', 'rutube x premier', 'rutube x start', 'вопросы и ответы', 'сообщить о проблеме', 'письмо в поддержку', 'поддержка в max', 'help@rutube.ru', 'о rutube', 'направления деятельности', 'пользовательское соглашение', 'конфиденциальность', 'правовая информация', 'рекомендательная система', 'фирменный стиль'];
     const blockHeadings = ['rutube всегда с вами', 'cкачать приложения', 'скачать приложения', 'больше от rutube', 'rutube в других соцсетях'];
 
+    document.querySelectorAll('section[aria-label="Моё" i], section[aria-label="Мое" i]').forEach((section) => {
+      if (!section.closest('#rtst-panel')) forceHideChromeElement(section, 'раздел: мое');
+    });
+
     document.querySelectorAll('a[href*="/feeds/start/"], a[href*="/feeds/premier/"]').forEach((a) => {
       if (!a.closest('#rtst-panel')) softHideChromeElement(findChromeItemTarget(a), 'пункт: rutube x start/premier');
     });
 
     document.querySelectorAll('section[aria-label*="качать приложения" i], section[aria-label*="скачать приложения" i], section[class*="menu-app-section" i]').forEach((section) => {
-      if (!section.closest('#rtst-panel')) softHideChromeElement(section, 'блок: rutube всегда с вами');
+      if (!section.closest('#rtst-panel')) forceHideChromeElement(section, 'блок: rutube всегда с вами');
+    });
+
+    document.querySelectorAll('ul[aria-label="Секция инструкции" i], ul[class*="menu-guide-section" i], ul[aria-label*="социальных сетях" i], ul[class*="menu-social" i]').forEach((list) => {
+      if (list.closest('#rtst-panel')) return;
+      const section = list.closest('section[class*="menu-section-module__section"], section') || list;
+      forceHideChromeElement(section, 'блок: приложения/соцсети rutube');
     });
 
     document.querySelectorAll('a[href], button, [role="link"], [role="button"]').forEach((el) => {
@@ -932,6 +961,13 @@
   function softHideChromeElement(el, reason) {
     if (!el || el.closest('#rtst-panel') || isProtectedHeader(el) || containsCoreMenuText(normalize(el.textContent || ''))) return;
     el.dataset.rtstChromeHidden = '1'; el.dataset.rtstReason = `скрыто, ${reason}`; el.classList.add('rtst-chrome-hidden');
+  }
+
+  function forceHideChromeElement(el, reason) {
+    if (!el || el.closest('#rtst-panel') || isProtectedHeader(el)) return;
+    el.dataset.rtstChromeHidden = '1';
+    el.dataset.rtstReason = `скрыто, ${reason}`;
+    el.classList.add('rtst-chrome-hidden');
   }
 
   function findChromeItemTarget(el) {
@@ -1169,16 +1205,10 @@
   }
 
   function addCurrentChannelButton() {
+    // 1.1.17: плавающую кнопку «скрыть канал» убрали полностью.
+    // На каналах, видео и выдачах она дублирует карточные кнопки и мешается в правом нижнем углу.
     const oldBtn = document.getElementById('rtst-current-channel-btn');
-    if (isWatchPage()) { if (oldBtn) oldBtn.remove(); return; }
-    if (oldBtn) { oldBtn.textContent = '⊘ скрыть канал'; oldBtn.title = 'Добавить текущий канал в скрытые'; oldBtn.setAttribute('aria-label', 'Добавить текущий канал в скрытые'); return; }
-    if (!/\/channel\/|\/u\//.test(location.pathname)) return;
-    const btn = document.createElement('button');
-    btn.id = 'rtst-current-channel-btn'; btn.type = 'button'; btn.className = 'rtst-block-btn';
-    btn.dataset.rtstAction = 'block-current-channel'; btn.textContent = '⊘ скрыть канал';
-    btn.title = 'Добавить текущий канал в скрытые'; btn.setAttribute('aria-label', 'Добавить текущий канал в скрытые');
-    btn.style.position = 'fixed'; btn.style.right = '14px'; btn.style.bottom = '74px'; btn.style.zIndex = '2147483500';
-    document.documentElement.appendChild(btn);
+    if (oldBtn) oldBtn.remove();
   }
 
   function setupAutoplayGuard() {
