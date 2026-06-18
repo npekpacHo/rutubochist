@@ -21,15 +21,12 @@
 
 В AdGuard:
 
-А) Автоматически:
-https://github.com/npekpacHo/rutubochist/raw/refs/heads/main/rutube_sans_tv_adguard.user.js
-
-Б) Вручную
 1. Откройте **Настройки → Расширения**.
 2. Нажмите **Добавить**.
 3. Выберите файл скрипта или вставьте URL.
-4. Подтвердите установку.
-5. Обновите страницу RUTUBE.
+4. https://github.com/npekpacHo/rutubochist/raw/refs/heads/main/rutube_sans_tv_adguard.user.js
+5. Подтвердите установку.
+6. Обновите страницу RUTUBE.
 
 Скрипт обновляется с Гитхаба автоматически
 
