@@ -1,14 +1,14 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.1.18
+// @version      1.1.19
 // @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии и лишнее вокруг просмотра. Есть чистый просмотр, анти-автозапуск, импорт/экспорт.
 // @author       elekt_riki
 // @license      MIT
-// @homepageURL  https://github.com/npekpacHo/rutubochist
+// @homepageURL  https://npekpacho.github.io/rutubochist/
 // @supportURL   https://github.com/npekpacHo/rutubochist/issues
-// @updateURL    https://raw.githubusercontent.com/npekpacHo/rutubochist/main/rutube_sans_tv_adguard.user.js
-// @downloadURL  https://raw.githubusercontent.com/npekpacHo/rutubochist/main/rutube_sans_tv_adguard.user.js
+// @updateURL    https://npekpacho.github.io/rutubochist/rutube_sans_tv_adguard.user.js
+// @downloadURL  https://npekpacho.github.io/rutubochist/rutube_sans_tv_adguard.user.js
 // @match        https://rutube.ru/*
 // @match        https://*.rutube.ru/*
 // @run-at       document-start
