@@ -28,7 +28,7 @@
 4. Вставьте ссылку:
 
 ```text
-https://github.com/npekpacHo/rutubochist/raw/refs/heads/main/rutube_sans_tv_adguard.user.js
+https://npekpacho.github.io/rutubochist/rutube_sans_tv_adguard.user.js
 ```
 
 5. Подтвердите установку.
