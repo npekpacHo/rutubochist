@@ -9,7 +9,7 @@
 [![RUTUBE](https://img.shields.io/badge/site-RUTUBE-111111.svg)](https://rutube.ru/)
 
 [![Last commit](https://img.shields.io/github/last-commit/npekpacHo/rutubochist?label=last%20update)](https://github.com/npekpacHo/rutubochist/commits/main)
-[![Version](https://img.shields.io/badge/version-1.1.18-blue.svg)](https://github.com/npekpacHo/rutubochist)
+[![Version](https://img.shields.io/badge/version-1.1.19-blue.svg)](https://github.com/npekpacHo/rutubochist)
 
 
 Скрипт добавляет пользовательский контроль над лентой и страницей просмотра: позволяет скрывать нежелательные каналы, Shorts, рекомендации под видео, комментарии, телевизионные разделы, промо-блоки и лишние элементы бокового меню.
