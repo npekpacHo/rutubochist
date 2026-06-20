@@ -7,8 +7,6 @@
 [![Tampermonkey](https://img.shields.io/badge/Tampermonkey-Compatible-00485b.svg)](https://www.tampermonkey.net/)
 [![Userscript](https://img.shields.io/badge/type-userscript-blue.svg)](https://en.wikipedia.org/wiki/Userscript)
 [![RUTUBE](https://img.shields.io/badge/site-RUTUBE-111111.svg)](https://rutube.ru/)
-
-[![Last commit](https://img.shields.io/github/last-commit/npekpacHo/rutubochist?label=last%20update)](https://github.com/npekpacHo/rutubochist/commits/main)
 [![Version](https://img.shields.io/badge/version-1.1.19-blue.svg)](https://github.com/npekpacHo/rutubochist)
 
 
