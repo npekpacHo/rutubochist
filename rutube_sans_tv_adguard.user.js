@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.1.19
+// @version      1.1.20
 // @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии и лишнее вокруг просмотра. Есть чистый просмотр, анти-автозапуск, импорт/экспорт.
 // @author       elekt_riki
 // @license      MIT
@@ -19,7 +19,7 @@
   'use strict';
 
   const STORE_KEY = 'rtSansTvSettings:v1';
-  const UI_VERSION = '1.1.18';
+  const UI_VERSION = '1.1.20';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -310,10 +310,10 @@
     panel.dataset.rtstUiVersion = UI_VERSION;
 
     panel.innerHTML = `
-      <div class="rtst-panel-head" data-rtst-action="toggle-panel" title="Свернуть / Развернуть">
+      <div class="rtst-panel-head" data-rtst-action="toggle-panel" title="Открыть Рутубочист">
         <div class="rtst-panel-main">
           <div class="rtst-panel-title">Рутубочист</div>
-          <div class="rtst-panel-subtitle">🤮 Мне это совсем не нравится!</div>
+          <div class="rtst-panel-subtitle">Мне это совсем не нравится!</div>
           <div class="rtst-panel-counter" id="rtst-counter">скрыто: 0</div>
         </div>
         <div class="rtst-panel-compact" aria-hidden="true">
@@ -342,7 +342,7 @@
         </div>
 
         <div class="rtst-section">
-          <div class="rtst-section-title">Добавить в Черный Список</div>
+          <div class="rtst-section-title">Добавить в Чёрный список</div>
           <input type="text" id="rtst-add-input" placeholder="Название канала или слово/фраза">
           <div class="rtst-actions">
             <button type="button" class="rtst-mini-btn" data-rtst-action="add-channel">Добавить канал</button>
@@ -549,7 +549,7 @@
 
   function exportSettings() {
     const payload = {
-      app: 'RUTUBE Sans TV', version: '1.1.18', exportedAt: new Date().toISOString(),
+      app: 'RUTUBE Sans TV', version: '1.1.20', exportedAt: new Date().toISOString(),
       settings: {
         enabled: settings.enabled, showHidden: settings.showHidden, hideSideMenuPolitics: settings.hideSideMenuPolitics,
         hideShorts: settings.hideShorts, hardRemove: settings.hardRemove, cleanRutubeChrome: settings.cleanRutubeChrome,
@@ -738,7 +738,9 @@
     return Boolean(el && el.closest('video, iframe, [class*="wdp-player"], [class*="video-player"], [class*="VideoPlayer"], [id*="player"], [data-testid*="player" i]')); 
   }
 
-  function isWatchPage() { return /\/video\/|\/plst\//.test(location.pathname); }
+  function isVideoPage() { return /^\/video\//.test(location.pathname); }
+  function isPlaylistPage() { return /^\/plst\//.test(location.pathname); }
+  function isWatchPage() { return isVideoPage() || isPlaylistPage(); }
   function isMyPage() { return /^\/my(?:\/|$)/.test(location.pathname); }
   function isProtectedHeader(el) { return Boolean(el && el.closest('header, [role="banner"], .wdp-header-module__header, [class*="header-module__header"], [class*="Header-module__header"]')); }
 
@@ -836,7 +838,9 @@
   }
 
   function hideComments() {
-    if (!isWatchPage()) return;
+    // На /plst/ блоки плейлиста разметкой похожи на комментарии/списки,
+    // поэтому скрываем комментарии только на обычных страницах /video/.
+    if (!isVideoPage()) return;
     const directSelectors = ['section[aria-label="комментарии" i]', '[aria-label="комментарии" i]', '[class*="comments-module" i]', '[class*="Comments" i]', '[class*="comments" i]'];
     document.querySelectorAll(directSelectors.join(',')).forEach((el) => {
       if (el.closest('#rtst-panel') || isInsidePlayer(el) || containsVideoPlayer(el)) return;
@@ -1230,6 +1234,14 @@
     patchedPlay.__rtstPatched = true; patchedPlay.__rtstOriginal = originalPlay; HTMLMediaElement.prototype.play = patchedPlay;
   }
 
+  function isPinnedChannelVideo(video) {
+    if (!video || !video.closest) return false;
+    if (!/^\/(?:channel|u)\//.test(location.pathname)) return false;
+    if (video.closest('[class*="user-channel-pinned-video"], [class*="PinnedVideo"], [class*="pinned-video"]')) return true;
+    const section = video.closest('section[aria-label]');
+    return Boolean(section && normalize(section.getAttribute('aria-label') || '').includes('закрепленное видео'));
+  }
+
   function shouldBlockAutoplay(video) {
     if (!video || !(video instanceof HTMLMediaElement)) return false;
     if (!/rutube\.ru$/i.test(location.hostname) && !/rutube\.ru/i.test(location.hostname)) return false;
@@ -1237,6 +1249,10 @@
     const now = Date.now();
     const recentUserGesture = now - lastUserGestureAt < 1800;
     if (recentUserGesture) return false;
+
+    // Закреплённое видео на странице канала не должно стартовать само.
+    // Если пользователь нажал Play, recentUserGesture выше пропустит запуск.
+    if (isPinnedChannelVideo(video)) return true;
 
     // Блокируем только автозапуск следующего ролика после реального завершения текущего.
     // Обычное воспроизведение не трогаем: Rutube не всегда надёжно помечает ручной запуск.
@@ -1281,6 +1297,15 @@
 
         video.addEventListener('playing', () => {
           const now = Date.now();
+          if (
+            settings.disableAutoplay &&
+            isPinnedChannelVideo(video) &&
+            now - lastUserGestureAt > 1800 &&
+            video.dataset.rtstManualStarted !== '1'
+          ) {
+            try { video.pause(); } catch (e) {}
+            return;
+          }
           if (
             settings.disableAutoplay &&
             lastVideoEndedAt &&
