@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.2.4
+// @version      1.2.5
 // @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии и лишнее вокруг просмотра. Есть рекомендации что посмотреть, чистый плеер, анти-автозапуск, импорт/экспорт ЧС.
 // @author       elekt_riki
 // @license      MIT
@@ -19,7 +19,7 @@
   'use strict';
 
   const STORE_KEY = 'rtSansTvSettings:v1';
-  const UI_VERSION = '1.2.3';
+  const UI_VERSION = '1.2.5';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -87,6 +87,7 @@
   let nextAutoplayBlockUntil = 0;
   let lastVideoEndedAt = 0;
   let autoplayGuardInstalled = false;
+  let modalOpenedAt = 0; // Для защиты от фантомных кликов на смартфонах
 
   const MOVIE_DB_BASE_URLS = [
     'https://npekpacho.github.io/rutubochist/movies/',
@@ -196,14 +197,14 @@
         content: attr(data-rtst-reason); position: absolute; z-index: 2147483001;
         left: 8px; top: 8px; max-width: calc(100% - 16px); padding: 6px 9px;
         border-radius: 9px; background: rgba(0,0,0,.78); color: #fff;
-        font: 12px/1.25 Arial, sans-serif; pointer-events: none;
+        font: 11px/1.25 Arial, sans-serif; pointer-events: none;
       }
       .rtst-block-btn {
         display: inline-flex !important; align-items: center !important; justify-content: center !important;
         width: 24px !important; height: 24px !important; min-width: 24px !important; min-height: 24px !important;
         margin: 3px 0 3px 8px !important; padding: 0 !important; border: 1px solid rgba(255,255,255,.55) !important;
         border-radius: 6px !important; background: rgba(18,18,18,.92) !important; color: #fff !important;
-        cursor: pointer !important; font: 700 15px/1 Arial, sans-serif !important;
+        cursor: pointer !important; font: 700 14px/1 Arial, sans-serif !important;
         box-shadow: 0 1px 2px rgba(255,255,255,.18), 0 2px 7px rgba(0,0,0,.34) !important;
         text-decoration: none !important; user-select: none !important; vertical-align: middle !important; flex: 0 0 auto !important;
       }
@@ -217,93 +218,155 @@
       .rtst-home-link:not([class*="__wdp_"]) {
         padding: 0 14px !important; border: 1px solid rgba(255,255,255,.16) !important; border-radius: 6px !important;
         background: var(--pen-button-primary, #00A1E7) !important; color: var(--pen-button-primary-text, #fff) !important;
-        font: 700 14px/1 Arial, sans-serif !important;
+        font: 700 13px/1 Arial, sans-serif !important;
       }
       .rtst-home-link:not([class*="__wdp_"]):hover {
         background: var(--pen-button-primary-hover, #1EABE9) !important; color: var(--pen-button-primary-hover-text, #fff) !important;
       }
       .rtst-home-link .rtst-home-content { display: inline-flex !important; align-items: center !important; justify-content: center !important; gap: 4px !important; }
+      
+      /* --- ПАНЕЛЬ (ПК) --- */
       .rtst-panel {
         position: fixed !important; right: 14px !important; bottom: 14px !important; z-index: 2147483600 !important;
-        width: 336px !important; max-width: calc(100vw - 28px) !important; max-height: calc(100vh - 28px) !important;
+        width: 320px !important; max-width: calc(100vw - 28px) !important; max-height: calc(100vh - 28px) !important;
         overflow: auto !important; border: 1px solid rgba(186,242,198,.28) !important; border-radius: 8px !important;
         background: rgba(18,18,18,.97) !important; color: #f4fff7 !important; box-shadow: 0 14px 42px rgba(0,0,0,.42) !important;
-        font: 13px/1.35 Arial, sans-serif !important; backdrop-filter: blur(10px) !important;
+        font: 12px/1.3 Arial, sans-serif !important; backdrop-filter: blur(10px) !important;
       }
       .rtst-panel * { box-sizing: border-box !important; }
       .rtst-panel[data-collapsed="1"] { width: auto !important; min-width: 0 !important; max-width: none !important; overflow: visible !important; border-radius: 6px !important; }
       .rtst-panel[data-collapsed="1"] .rtst-panel-body, .rtst-panel[data-collapsed="1"] .rtst-panel-main, .rtst-panel[data-collapsed="1"] .rtst-panel-caret { display: none !important; }
-      .rtst-panel[data-collapsed="1"] .rtst-panel-head { width: auto !important; min-width: 40px !important; height: 40px !important; padding: 0 9px !important; justify-content: center !important; gap: 6px !important; border-bottom: 0 !important; }
-      .rtst-panel[data-collapsed="1"][data-page="video"] .rtst-panel-head { width: 40px !important; min-width: 40px !important; padding: 0 !important; }
-      .rtst-panel[data-collapsed="1"] .rtst-panel-compact { display: inline-flex !important; }
+      .rtst-panel[data-collapsed="1"] .rtst-panel-head { width: auto !important; min-width: 36px !important; height: 36px !important; padding: 0 9px !important; justify-content: center !important; gap: 6px !important; border-bottom: 0 !important; }
+      .rtst-panel[data-collapsed="1"][data-page="video"] .rtst-panel-head { width: auto !important; min-width: 36px !important; padding: 0 4px 0 0 !important; }
+      .rtst-panel[data-collapsed="1"] .rtst-panel-compact { display: inline-flex !important; margin: 0 4px !important; }
       .rtst-panel[data-collapsed="1"][data-page="video"] .rtst-panel-compact-count { display: none !important; }
       .rtst-panel-main { min-width: 0 !important; }
-      .rtst-panel-compact { display: none !important; align-items: center !important; justify-content: center !important; gap: 5px !important; font: 800 14px/1 Arial, sans-serif !important; color: #f4fff7 !important; white-space: nowrap !important; }
-      .rtst-panel-compact-icon { display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 18px !important; height: 18px !important; color: #f4fff7 !important; }
+      .rtst-panel-compact { display: none !important; align-items: center !important; justify-content: center !important; gap: 5px !important; font: 800 13px/1 Arial, sans-serif !important; color: #f4fff7 !important; white-space: nowrap !important; }
+      .rtst-panel-compact-icon { display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 16px !important; height: 16px !important; color: #f4fff7 !important; }
       .rtst-panel-compact-count { min-width: 1ch !important; color: rgba(244,255,247,.78) !important; font-weight: 800 !important; }
-      .rtst-panel-head { display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 10px !important; padding: 12px 14px !important; cursor: pointer !important; border-bottom: 1px solid rgba(255,255,255,.12) !important; background: rgba(255,255,255,.035) !important; }
-      .rtst-panel-title { font-weight: 800 !important; font-size: 16px !important; letter-spacing: .2px !important; }
-      .rtst-panel-subtitle { margin-top: 1px !important; opacity: .72 !important; font-size: 12px !important; }
-      .rtst-panel-counter { margin-top: 3px !important; opacity: .78 !important; font-size: 12px !important; }
-      .rtst-panel-caret { width: 28px !important; height: 28px !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; border-radius: 6px !important; background: rgba(255,255,255,.08) !important; border: 1px solid rgba(255,255,255,.11) !important; }
-      .rtst-panel .rtst-head-gear { width: 28px !important; height: 28px !important; min-width: 28px !important; min-height: 28px !important; padding: 0 !important; border-radius: 6px !important; background: rgba(255,255,255,.08) !important; border: 1px solid rgba(255,255,255,.11) !important; color: #f4fff7 !important; box-shadow: none !important; font: 700 15px/1 Arial, sans-serif !important; }
-    .rtst-panel .rtst-head-gear:hover { background: rgba(255,255,255,.16) !important; filter: none !important; }
-    .rtst-panel[data-collapsed="1"] .rtst-head-gear { display: none !important; }
-    .rtst-panel-body { padding: 12px 14px 14px !important; }
-      .rtst-row { display: flex !important; gap: 8px !important; align-items: center !important; flex-wrap: wrap !important; margin: 8px 0 !important; }
-      .rtst-panel label { display: flex !important; gap: 7px !important; align-items: center !important; cursor: pointer !important; }
-      .rtst-panel input[type="text"] { width: 100% !important; min-height: 32px !important; padding: 6px 8px !important; border-radius: 11px !important; border: 1px solid rgba(186,242,198,.22) !important; background: rgba(255,255,255,.08) !important; color: #f4fff7 !important; outline: none !important; }
-      .rtst-panel textarea { width: 100% !important; min-height: 90px !important; padding: 7px 8px !important; border-radius: 11px !important; border: 1px solid rgba(186,242,198,.22) !important; background: rgba(255,255,255,.08) !important; color: #f4fff7 !important; outline: none !important; resize: vertical !important; font: 12px/1.35 Consolas, monospace !important; }
-      .rtst-panel button { min-height: 30px !important; padding: 6px 9px !important; border: 0 !important; border-radius: 999px !important; background: linear-gradient(135deg, #e9ffed, #bdf2c8) !important; color: #122216 !important; cursor: pointer !important; font: 700 12px/1.2 Arial, sans-serif !important; box-shadow: 0 2px 8px rgba(0,0,0,.18) !important; }
+      .rtst-panel-head { display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 8px !important; padding: 8px 12px !important; cursor: pointer !important; border-bottom: 1px solid rgba(255,255,255,.12) !important; background: rgba(255,255,255,.035) !important; }
+      .rtst-panel-title { font-weight: 800 !important; font-size: 14px !important; letter-spacing: .2px !important; }
+      .rtst-panel-subtitle { margin-top: 1px !important; opacity: .72 !important; font-size: 11px !important; }
+      .rtst-panel-counter { margin-top: 3px !important; opacity: .78 !important; font-size: 11px !important; }
+      .rtst-panel-caret { width: 24px !important; height: 24px !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; border-radius: 6px !important; background: rgba(255,255,255,.08) !important; border: 1px solid rgba(255,255,255,.11) !important; }
+      .rtst-panel .rtst-head-gear { width: 24px !important; height: 24px !important; min-width: 24px !important; min-height: 24px !important; padding: 0 !important; border-radius: 6px !important; background: rgba(255,255,255,.08) !important; border: 1px solid rgba(255,255,255,.11) !important; color: #f4fff7 !important; box-shadow: none !important; font: 700 13px/1 Arial, sans-serif !important; }
+      .rtst-panel .rtst-head-gear:hover { background: rgba(255,255,255,.16) !important; filter: none !important; }
+      .rtst-panel[data-collapsed="1"] .rtst-head-gear { display: none !important; }
+      
+      .rtst-head-home { display: none !important; }
+      .rtst-panel[data-page="video"][data-collapsed="1"] .rtst-head-home {
+        display: inline-flex !important; align-items: center !important; justify-content: center !important;
+        min-height: 24px !important; padding: 0 10px !important; border-radius: 6px !important;
+        background: #00A1E7 !important; color: #fff !important; text-decoration: none !important;
+        font: 700 12px/1 Arial, sans-serif !important; border: 1px solid rgba(255,255,255,.16) !important;
+        margin-left: 4px !important;
+      }
+      .rtst-panel:not([data-collapsed="1"]) .rtst-head-home { display: none !important; }
+
+      .rtst-panel-body { padding: 8px 12px 12px !important; }
+      .rtst-row { display: flex !important; gap: 6px !important; align-items: center !important; flex-wrap: wrap !important; margin: 4px 0 !important; }
+      .rtst-panel label { display: flex !important; gap: 6px !important; align-items: center !important; cursor: pointer !important; font-size: 11px !important;}
+      .rtst-panel input[type="text"] { width: 100% !important; min-height: 26px !important; padding: 4px 8px !important; border-radius: 7px !important; border: 1px solid rgba(186,242,198,.22) !important; background: rgba(255,255,255,.08) !important; color: #f4fff7 !important; outline: none !important; font: 11px/1.3 Arial, sans-serif !important; }
+      .rtst-panel textarea { width: 100% !important; min-height: 80px !important; padding: 6px 8px !important; border-radius: 7px !important; border: 1px solid rgba(186,242,198,.22) !important; background: rgba(255,255,255,.08) !important; color: #f4fff7 !important; outline: none !important; resize: vertical !important; font: 11px/1.3 Consolas, monospace !important; }
+      .rtst-panel button { min-height: 26px !important; padding: 4px 10px !important; border: 0 !important; border-radius: 999px !important; background: linear-gradient(135deg, #e9ffed, #bdf2c8) !important; color: #122216 !important; cursor: pointer !important; font: 700 11px/1.2 Arial, sans-serif !important; box-shadow: 0 2px 6px rgba(0,0,0,.18) !important; }
       .rtst-panel button:hover { filter: brightness(.9) !important; }
       #rtst-import-file { display: none !important; }
       .rtst-panel .rtst-danger { background: linear-gradient(135deg, #ffe4e1, #ffb9b1) !important; color: #3b0d08 !important; }
-      .rtst-small { opacity: .72 !important; font-size: 12px !important; }
-      .rtst-section { margin: 10px 0 !important; padding: 10px !important; border: 1px solid rgba(255,255,255,.10) !important; border-radius: 7px !important; background: rgba(255,255,255,.045) !important; }
-      .rtst-section-title { margin: 0 0 8px !important; font: 700 12px/1.2 Arial, sans-serif !important; color: rgba(244,255,247,.86) !important; letter-spacing: .2px !important; }
-      .rtst-radio-group { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 6px !important; }
-      .rtst-radio { min-height: 30px !important; padding: 6px 8px !important; border: 1px solid rgba(255,255,255,.14) !important; border-radius: 6px !important; background: rgba(255,255,255,.055) !important; }
-      .rtst-panel input[type="radio"], .rtst-panel input[type="checkbox"] { accent-color: #bdf2c8 !important; }
-      .rtst-actions { display: flex !important; gap: 6px !important; flex-wrap: wrap !important; margin-top: 8px !important; }
-    .rtst-panel .rtst-movie-cta { margin: 2px 0 13px !important; padding: 0 !important; }
-    .rtst-panel .rtst-movie-cta-btn { width: 100% !important; min-height: 42px !important; padding: 8px 14px !important; border-radius: 10px !important; font: 800 14px/1.2 Arial, sans-serif !important; letter-spacing: .1px !important; }
-    .rtst-panel .rtst-movie-cta-caption { margin-top: 7px !important; color: rgba(244,255,247,.66) !important; font: 12px/1.35 Arial, sans-serif !important; text-align: center !important; }
-    .rtst-panel-footer { display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 10px !important; margin-top: 12px !important; padding-top: 10px !important; border-top: 1px solid rgba(255,255,255,.10) !important; }
-    .rtst-panel-footer .rtst-small { flex: 1 1 auto !important; }
-    .rtst-panel .rtst-github-link { flex: 0 0 auto !important; width: 34px !important; height: 34px !important; min-width: 34px !important; min-height: 34px !important; padding: 0 !important; border-radius: 10px !important; border: 1px solid rgba(255,255,255,.14) !important; background: rgba(255,255,255,.08) !important; box-shadow: none !important; color: #cfcfcf !important; font: 20px/1 Arial, sans-serif !important; }
-    .rtst-panel .rtst-github-link[data-state="ok"] { color: #53ff7c !important; border-color: rgba(83,255,124,.42) !important; background: rgba(83,255,124,.11) !important; }
-    .rtst-panel .rtst-github-link[data-state="bad"] { color: #ff6b6b !important; border-color: rgba(255,107,107,.42) !important; background: rgba(255,107,107,.11) !important; }
-    .rtst-panel .rtst-github-link[data-state="checking"] { color: #ffd166 !important; border-color: rgba(255,209,102,.42) !important; background: rgba(255,209,102,.10) !important; }
-    .rtst-panel .rtst-github-link:hover { filter: none !important; background: rgba(255,255,255,.16) !important; }
-
-      .rtst-panel .rtst-mini-btn { min-height: 28px !important; padding: 5px 8px !important; border-radius: 6px !important; background: rgba(255,255,255,.10) !important; color: #f4fff7 !important; border: 1px solid rgba(255,255,255,.14) !important; box-shadow: none !important; font-weight: 600 !important; }
+      .rtst-small { opacity: .72 !important; font-size: 11px !important; }
+      .rtst-section { margin: 6px 0 !important; padding: 8px 10px !important; border: 1px solid rgba(255,255,255,.10) !important; border-radius: 7px !important; background: rgba(255,255,255,.045) !important; }
+      .rtst-section-title { margin: 0 0 6px !important; font: 700 11px/1.2 Arial, sans-serif !important; color: rgba(244,255,247,.86) !important; letter-spacing: .2px !important; }
+      .rtst-radio-group { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 4px !important; }
+      .rtst-radio { min-height: 26px !important; padding: 4px 6px !important; border: 1px solid rgba(255,255,255,.14) !important; border-radius: 6px !important; background: rgba(255,255,255,.055) !important; font-size: 11px !important;}
+      .rtst-panel input[type="radio"], .rtst-panel input[type="checkbox"] { accent-color: #bdf2c8 !important; margin: 0 !important; }
+      .rtst-actions { display: flex !important; gap: 4px !important; flex-wrap: wrap !important; margin-top: 6px !important; }
+      .rtst-panel .rtst-movie-cta { margin: 2px 0 10px !important; padding: 0 !important; }
+      .rtst-panel .rtst-movie-cta-btn { width: 100% !important; min-height: 36px !important; padding: 6px 12px !important; border-radius: 8px !important; font: 800 13px/1.2 Arial, sans-serif !important; letter-spacing: .1px !important; }
+      .rtst-panel .rtst-movie-cta-caption { margin-top: 5px !important; color: rgba(244,255,247,.66) !important; font: 11px/1.3 Arial, sans-serif !important; text-align: center !important; }
+      .rtst-panel-footer { display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 8px !important; margin-top: 10px !important; padding-top: 8px !important; border-top: 1px solid rgba(255,255,255,.10) !important; }
+      .rtst-panel-footer .rtst-small { flex: 1 1 auto !important; }
+      .rtst-panel .rtst-github-link { flex: 0 0 auto !important; width: 28px !important; height: 28px !important; min-width: 28px !important; min-height: 28px !important; padding: 0 !important; border-radius: 8px !important; border: 1px solid rgba(255,255,255,.14) !important; background: rgba(255,255,255,.08) !important; box-shadow: none !important; color: #cfcfcf !important; font: 16px/1 Arial, sans-serif !important; display: flex !important; align-items: center !important; justify-content: center !important; }
+      .rtst-panel .rtst-github-link[data-state="ok"] { color: #53ff7c !important; border-color: rgba(83,255,124,.42) !important; background: rgba(83,255,124,.11) !important; }
+      .rtst-panel .rtst-github-link[data-state="bad"] { color: #ff6b6b !important; border-color: rgba(255,107,107,.42) !important; background: rgba(255,107,107,.11) !important; }
+      .rtst-panel .rtst-github-link[data-state="checking"] { color: #ffd166 !important; border-color: rgba(255,209,102,.42) !important; background: rgba(255,209,102,.10) !important; }
+      .rtst-panel .rtst-github-link:hover { filter: none !important; background: rgba(255,255,255,.16) !important; }
+      .rtst-panel .rtst-mini-btn { min-height: 24px !important; padding: 4px 8px !important; border-radius: 6px !important; background: rgba(255,255,255,.10) !important; color: #f4fff7 !important; border: 1px solid rgba(255,255,255,.14) !important; box-shadow: none !important; font-weight: 600 !important; font-size: 11px !important; }
       .rtst-panel .rtst-mini-btn:hover { background: rgba(255,255,255,.18) !important; }
       .rtst-count { opacity: .62 !important; font-weight: 400 !important; }
-      .rtst-modal-backdrop { position: fixed !important; inset: 0 !important; z-index: 2147483650 !important; display: flex !important; align-items: center !important; justify-content: center !important; padding: 16px !important; background: rgba(0,0,0,.58) !important; font-family: Arial, sans-serif !important; }
-      .rtst-modal { width: 520px !important; max-width: calc(100vw - 32px) !important; max-height: calc(100vh - 32px) !important; overflow: auto !important; border: 1px solid rgba(255,255,255,.14) !important; border-radius: 8px !important; background: #171717 !important; color: #f4fff7 !important; box-shadow: 0 18px 56px rgba(0,0,0,.55) !important; }
-      .rtst-modal-head { display: flex !important; justify-content: space-between !important; align-items: center !important; gap: 10px !important; padding: 12px 14px !important; border-bottom: 1px solid rgba(255,255,255,.10) !important; }
-      .rtst-modal-title { font: 700 15px/1.2 Arial, sans-serif !important; }
-      .rtst-modal-body { padding: 12px 14px 14px !important; }
-      .rtst-modal textarea { width: 100% !important; min-height: 260px !important; padding: 8px !important; border: 1px solid rgba(255,255,255,.16) !important; border-radius: 6px !important; background: rgba(255,255,255,.06) !important; color: #f4fff7 !important; outline: none !important; resize: vertical !important; font: 12px/1.35 Consolas, monospace !important; }
-      .rtst-modal-actions { display: flex !important; justify-content: space-between !important; gap: 8px !important; flex-wrap: wrap !important; margin-top: 10px !important; }
-      .rtst-modal button { min-height: 30px !important; padding: 6px 10px !important; border: 1px solid rgba(255,255,255,.14) !important; border-radius: 6px !important; background: #ececec !important; color: #111 !important; cursor: pointer !important; font: 600 12px/1.2 Arial, sans-serif !important; }
+      
+      /* --- МОДАЛЬНЫЕ ОКНА (ПК) --- */
+      .rtst-modal-backdrop { position: fixed !important; inset: 0 !important; z-index: 2147483650 !important; display: flex !important; align-items: center !important; justify-content: center !important; padding: 12px !important; background: rgba(0,0,0,.58) !important; font: 12px/1.35 Arial, sans-serif !important; }
+      .rtst-modal { width: 440px !important; max-width: calc(100vw - 24px) !important; max-height: calc(100vh - 24px) !important; overflow: auto !important; border: 1px solid rgba(255,255,255,.14) !important; border-radius: 8px !important; background: #171717 !important; color: #f4fff7 !important; box-shadow: 0 18px 56px rgba(0,0,0,.55) !important; font-size: 12px !important; }
+      .rtst-modal-head { display: flex !important; justify-content: space-between !important; align-items: center !important; gap: 8px !important; padding: 10px 14px !important; border-bottom: 1px solid rgba(255,255,255,.10) !important; }
+      .rtst-modal-title { font: 700 14px/1.2 Arial, sans-serif !important; }
+      .rtst-modal-body { padding: 10px 14px 14px !important; }
+      .rtst-modal textarea { width: 100% !important; min-height: 200px !important; padding: 8px !important; border: 1px solid rgba(255,255,255,.16) !important; border-radius: 6px !important; background: rgba(255,255,255,.06) !important; color: #f4fff7 !important; outline: none !important; resize: vertical !important; font: 11px/1.35 Consolas, monospace !important; }
+      .rtst-modal-actions { display: flex !important; justify-content: space-between !important; gap: 6px !important; flex-wrap: wrap !important; margin-top: 10px !important; }
+      .rtst-modal button { min-height: 26px !important; padding: 4px 10px !important; border: 1px solid rgba(255,255,255,.14) !important; border-radius: 6px !important; background: #ececec !important; color: #111 !important; cursor: pointer !important; font: 600 11px/1.2 Arial, sans-serif !important; }
       .rtst-modal .rtst-danger { background: #ffcbc6 !important; color: #2a0805 !important; }
-      .rtst-modal.rtst-movie-modal { width: 820px !important; max-width: calc(100vw - 32px) !important; }
-    .rtst-movie-source { color: rgba(244,255,247,.76) !important; text-decoration: underline !important; }
-    .rtst-modal .rtst-movie-source-btn { min-height: 0 !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; background: transparent !important; color: rgba(244,255,247,.76) !important; box-shadow: none !important; text-decoration: underline !important; font: 12px/1.35 Arial, sans-serif !important; cursor: pointer !important; }
-    .rtst-modal .rtst-movie-source-btn:hover { color: #f4fff7 !important; filter: none !important; }
-    .rtst-movie-toolbar { display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 8px !important; flex-wrap: wrap !important; margin: 0 0 10px !important; }
-    .rtst-movie-nav { display: flex !important; gap: 6px !important; flex-wrap: wrap !important; align-items: center !important; }
-    .rtst-movie-status { color: rgba(244,255,247,.78) !important; font: 12px/1.35 Arial, sans-serif !important; }
-    .rtst-movie-list { display: flex !important; flex-direction: column !important; gap: 6px !important; margin-top: 8px !important; }
-    .rtst-modal .rtst-movie-row { display: block !important; width: 100% !important; min-height: 0 !important; margin: 0 !important; padding: 8px 10px !important; border: 1px solid rgba(255,255,255,.10) !important; border-radius: 8px !important; background: rgba(255,255,255,.055) !important; color: #f4fff7 !important; cursor: pointer !important; text-align: left !important; box-shadow: none !important; font: 13px/1.35 Arial, sans-serif !important; }
-    .rtst-modal .rtst-movie-row:hover { background: rgba(255,255,255,.105) !important; filter: none !important; }
-    .rtst-movie-title-line { display: block !important; color: #f4fff7 !important; font-weight: 800 !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
-    .rtst-movie-meta-line { display: block !important; margin-top: 2px !important; color: rgba(244,255,247,.76) !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; font-size: 12px !important; }
-    .rtst-movie-loading, .rtst-movie-error, .rtst-movie-empty { padding: 12px !important; border: 1px solid rgba(255,255,255,.10) !important; border-radius: 8px !important; background: rgba(255,255,255,.055) !important; color: rgba(244,255,247,.82) !important; font: 13px/1.45 Arial, sans-serif !important; }
-    .rtst-movie-error { color: #ffd6d2 !important; }
-    @media (max-width: 680px) { .rtst-modal.rtst-movie-modal { width: calc(100vw - 20px) !important; max-width: calc(100vw - 20px) !important; } .rtst-movie-meta-line { white-space: normal !important; } }
-    .rtst-toast { position: fixed !important; right: 14px !important; bottom: 14px !important; z-index: 2147483647 !important; max-width: calc(100vw - 28px) !important; padding: 10px 12px !important; border-radius: 12px !important; background: rgba(0,0,0,.86) !important; color: #fff !important; font: 13px/1.35 Arial, sans-serif !important; box-shadow: 0 8px 30px rgba(0,0,0,.3) !important; }
+      .rtst-modal.rtst-movie-modal { width: 780px !important; max-width: calc(100vw - 24px) !important; }
+      .rtst-movie-source { color: rgba(244,255,247,.76) !important; text-decoration: underline !important; }
+      .rtst-modal .rtst-movie-source-btn { min-height: 0 !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; background: transparent !important; color: rgba(244,255,247,.76) !important; box-shadow: none !important; text-decoration: underline !important; font: 11px/1.3 Arial, sans-serif !important; cursor: pointer !important; }
+      .rtst-modal .rtst-movie-source-btn:hover { color: #f4fff7 !important; filter: none !important; }
+      .rtst-movie-toolbar { display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 8px !important; flex-wrap: wrap !important; margin: 0 0 8px !important; }
+      .rtst-movie-nav { display: flex !important; gap: 4px !important; flex-wrap: wrap !important; align-items: center !important; }
+      .rtst-movie-status { color: rgba(244,255,247,.78) !important; font: 11px/1.3 Arial, sans-serif !important; }
+      .rtst-movie-list { display: flex !important; flex-direction: column !important; gap: 4px !important; margin-top: 6px !important; }
+      .rtst-modal .rtst-movie-row { display: block !important; width: 100% !important; min-height: 0 !important; margin: 0 !important; padding: 6px 8px !important; border: 1px solid rgba(255,255,255,.10) !important; border-radius: 8px !important; background: rgba(255,255,255,.055) !important; color: #f4fff7 !important; cursor: pointer !important; text-align: left !important; box-shadow: none !important; font: 12px/1.35 Arial, sans-serif !important; }
+      .rtst-modal .rtst-movie-row:hover { background: rgba(255,255,255,.105) !important; filter: none !important; }
+      .rtst-movie-title-line { display: block !important; color: #f4fff7 !important; font-weight: 800 !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+      .rtst-movie-meta-line { display: block !important; margin-top: 2px !important; color: rgba(244,255,247,.76) !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; font-size: 11px !important; }
+      .rtst-movie-loading, .rtst-movie-error, .rtst-movie-empty { padding: 10px !important; border: 1px solid rgba(255,255,255,.10) !important; border-radius: 8px !important; background: rgba(255,255,255,.055) !important; color: rgba(244,255,247,.82) !important; font: 12px/1.4 Arial, sans-serif !important; }
+      .rtst-movie-error { color: #ffd6d2 !important; }
+      .rtst-toast { position: fixed !important; right: 14px !important; bottom: 14px !important; z-index: 2147483647 !important; max-width: calc(100vw - 28px) !important; padding: 8px 10px !important; border-radius: 8px !important; background: rgba(0,0,0,.86) !important; color: #fff !important; font: 12px/1.3 Arial, sans-serif !important; box-shadow: 0 8px 30px rgba(0,0,0,.3) !important; }
+      
+      /* --- MOBILE OVERRIDES (Bottom Sheet + Fullscreen Modals) --- */
+      @media (max-width: 680px) {
+        .rtst-panel:not([data-collapsed="1"]) {
+          width: 100vw !important; max-width: 100vw !important;
+          right: 0 !important; bottom: 0 !important;
+          border-radius: 16px 16px 0 0 !important;
+          border-left: 0 !important; border-right: 0 !important; border-bottom: 0 !important;
+          max-height: 85vh !important; font-size: 14px !important;
+        }
+        .rtst-panel:not([data-collapsed="1"]) .rtst-panel-head { padding: 14px 16px !important; }
+        .rtst-panel:not([data-collapsed="1"]) .rtst-panel-title { font-size: 16px !important; }
+        .rtst-panel:not([data-collapsed="1"]) .rtst-panel-subtitle { font-size: 13px !important; }
+        .rtst-panel:not([data-collapsed="1"]) .rtst-panel-body { padding: 12px 16px 24px !important; }
+        .rtst-panel[data-collapsed="1"] { bottom: 20px !important; right: 16px !important; }
+        
+        .rtst-panel[data-page="video"][data-collapsed="1"] .rtst-head-home {
+           min-height: 36px !important; font-size: 14px !important; padding: 0 14px !important; border-radius: 8px !important; margin-left: 0 !important; margin-right: 6px !important;
+        }
+
+        /* Увеличенные мишени для пальцев */
+        .rtst-panel button, .rtst-modal button { min-height: 44px !important; font-size: 14px !important; padding: 10px 16px !important; }
+        .rtst-panel input[type="text"] { min-height: 44px !important; font-size: 16px !important; padding: 8px 12px !important; }
+        .rtst-panel textarea, .rtst-modal textarea { font-size: 14px !important; padding: 12px !important; }
+        .rtst-radio, .rtst-panel label, .rtst-row { min-height: 44px !important; font-size: 14px !important; margin: 4px 0 !important; }
+        .rtst-radio-group { grid-template-columns: 1fr !important; gap: 8px !important; }
+        .rtst-section { padding: 12px !important; margin: 12px 0 !important; }
+        .rtst-section-title { font-size: 13px !important; margin-bottom: 8px !important; }
+        
+        .rtst-actions, .rtst-modal-actions { flex-direction: column !important; gap: 8px !important; }
+        .rtst-actions button, .rtst-modal-actions button, .rtst-modal-actions > div { width: 100% !important; }
+        .rtst-modal-actions > div { display: flex !important; flex-direction: column !important; gap: 8px !important; }
+        
+        /* Модальные окна на весь экран */
+        .rtst-modal-backdrop { padding: 0 !important; }
+        .rtst-modal { width: 100vw !important; max-width: 100vw !important; height: 100vh !important; max-height: 100vh !important; border-radius: 0 !important; border: 0 !important; display: flex !important; flex-direction: column !important; font-size: 14px !important; }
+        .rtst-modal-head { padding: 16px !important; }
+        .rtst-modal-title { font-size: 16px !important; }
+        .rtst-modal-body { flex: 1 !important; overflow-y: auto !important; padding: 16px !important; }
+        .rtst-modal textarea { min-height: 30vh !important; }
+        .rtst-modal.rtst-movie-modal { width: 100vw !important; max-width: 100vw !important; }
+        .rtst-modal .rtst-movie-row { min-height: 60px !important; font-size: 14px !important; padding: 12px !important; margin-bottom: 8px !important; }
+        .rtst-movie-meta-line { white-space: normal !important; margin-top: 6px !important; font-size: 12px !important; }
+        .rtst-movie-toolbar { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; margin-bottom: 16px !important; }
+        .rtst-movie-nav { justify-content: space-between !important; }
+        
+        /* Тосты */
+        .rtst-toast { right: 16px !important; left: 16px !important; bottom: 32px !important; max-width: none !important; text-align: center !important; font-size: 14px !important; padding: 12px !important; }
+      }
     `;
 
     const inject = () => {
@@ -360,6 +423,7 @@
           <span class="rtst-panel-compact-icon">⊘</span>
           <span class="rtst-panel-compact-count" id="rtst-compact-count">0</span>
         </div>
+        <a href="/" class="rtst-head-home" title="На главную RUTUBE">⌂</a>
         <button type="button" class="rtst-head-gear" data-rtst-action="open-settings-modal" title="Настройки">⚙</button>
         <div class="rtst-panel-caret">▾</div>
       </div>
@@ -440,7 +504,11 @@
     document.addEventListener('click', (event) => {
       const linkEl = event.target && event.target.closest && event.target.closest('a[href]');
       if (linkEl && !linkEl.closest('#rtst-panel')) suspendScanUntil = Date.now() + 1400;
-      if (event.target && event.target.classList && event.target.classList.contains('rtst-modal-backdrop')) { closeModal(); return; }
+      
+      if (event.target && event.target.classList && event.target.classList.contains('rtst-modal-backdrop')) {
+        if (Date.now() - modalOpenedAt < 400) return; // Защита от фантомных кликов на смартфонах
+        closeModal(); return;
+      }
 
       const actionEl = event.target && event.target.closest('[data-rtst-action]');
       if (!actionEl) return;
@@ -577,6 +645,7 @@
       </div>`;
     document.documentElement.appendChild(modal);
     syncPanel();
+    modalOpenedAt = Date.now();
   }
 
   function openMovieModal(index) {
@@ -589,16 +658,17 @@
         <div class="rtst-modal-head">
           <div>
             <div class="rtst-modal-title">Что посмотреть?</div>
-            <div class="rtst-small">Компактные подборки фильмов из базы Рутубочиста. Клик по фильму открывает поиск на RUTUBE.</div>
+            <div class="rtst-small">Новинки кино появившиеся в сети. Подборки от CentralZD<br>Клик по фильму открывает поиск на RUTUBE.</div>
           </div>
           <button type="button" data-rtst-action="close-modal">×</button>
         </div>
         <div class="rtst-modal-body" id="rtst-movie-body">
-          <div class="rtst-movie-loading">Загружаю подборки. Если GitHub опять решил быть GitHub, подождём секунду.</div>
+          <div class="rtst-movie-loading">Загружаю подборки. Немного подожди.</div>
         </div>
       </div>`;
     document.documentElement.appendChild(modal);
     renderMovieBatch(movieCache.currentIndex);
+    modalOpenedAt = Date.now();
   }
 
   async function renderMovieBatch(index) {
@@ -616,7 +686,7 @@
       stillBody.innerHTML = `
         <div class="rtst-movie-error">
           Не удалось загрузить базу фильмов.<br>
-          Проверь локальный кэш или обнови базу рекомендаций в настройках.<br>
+          Проверь локальный кэш или обнови базу в настройках.<br>
           <span class="rtst-small">${escapeHtml(e && e.message ? e.message : String(e))}</span>
         </div>`;
     }
@@ -628,7 +698,7 @@
     const title = batch.title || (entry && entry.title) || 'Подборка фильмов';
     const sourceUrl = batch.sourceUrl || (entry && entry.sourceUrl) || '';
     const sourceLink = sourceUrl ? `<button type="button" class="rtst-movie-source-btn" data-rtst-action="movie-source" data-rtst-url="${escapeAttribute(sourceUrl)}">пост на Пикабу</button>` : '';
-    const rows = items.length ? items.map(renderMovieRow).join('') : '<div class="rtst-movie-empty">В этой подборке пусто. Даже кино не выдержало.</div>';
+    const rows = items.length ? items.map(renderMovieRow).join('') : '<div class="rtst-movie-empty">В этой подборке пусто.</div>';
     return `
       <div class="rtst-movie-toolbar">
         <div>
@@ -636,10 +706,10 @@
           <div class="rtst-movie-status">${escapeHtml(String(index + 1))} из ${escapeHtml(String(total))} · фильмов: ${escapeHtml(String(items.length))}${sourceLink ? ' · ' + sourceLink : ''}</div>
         </div>
         <div class="rtst-movie-nav">
-          <button type="button" data-rtst-action="movie-newer" ${index <= 0 ? 'disabled' : ''}>← новее</button>
-          <button type="button" data-rtst-action="movie-random">случайный</button>
-          <button type="button" data-rtst-action="movie-refresh">обновить</button>
-          <button type="button" data-rtst-action="movie-older" ${index >= total - 1 ? 'disabled' : ''}>старее →</button>
+          <button type="button" data-rtst-action="movie-newer" ${index <= 0 ? 'disabled' : ''}>⏪</button>
+          <button type="button" data-rtst-action="movie-random">🔀</button>
+          <button type="button" data-rtst-action="movie-refresh">📶</button>
+          <button type="button" data-rtst-action="movie-older" ${index >= total - 1 ? 'disabled' : ''}>⏩</button>
         </div>
       </div>
       <div class="rtst-movie-list">${rows}</div>`;
@@ -888,8 +958,7 @@
         : githubState.state === 'checking'
           ? 'Проверяю GitHub...'
           : 'GitHub ещё не проверялся. Открыть страницу проекта.';
-    btn.title = githubState.message ? `${label}
-${githubState.message}` : label;
+    btn.title = githubState.message ? `${label}\n${githubState.message}` : label;
   }
 
   async function checkGithubAvailability() {
@@ -918,7 +987,7 @@ ${githubState.message}` : label;
     if (!clean) { toast('Пустой поисковый запрос. Кино без названия, артхаус победил.'); return; }
     const finalQuery = trailer ? `${clean} трейлер` : clean;
     const params = new URLSearchParams({ query: finalQuery, content_type: 'video' });
-    window.open('https://rutube.ru/search/?' + params.toString(), '_blank', 'noopener');
+    location.href = 'https://rutube.ru/search/?' + params.toString();
   }
 
   function openExternalMovieSource(url) {
@@ -958,6 +1027,7 @@ ${githubState.message}` : label;
     document.documentElement.appendChild(modal);
     const textarea = document.getElementById('rtst-modal-list');
     if (textarea) textarea.focus();
+    modalOpenedAt = Date.now();
   }
 
   function closeModal() { document.querySelectorAll('.rtst-modal-backdrop').forEach((el) => el.remove()); }
@@ -993,7 +1063,7 @@ ${githubState.message}` : label;
 
   function exportSettings() {
     const payload = {
-      app: 'RUTUBE Sans TV', version: '1.2.3', exportedAt: new Date().toISOString(),
+      app: 'RUTUBE Sans TV', version: UI_VERSION, exportedAt: new Date().toISOString(),
       settings: {
         enabled: settings.enabled, showHidden: settings.showHidden, hideSideMenuPolitics: settings.hideSideMenuPolitics,
         hideShorts: settings.hideShorts, hardRemove: settings.hardRemove, cleanRutubeChrome: settings.cleanRutubeChrome,
@@ -1132,8 +1202,6 @@ ${githubState.message}` : label;
 
     hiddenCount = removedCount;
 
-    // Личный раздел /my/... не фильтруем как обычную выдачу.
-    // Иначе можно случайно спрятать весь список подписок, потому что Rutube разметил всё как карточки.
     if (isMyPage()) {
       if (settings.hideSideMenuPolitics || settings.cleanRutubeChrome) {
         scanNavigationLinks();
@@ -1145,8 +1213,6 @@ ${githubState.message}` : label;
       return;
     }
 
-    // Страницы поиска не трогаем фильтрами просмотра и комментариев.
-    // Rutube на /search/ легко превращается в чёрный прямоугольник, если прятать слишком широкие блоки.
     if (isSearchPage()) {
       if (settings.hideSideMenuPolitics || settings.cleanRutubeChrome) {
         scanNavigationLinks();
@@ -1269,20 +1335,6 @@ ${githubState.message}` : label;
 
   function escapeAttribute(value) { return String(value || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
-  function hideWatchBlocksByText() {
-    const watchBlockWords = ['смотрите также', 'вам может понравиться', 'похожие видео', 'рекомендуем', 'рекомендации', 'следующее видео', 'популярное', 'сейчас смотрят', 'больше видео', 'ещё видео', 'еще видео'];
-    document.querySelectorAll('h1,h2,h3,h4,h5,h6,span,p,div').forEach((el) => {
-      if (el.closest('#rtst-panel') || isInsidePlayer(el) || containsVideoPlayer(el)) return;
-      const raw = String(el.textContent || '').trim();
-      if (!raw || raw.length > 90) return;
-      const text = normalize(raw);
-      const match = watchBlockWords.find((word) => text === normalize(word) || text.includes(normalize(word)));
-      if (!match) return;
-      const target = findWatchBlockTarget(el);
-      softHideViewElement(target, `чистый просмотр: ${match}`);
-    });
-  }
-
   function hideRutubeSelfPromo() {
     const promoWords = ['отключить рекламу', 'смотреть без рекламы', 'подписка', '99 ₽', '99 рублей', 'rutube premium', 'premium'];
     document.querySelectorAll('div,section,aside,article').forEach((el) => {
@@ -1297,8 +1349,6 @@ ${githubState.message}` : label;
   }
 
   function hideComments() {
-    // На /plst/ блоки плейлиста разметкой похожи на комментарии/списки,
-    // поэтому скрываем комментарии только на обычных страницах /video/.
     if (!isVideoPage()) return;
     const directSelectors = ['section[aria-label="комментарии" i]', '[aria-label="комментарии" i]', '[class*="comments-module" i]', '[class*="Comments" i]', '[class*="comments" i]'];
     document.querySelectorAll(directSelectors.join(',')).forEach((el) => {
@@ -1668,8 +1718,6 @@ ${githubState.message}` : label;
   }
 
   function addCurrentChannelButton() {
-    // 1.1.17: плавающую кнопку «скрыть канал» убрали полностью.
-    // На каналах, видео и выдачах она дублирует карточные кнопки и мешается в правом нижнем углу.
     const oldBtn = document.getElementById('rtst-current-channel-btn');
     if (oldBtn) oldBtn.remove();
   }
@@ -1709,12 +1757,8 @@ ${githubState.message}` : label;
     const recentUserGesture = now - lastUserGestureAt < 1800;
     if (recentUserGesture) return false;
 
-    // Закреплённое видео на странице канала не должно стартовать само.
-    // Если пользователь нажал Play, recentUserGesture выше пропустит запуск.
     if (isPinnedChannelVideo(video)) return true;
 
-    // Блокируем только автозапуск следующего ролика после реального завершения текущего.
-    // Обычное воспроизведение не трогаем: Rutube не всегда надёжно помечает ручной запуск.
     return Boolean(lastVideoEndedAt && now < nextAutoplayBlockUntil);
   }
 
@@ -1746,8 +1790,6 @@ ${githubState.message}` : label;
         const resetManualFlagForNextMedia = () => {
           video.autoplay = false;
           video.removeAttribute('autoplay');
-          // Не сбрасываем rtstManualStarted во время обычной загрузки/буферизации.
-          // Иначе через пару секунд честно запущенное пользователем видео может быть принято за автозапуск.
         };
 
         video.addEventListener('loadstart', resetManualFlagForNextMedia, true);
