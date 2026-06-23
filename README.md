@@ -50,8 +50,14 @@ https://npekpacho.github.io/rutubochist/rutube_sans_tv_adguard.user.js
 * очистка бокового меню от ТВ-разделов, промо и саморекламы RUTUBE;
 * импорт и экспорт чёрного списка.
 
+### Новое в версии 1.2
+* рекомендации "Что посмотреть" ;
+* переработанный интерфейс.
+
 ## Скриншоты
 
-<img width="2134" height="1294" alt="rutubochist1" src="https://github.com/user-attachments/assets/cea0b098-3b2a-4870-b074-f02758733abb" />
+<img width="2169" height="1281" alt="Чистый плеер" src="https://github.com/user-attachments/assets/22f2c1de-7ec3-4dfa-a7fb-28e2fab41982" />
+<img width="828" height="731" alt="Рекомендации" src="https://github.com/user-attachments/assets/76bef3a7-37d7-4474-ad93-5550072190a5" />
+<img width="525" height="769" alt="Настройки" src="https://github.com/user-attachments/assets/5aaacbae-0c7a-4ef5-baf3-9b12d06849fe" />
+<img width="338" height="211" alt="Гоавное окно Рутубочиста" src="https://github.com/user-attachments/assets/346fdfa9-7182-469a-8105-f599cbbeb893" />
 
-<img width="338" height="753" alt="rutubochist2" src="https://github.com/user-attachments/assets/92231920-0e06-4986-82af-02db2eb2cea1" />
