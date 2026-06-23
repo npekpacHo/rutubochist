@@ -1,0 +1,181 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.1",
+  "id": "2026-01-24-centralzd",
+  "title": "Что посмотреть от 24.01.2026",
+  "date": "2026-01-24",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_24012026_13626525",
+  "extractedAt": "2026-06-23T07:28:33.648Z",
+  "count": 7,
+  "items": [
+    {
+      "id": "sekretnyy-agent-o-agente-secreto-the-secret-agent-2025",
+      "title": "Секретный агент",
+      "originalTitle": "O Agente Secreto (The Secret Agent)",
+      "year": 2025,
+      "query": "Секретный агент O Agente Secreto (The Secret Agent) 2025",
+      "genres": [
+        "триллер",
+        "драма",
+        "криминал",
+        "детектив",
+        "история"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.8,
+          "votes": 1315,
+          "percent": 68
+        },
+        "imdb": {
+          "value": 7.9,
+          "votes": 12000,
+          "percent": 79
+        },
+        "rottenTomatoes": {
+          "critics": 98,
+          "audience": 83
+        }
+      }
+    },
+    {
+      "id": "my-edem-edem-edem-merrily-we-roll-along-2025",
+      "title": "Мы едем, едем, едем",
+      "originalTitle": "Merrily We Roll Along",
+      "year": 2025,
+      "query": "Мы едем, едем, едем Merrily We Roll Along 2025",
+      "genres": [
+        "мюзикл",
+        "комедия"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 8.3,
+          "votes": 485,
+          "percent": 83
+        },
+        "rottenTomatoes": {
+          "critics": 95,
+          "audience": 95
+        }
+      }
+    },
+    {
+      "id": "golos-hind-radzhab-sawt-hind-rajab-the-voice-of-hind-rajab-2025",
+      "title": "Голос Хинд Раджаб",
+      "originalTitle": "Sawt Hind Rajab (The Voice of Hind Rajab)",
+      "year": 2025,
+      "query": "Голос Хинд Раджаб Sawt Hind Rajab (The Voice of Hind Rajab) 2025",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 8.5,
+          "votes": 5500,
+          "percent": 85
+        },
+        "rottenTomatoes": {
+          "critics": 94,
+          "audience": 93
+        }
+      }
+    },
+    {
+      "id": "plennik-el-cautivo-2025",
+      "title": "Пленник",
+      "originalTitle": "El cautivo",
+      "year": 2025,
+      "query": "Пленник El cautivo 2025",
+      "genres": [
+        "триллер",
+        "драма",
+        "приключения",
+        "биография",
+        "история"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.2,
+          "votes": 1200,
+          "percent": 62
+        },
+        "rottenTomatoes": {
+          "critics": 69
+        }
+      }
+    },
+    {
+      "id": "mat-muh-mother-of-flies-2025",
+      "title": "Мать мух",
+      "originalTitle": "Mother of Flies",
+      "year": 2025,
+      "query": "Мать мух Mother of Flies 2025",
+      "genres": [
+        "ужасы"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.7,
+          "votes": 120,
+          "percent": 67
+        },
+        "rottenTomatoes": {
+          "critics": 95
+        }
+      }
+    },
+    {
+      "id": "pes-51-chien-51-dog-51-2025",
+      "title": "Пёс 51",
+      "originalTitle": "Chien 51 (Dog 51)",
+      "year": 2025,
+      "query": "Пёс 51 Chien 51 (Dog 51) 2025",
+      "genres": [
+        "фантастика",
+        "триллер",
+        "криминал"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.1,
+          "votes": 1100,
+          "percent": 61
+        }
+      }
+    },
+    {
+      "id": "romeriya-romer-a-2025",
+      "title": "Ромерия",
+      "originalTitle": "Romería",
+      "year": 2025,
+      "query": "Ромерия Romería 2025",
+      "genres": [
+        "драма",
+        "мелодрама",
+        "биография",
+        "фэнтези",
+        "боевик",
+        "приключения",
+        "триллер",
+        "криминал"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.2,
+          "votes": 1001,
+          "percent": 72
+        },
+        "rottenTomatoes": {
+          "critics": 77,
+          "audience": 70
+        },
+        "kinopoisk": {
+          "value": 7.9,
+          "votes": 18562,
+          "percent": 79
+        }
+      }
+    }
+  ]
+}
