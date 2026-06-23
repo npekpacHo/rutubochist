@@ -1,0 +1,202 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.1",
+  "id": "2026-01-17-centralzd",
+  "title": "Что посмотреть от 17.01.2026",
+  "date": "2026-01-17",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_17012026_13604244",
+  "extractedAt": "2026-06-23T07:25:08.363Z",
+  "count": 8,
+  "items": [
+    {
+      "id": "lakomyy-kusok-the-rip-2026",
+      "title": "Лакомый кусок",
+      "originalTitle": "The Rip",
+      "year": 2026,
+      "query": "Лакомый кусок The Rip 2026",
+      "genres": [
+        "боевик",
+        "триллер",
+        "драма",
+        "криминал",
+        "детектив"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.8,
+          "votes": 322,
+          "percent": 68
+        },
+        "rottenTomatoes": {
+          "critics": 82,
+          "audience": 75
+        }
+      }
+    },
+    {
+      "id": "melodiya-ih-mechty-song-sung-blue-2025",
+      "title": "Мелодия их мечты",
+      "originalTitle": "Song Sung Blue",
+      "year": 2025,
+      "query": "Мелодия их мечты Song Sung Blue 2025",
+      "genres": [
+        "мюзикл",
+        "драма",
+        "биография",
+        "история",
+        "музыка"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.6,
+          "votes": 6600,
+          "percent": 76
+        },
+        "rottenTomatoes": {
+          "critics": 77,
+          "audience": 97
+        }
+      }
+    },
+    {
+      "id": "sem-ya-v-arendu-rental-family-2025",
+      "title": "Семья в аренду",
+      "originalTitle": "Rental Family",
+      "year": 2025,
+      "query": "Семья в аренду Rental Family 2025",
+      "genres": [
+        "драма",
+        "комедия",
+        "семейный"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.6,
+          "votes": 775,
+          "percent": 76
+        },
+        "imdb": {
+          "value": 7.8,
+          "votes": 8300,
+          "percent": 78
+        },
+        "rottenTomatoes": {
+          "critics": 87,
+          "audience": 96
+        }
+      }
+    },
+    {
+      "id": "perestroyka-iz-pepla-rebuilding-2025",
+      "title": "Перестройка (Из пепла)",
+      "originalTitle": "Rebuilding",
+      "year": 2025,
+      "query": "Перестройка (Из пепла) Rebuilding 2025",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.1,
+          "votes": 552,
+          "percent": 71
+        },
+        "rottenTomatoes": {
+          "critics": 93,
+          "audience": 91
+        }
+      }
+    },
+    {
+      "id": "poymat-monstra-dust-bunny-2025",
+      "title": "Поймать монстра",
+      "originalTitle": "Dust Bunny",
+      "year": 2025,
+      "query": "Поймать монстра Dust Bunny 2025",
+      "genres": [
+        "фэнтези"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.8,
+          "votes": 3815,
+          "percent": 68
+        },
+        "imdb": {
+          "value": 6.8,
+          "votes": 2500,
+          "percent": 68
+        },
+        "rottenTomatoes": {
+          "critics": 85,
+          "audience": 82
+        }
+      }
+    },
+    {
+      "id": "dorogaya-ya-umen-shayus-l-homme-qui-r-tr-cit-2025",
+      "title": "Дорогая, я уменьшаюсь",
+      "originalTitle": "L'homme qui rétrécit",
+      "year": 2025,
+      "query": "Дорогая, я уменьшаюсь L'homme qui rétrécit 2025",
+      "genres": [
+        "фантастика",
+        "приключения"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.2,
+          "votes": 375,
+          "percent": 62
+        }
+      }
+    },
+    {
+      "id": "noch-bez-menya-la-noche-sin-m-2025",
+      "title": "Ночь без меня",
+      "originalTitle": "La noche sin mí",
+      "year": 2025,
+      "query": "Ночь без меня La noche sin mí 2025",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.1,
+          "votes": 37,
+          "percent": 71
+        }
+      }
+    },
+    {
+      "id": "poslednee-priklyuchenie-za-kadrom-5-sezona-ochen-strannyh-del-one-last-adventure-the-makin",
+      "title": "Последнее приключение: за кадром 5 сезона «Очень странных дел»",
+      "originalTitle": "One Last Adventure: The Making of Stranger Things 5",
+      "year": 2026,
+      "query": "Последнее приключение: за кадром 5 сезона «Очень странных дел» One Last Adventure: The Making of Stranger Things 5 2026",
+      "genres": [
+        "документальный",
+        "триллер",
+        "мультфильм",
+        "боевик",
+        "фэнтези",
+        "приключения"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 8.6,
+          "votes": 27000,
+          "percent": 86
+        },
+        "rottenTomatoes": {
+          "critics": 100
+        },
+        "kinopoisk": {
+          "value": 8.5,
+          "votes": 74447,
+          "percent": 85
+        }
+      }
+    }
+  ]
+}
