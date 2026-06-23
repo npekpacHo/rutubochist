@@ -1,8 +1,7 @@
-
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.2.2
+// @version      1.2.3
 // @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии и лишнее вокруг просмотра. Есть рекомендации что посмотреть, чистый плеер, анти-автозапуск, импорт/экспорт ЧС.
 // @author       elekt_riki
 // @license      MIT
@@ -20,7 +19,7 @@
   'use strict';
 
   const STORE_KEY = 'rtSansTvSettings:v1';
-  const UI_VERSION = '1.1.26';
+  const UI_VERSION = '1.2.3';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -94,7 +93,11 @@
     'https://raw.githubusercontent.com/npekpacHo/rutubochist/main/movies/'
   ];
   const MOVIE_DB_INDEX_FILE = 'index.json';
-  const movieCache = { index: null, batches: new Map(), currentIndex: 0, currentBatch: null };
+  const MOVIE_DB_CACHE_KEY = 'rtstMovieDbCache:v1';
+  const MOVIE_DB_UPDATE_INTERVAL_MS = 3 * 24 * 60 * 60 * 1000;
+  const PROJECT_URL = 'https://github.com/npekpacHo/rutubochist';
+  const movieCache = { index: null, batches: new Map(), currentIndex: 0, currentBatch: null, source: 'none', savedAt: 0 };
+  let githubState = { state: 'unknown', checkedAt: 0, message: 'GitHub ещё не проверялся.' };
 
   function loadSettings() {
     try {
@@ -265,6 +268,13 @@
     .rtst-panel .rtst-movie-cta { margin: 2px 0 13px !important; padding: 0 !important; }
     .rtst-panel .rtst-movie-cta-btn { width: 100% !important; min-height: 42px !important; padding: 8px 14px !important; border-radius: 10px !important; font: 800 14px/1.2 Arial, sans-serif !important; letter-spacing: .1px !important; }
     .rtst-panel .rtst-movie-cta-caption { margin-top: 7px !important; color: rgba(244,255,247,.66) !important; font: 12px/1.35 Arial, sans-serif !important; text-align: center !important; }
+    .rtst-panel-footer { display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 10px !important; margin-top: 12px !important; padding-top: 10px !important; border-top: 1px solid rgba(255,255,255,.10) !important; }
+    .rtst-panel-footer .rtst-small { flex: 1 1 auto !important; }
+    .rtst-panel .rtst-github-link { flex: 0 0 auto !important; width: 34px !important; height: 34px !important; min-width: 34px !important; min-height: 34px !important; padding: 0 !important; border-radius: 10px !important; border: 1px solid rgba(255,255,255,.14) !important; background: rgba(255,255,255,.08) !important; box-shadow: none !important; color: #cfcfcf !important; font: 20px/1 Arial, sans-serif !important; }
+    .rtst-panel .rtst-github-link[data-state="ok"] { color: #53ff7c !important; border-color: rgba(83,255,124,.42) !important; background: rgba(83,255,124,.11) !important; }
+    .rtst-panel .rtst-github-link[data-state="bad"] { color: #ff6b6b !important; border-color: rgba(255,107,107,.42) !important; background: rgba(255,107,107,.11) !important; }
+    .rtst-panel .rtst-github-link[data-state="checking"] { color: #ffd166 !important; border-color: rgba(255,209,102,.42) !important; background: rgba(255,209,102,.10) !important; }
+    .rtst-panel .rtst-github-link:hover { filter: none !important; background: rgba(255,255,255,.16) !important; }
 
       .rtst-panel .rtst-mini-btn { min-height: 28px !important; padding: 5px 8px !important; border-radius: 6px !important; background: rgba(255,255,255,.10) !important; color: #f4fff7 !important; border: 1px solid rgba(255,255,255,.14) !important; box-shadow: none !important; font-weight: 600 !important; }
       .rtst-panel .rtst-mini-btn:hover { background: rgba(255,255,255,.18) !important; }
@@ -358,12 +368,16 @@
           <button type="button" class="rtst-movie-cta-btn" data-rtst-action="open-movie-modal">Что посмотреть?</button>
           <div class="rtst-movie-cta-caption">подборки от CentralZD</div>
         </div>
-        <div class="rtst-small">Кнопка «⊘» скрывает канал.</div>
+        <div class="rtst-panel-footer">
+          <div class="rtst-small">Кнопка «⊘» скрывает канал. Чистый просмотр оставляет видео, описание и действия и точечно убирает рекомендательные секции.</div>
+          <button type="button" class="rtst-github-link" id="rtst-github-link" data-rtst-action="open-project" data-state="unknown" title="Открыть GitHub проекта">🐙</button>
+        </div>
       </div>
     `;
 
     document.documentElement.appendChild(panel);
     updatePanelRouteState();
+    syncGithubBadge();
     syncPanel();
   }
 
@@ -401,6 +415,8 @@
     
     const wordCount = document.getElementById('rtst-word-count');
     if (wordCount) wordCount.textContent = `(${settings.userWords.length})`;
+    updateMovieCacheStatusText();
+    syncGithubBadge();
     
     updateCounter();
   }
@@ -450,12 +466,14 @@
       }
       if (action === 'open-movie-modal') { openMovieModal(); return; }
       if (action === 'open-settings-modal') { openSettingsModal(); return; }
+      if (action === 'open-project') { event.preventDefault(); event.stopPropagation(); openProjectPage(); return; }
       if (action === 'movie-newer') { switchMovieBatch(-1); return; }
       if (action === 'movie-older') { switchMovieBatch(1); return; }
       if (action === 'movie-refresh') { refreshMovieNavigator(); return; }
       if (action === 'movie-random') { openRandomMovieSearch(); return; }
       if (action === 'movie-search') { event.preventDefault(); event.stopPropagation(); openRutubeMovieSearch(actionEl.dataset.rtstQuery || '', actionEl.dataset.rtstTrailer === '1'); return; }
       if (action === 'movie-source') { event.preventDefault(); event.stopPropagation(); openExternalMovieSource(actionEl.dataset.rtstUrl || ''); return; }
+      if (action === 'update-movie-db') { event.preventDefault(); event.stopPropagation(); updateMovieDbFromSettings(actionEl); return; }
       if (action === 'open-list-modal') { openListModal(actionEl.dataset.rtstList || 'channels'); return; }
       if (action === 'close-modal') { closeModal(); return; }
       if (action === 'modal-save-list') { saveListFromModal(actionEl.dataset.rtstList || 'channels'); return; }
@@ -489,7 +507,7 @@
     modal.innerHTML = `
       <div class="rtst-modal" role="dialog" aria-modal="true">
         <div class="rtst-modal-head">
-          <div><div class="rtst-modal-title">Настройки Рутубочиста</div><div class="rtst-small">Здесь можно включить или отключить отдельные функции скрипта</div></div>
+          <div><div class="rtst-modal-title">Настройки Рутубочиста</div><div class="rtst-small">Всё хозяйство убрано сюда, чтобы панель больше не изображала шкаф управления.</div></div>
           <button type="button" data-rtst-action="close-modal">×</button>
         </div>
         <div class="rtst-modal-body">
@@ -504,20 +522,20 @@
           <div class="rtst-section">
             <div class="rtst-section-title">Отображение</div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-show-hidden"> показывать скрытое бледным</label></div>
-            <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-menu"> чистить боковое меню от саморекламы и ТВ</label></div>
-            <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-shorts"> скрывать Шортсы в основных лентах</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-menu"> чистить боковое меню</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-shorts"> скрывать Shorts</label></div>
           </div>
 
           <div class="rtst-section">
             <div class="rtst-section-title">Страница просмотра</div>
-            <div class="rtst-row"><label><input type="checkbox" id="rtst-clean-watch"> чистить видеоплеер от рекомендаций</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-clean-watch"> чистый просмотр видео</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-disable-autoplay"> подавлять автовоспроизведение</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-comments"> скрывать комментарии</label></div>
           </div>
 
           <div class="rtst-section">
-            <div class="rtst-section-title">Добавить в ЧС</div>
-            <input type="text" id="rtst-add-input" placeholder="Слово или Фраза">
+            <div class="rtst-section-title">Добавить в Чёрный список</div>
+            <input type="text" id="rtst-add-input" placeholder="Название канала или слово/фраза">
             <div class="rtst-actions">
               <button type="button" class="rtst-mini-btn" data-rtst-action="add-channel">Добавить канал</button>
               <button type="button" class="rtst-mini-btn" data-rtst-action="add-word">Добавить фразу</button>
@@ -525,7 +543,7 @@
           </div>
 
           <div class="rtst-section">
-            <div class="rtst-section-title">Мои Черные списки</div>
+            <div class="rtst-section-title">Списки блокировок</div>
             <div class="rtst-actions">
               <button type="button" class="rtst-mini-btn" data-rtst-action="open-list-modal" data-rtst-list="channels">Каналы <span class="rtst-count" id="rtst-channel-count"></span></button>
               <button type="button" class="rtst-mini-btn" data-rtst-action="open-list-modal" data-rtst-list="words">Фразы <span class="rtst-count" id="rtst-word-count"></span></button>
@@ -533,11 +551,19 @@
           </div>
 
           <div class="rtst-section">
-            <div class="rtst-section-title">Резервная копия ЧС</div>
+            <div class="rtst-section-title">Рекомендации</div>
+            <div class="rtst-small" id="rtst-movie-cache-status">${escapeHtml(movieCacheStatusText())}</div>
+            <div class="rtst-actions">
+              <button type="button" class="rtst-mini-btn" data-rtst-action="update-movie-db">Обновить базу рекомендаций</button>
+            </div>
+          </div>
+
+          <div class="rtst-section">
+            <div class="rtst-section-title">Резервная копия</div>
             <div class="rtst-actions">
               <button type="button" class="rtst-mini-btn" data-rtst-action="export-settings">Экспорт</button>
               <button type="button" class="rtst-mini-btn" data-rtst-action="import-settings">Импорт</button>
-              <button type="button" class="rtst-mini-btn rtst-danger" data-rtst-action="reset-user">Очистить ВСЁ</button>
+              <button type="button" class="rtst-mini-btn rtst-danger" data-rtst-action="reset-user">Очистить списки</button>
               <input type="file" id="rtst-import-file" accept="application/json,.json">
             </div>
           </div>
@@ -588,7 +614,7 @@
       stillBody.innerHTML = `
         <div class="rtst-movie-error">
           Не удалось загрузить базу фильмов.<br>
-          Проверь, что на GitHub лежит <b>movies/index.json</b> и файлы подборок в <b>movies/batches/</b>.<br>
+          Проверь локальный кэш или обнови базу рекомендаций в настройках.<br>
           <span class="rtst-small">${escapeHtml(e && e.message ? e.message : String(e))}</span>
         </div>`;
     }
@@ -707,28 +733,90 @@
   async function loadMovieBatch(index) {
     const indexData = await loadMovieIndex();
     const batches = Array.isArray(indexData.batches) ? indexData.batches : [];
-    if (!batches.length) throw new Error('movies/index.json загружен, но в нём нет batches. Прекрасно, база есть, а фильмов нет.');
+    if (!batches.length) throw new Error('В локальной базе нет batches. Прекрасно, база есть, а фильмов нет.');
     const safeIndex = Math.max(0, Math.min(batches.length - 1, Number(index) || 0));
     const entry = batches[safeIndex];
     const cacheKey = entry.id || entry.file || String(safeIndex);
     let batch = movieCache.batches.get(cacheKey);
-    if (!batch) {
-      if (!entry.file) throw new Error(`У подборки ${entry.title || cacheKey} не указан file.`);
-      batch = await loadMovieJson(entry.file);
-      movieCache.batches.set(cacheKey, batch);
-    }
+    if (!batch) throw new Error(`В локальном кэше нет подборки ${entry.title || cacheKey}. Нажми «Обновить базу рекомендаций» в настройках.`);
     movieCache.currentIndex = safeIndex;
     movieCache.currentBatch = batch;
+    maybeUpdateMovieDbInBackground();
     return { indexData, entry, batch, index: safeIndex };
   }
 
   async function loadMovieIndex() {
     if (movieCache.index) return movieCache.index;
-    movieCache.index = await loadMovieJson(MOVIE_DB_INDEX_FILE);
+    if (loadMovieDbFromLocalCache()) return movieCache.index;
+    await refreshMovieDbCache({ silent: false });
     return movieCache.index;
   }
 
-  async function loadMovieJson(path) {
+  function loadMovieDbFromLocalCache() {
+    try {
+      const raw = localStorage.getItem(MOVIE_DB_CACHE_KEY);
+      if (!raw) return false;
+      const data = JSON.parse(raw);
+      if (!data || !data.index || !Array.isArray(data.index.batches)) return false;
+      movieCache.index = data.index;
+      movieCache.batches = new Map(Object.entries(data.batches || {}));
+      movieCache.source = data.source || 'local';
+      movieCache.savedAt = Number(data.savedAt) || 0;
+      return movieCache.batches.size > 0;
+    } catch (e) {
+      console.warn('[Рутубочист] Не удалось прочитать локальную базу фильмов:', e);
+      return false;
+    }
+  }
+
+  function saveMovieDbToLocalCache(indexData, batches, source) {
+    const payload = {
+      version: 1,
+      savedAt: Date.now(),
+      source: source || 'github',
+      index: indexData,
+      batches
+    };
+    localStorage.setItem(MOVIE_DB_CACHE_KEY, JSON.stringify(payload));
+    movieCache.index = indexData;
+    movieCache.batches = new Map(Object.entries(batches || {}));
+    movieCache.source = payload.source;
+    movieCache.savedAt = payload.savedAt;
+  }
+
+  async function refreshMovieDbCache(options = {}) {
+    const silent = Boolean(options.silent);
+    try {
+      const indexData = await loadMovieJsonRemote(MOVIE_DB_INDEX_FILE);
+      const batches = Array.isArray(indexData.batches) ? indexData.batches : [];
+      if (!batches.length) throw new Error('movies/index.json загружен, но в нём нет batches. Прекрасно, база есть, а фильмов нет.');
+      const packed = {};
+      for (let i = 0; i < batches.length; i += 1) {
+        const entry = batches[i];
+        const cacheKey = entry.id || entry.file || String(i);
+        if (!entry.file) continue;
+        packed[cacheKey] = await loadMovieJsonRemote(entry.file);
+      }
+      saveMovieDbToLocalCache(indexData, packed, 'github');
+      setGithubState('ok', `GitHub доступен. База обновлена: ${formatDateTime(new Date())}.`);
+      if (!silent) toast('База рекомендаций обновлена и сохранена локально.');
+      return true;
+    } catch (e) {
+      setGithubState('bad', `GitHub недоступен: ${e && e.message ? e.message : String(e)}`);
+      if (!silent) toast('Не удалось обновить базу рекомендаций. Беру локальный кэш, как взрослая программа.');
+      if (!movieCache.index) loadMovieDbFromLocalCache();
+      return false;
+    }
+  }
+
+  function maybeUpdateMovieDbInBackground() {
+    const now = Date.now();
+    if (!movieCache.savedAt) loadMovieDbFromLocalCache();
+    if (movieCache.savedAt && now - movieCache.savedAt < MOVIE_DB_UPDATE_INTERVAL_MS) return;
+    refreshMovieDbCache({ silent: true });
+  }
+
+  async function loadMovieJsonRemote(path) {
     const cleanPath = String(path || '').replace(/^\/+/, '');
     const urls = /^https?:\/\//i.test(cleanPath) ? [cleanPath] : MOVIE_DB_BASE_URLS.map((base) => base + cleanPath);
     let lastError = null;
@@ -749,11 +837,71 @@
     renderMovieBatch((movieCache.currentIndex || 0) + delta);
   }
 
-  function refreshMovieNavigator() {
-    movieCache.index = null;
-    movieCache.batches.clear();
-    movieCache.currentBatch = null;
+  async function refreshMovieNavigator() {
+    await refreshMovieDbCache({ silent: false });
     renderMovieBatch(movieCache.currentIndex || 0);
+  }
+
+  async function updateMovieDbFromSettings(button) {
+    if (button) { button.disabled = true; button.textContent = 'Обновляю...'; }
+    await refreshMovieDbCache({ silent: false });
+    updateMovieCacheStatusText();
+    if (button) { button.disabled = false; button.textContent = 'Обновить базу рекомендаций'; }
+  }
+
+  function movieCacheStatusText() {
+    if (!movieCache.index) loadMovieDbFromLocalCache();
+    if (!movieCache.savedAt) return 'Локальная база рекомендаций ещё не загружена.';
+    const source = movieCache.source === 'github' ? 'GitHub' : 'локальный кэш';
+    const count = movieCache.index && Array.isArray(movieCache.index.batches) ? movieCache.index.batches.length : 0;
+    return `Локальная база: ${count} подборок, источник: ${source}, обновлена ${formatDateTime(new Date(movieCache.savedAt))}.`;
+  }
+
+  function updateMovieCacheStatusText() {
+    const el = document.getElementById('rtst-movie-cache-status');
+    if (el) el.textContent = movieCacheStatusText();
+  }
+
+  function formatDateTime(date) {
+    try {
+      return date.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    } catch (e) {
+      return String(date);
+    }
+  }
+
+  function setGithubState(state, message) {
+    githubState = { state, checkedAt: Date.now(), message: message || '' };
+    syncGithubBadge();
+  }
+
+  function syncGithubBadge() {
+    const btn = document.getElementById('rtst-github-link');
+    if (!btn) return;
+    btn.dataset.state = githubState.state || 'unknown';
+    const label = githubState.state === 'ok'
+      ? 'GitHub доступен. Открыть страницу проекта.'
+      : githubState.state === 'bad'
+        ? 'GitHub недоступен. Открыть страницу проекта.'
+        : githubState.state === 'checking'
+          ? 'Проверяю GitHub...'
+          : 'GitHub ещё не проверялся. Открыть страницу проекта.';
+    btn.title = githubState.message ? `${label}
+${githubState.message}` : label;
+  }
+
+  async function checkGithubAvailability() {
+    setGithubState('checking', 'Проверяю доступность GitHub...');
+    try {
+      await loadMovieJsonRemote(MOVIE_DB_INDEX_FILE);
+      setGithubState('ok', 'GitHub доступен.');
+    } catch (e) {
+      setGithubState('bad', e && e.message ? e.message : String(e));
+    }
+  }
+
+  function openProjectPage() {
+    window.open(PROJECT_URL, '_blank', 'noopener,noreferrer');
   }
 
   function openRandomMovieSearch() {
@@ -843,7 +991,7 @@
 
   function exportSettings() {
     const payload = {
-      app: 'RUTUBE Sans TV', version: '1.1.26', exportedAt: new Date().toISOString(),
+      app: 'RUTUBE Sans TV', version: '1.2.3', exportedAt: new Date().toISOString(),
       settings: {
         enabled: settings.enabled, showHidden: settings.showHidden, hideSideMenuPolitics: settings.hideSideMenuPolitics,
         hideShorts: settings.hideShorts, hardRemove: settings.hardRemove, cleanRutubeChrome: settings.cleanRutubeChrome,
@@ -1634,7 +1782,7 @@
   }
 
   function boot() {
-    setupAutoplayGuard(); addStyle(); bindEvents(); scheduleScan();
+    setupAutoplayGuard(); addStyle(); bindEvents(); loadMovieDbFromLocalCache(); setTimeout(checkGithubAvailability, 1500); setTimeout(maybeUpdateMovieDbInBackground, 3500); scheduleScan();
     window.addEventListener('popstate', () => setTimeout(rescanNow, 250));
     setInterval(() => { if (location.href !== lastUrl) { scheduleScan(); return; } if (settings.enabled) scheduleScan(); }, 2500);
   }
