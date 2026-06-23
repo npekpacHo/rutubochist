@@ -1,0 +1,213 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.0",
+  "id": "2026-01-03-centralzd",
+  "title": "Что посмотреть от 03.01.2026",
+  "date": "2026-01-03",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_03012026_13562368",
+  "extractedAt": "2026-06-23T06:03:48.954Z",
+  "count": 9,
+  "items": [
+    {
+      "id": "zlaya-chast-2-wicked-for-good-2025",
+      "title": "Злая. Часть 2",
+      "originalTitle": "Wicked: For Good",
+      "year": 2025,
+      "query": "Злая. Часть 2 Wicked: For Good 2025",
+      "genres": [
+        "мюзикл",
+        "фэнтези",
+        "мелодрама",
+        "семейный"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.9,
+          "votes": 3208,
+          "percent": 69
+        },
+        "imdb": {
+          "value": 6.9,
+          "votes": 45000,
+          "percent": 69
+        },
+        "rottenTomatoes": {
+          "critics": 67,
+          "audience": 93
+        }
+      }
+    },
+    {
+      "id": "otkuda-beretsya-veter-where-the-wind-comes-from-2025",
+      "title": "Откуда берётся ветер",
+      "originalTitle": "Where the Wind Comes From",
+      "year": 2025,
+      "query": "Откуда берётся ветер Where the Wind Comes From 2025",
+      "genres": [
+        "драма",
+        "комедия"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.1,
+          "votes": 179,
+          "percent": 71
+        },
+        "rottenTomatoes": {
+          "critics": 100
+        }
+      }
+    },
+    {
+      "id": "prishit-vseh-sew-torn-2024",
+      "title": "Пришить всех",
+      "originalTitle": "Sew Torn",
+      "year": 2024,
+      "query": "Пришить всех Sew Torn 2024",
+      "genres": [
+        "триллер",
+        "комедия"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.2,
+          "votes": 1532,
+          "percent": 62
+        },
+        "imdb": {
+          "value": 6,
+          "votes": 2200,
+          "percent": 60
+        },
+        "rottenTomatoes": {
+          "critics": 95,
+          "audience": 69
+        }
+      }
+    },
+    {
+      "id": "dolina-ulybok-la-valle-dei-sorrisi-2025",
+      "title": "Долина улыбок",
+      "originalTitle": "La valle dei sorrisi",
+      "year": 2025,
+      "query": "Долина улыбок La valle dei sorrisi 2025",
+      "genres": [
+        "ужасы",
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7,
+          "votes": 455,
+          "percent": 70
+        }
+      }
+    },
+    {
+      "id": "tigr-der-tiger-the-tiger-2025",
+      "title": "Тигр",
+      "originalTitle": "Der Tiger (The Tiger)",
+      "year": 2025,
+      "query": "Тигр Der Tiger (The Tiger) 2025",
+      "genres": [
+        "боевик",
+        "триллер",
+        "драма",
+        "военный"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.5,
+          "votes": 233,
+          "percent": 75
+        }
+      }
+    },
+    {
+      "id": "sleduy-za-moim-golosom-sigue-mi-voz-2025",
+      "title": "Следуй за моим голосом",
+      "originalTitle": "Sigue mi voz",
+      "year": 2025,
+      "query": "Следуй за моим голосом Sigue mi voz 2025",
+      "genres": [
+        "драма",
+        "мелодрама"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.1,
+          "votes": 69,
+          "percent": 71
+        }
+      }
+    },
+    {
+      "id": "eliza-elisa-2025",
+      "title": "Элиза",
+      "originalTitle": "Elisa",
+      "year": 2025,
+      "query": "Элиза Elisa 2025",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6,
+          "votes": 160,
+          "percent": 60
+        }
+      }
+    },
+    {
+      "id": "ispytanie-ognem-l-preuve-du-feu-hearts-on-fire-2025",
+      "title": "Испытание огнем",
+      "originalTitle": "L'épreuve du feu (Hearts on Fire)",
+      "year": 2025,
+      "query": "Испытание огнем L'épreuve du feu (Hearts on Fire) 2025",
+      "genres": [
+        "драма",
+        "триллер",
+        "криминал",
+        "детектив"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 8,
+          "votes": 117000,
+          "percent": 80
+        },
+        "kinopoisk": {
+          "value": 7.5,
+          "votes": 64028,
+          "percent": 75
+        },
+        "rottenTomatoes": {
+          "critics": 100
+        }
+      }
+    },
+    {
+      "id": "ubegay-run-away-1-sezon-2026",
+      "title": "Убегай!",
+      "originalTitle": "Run Away (1 сезон)",
+      "year": 2026,
+      "query": "Убегай! Run Away (1 сезон) 2026",
+      "genres": [
+        "драма",
+        "криминал",
+        "детектив"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.9,
+          "votes": 1500,
+          "percent": 69
+        },
+        "rottenTomatoes": {
+          "critics": 75,
+          "audience": 56
+        }
+      }
+    }
+  ]
+}
