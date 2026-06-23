@@ -1,0 +1,234 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.1",
+  "id": "2026-01-31-centralzd",
+  "title": "Что посмотреть от 31.01.2026",
+  "date": "2026-01-31",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_31012026_13648444",
+  "extractedAt": "2026-06-23T07:36:24.083Z",
+  "count": 9,
+  "items": [
+    {
+      "id": "anakonda-anaconda-2025",
+      "title": "Анаконда",
+      "originalTitle": "Anaconda",
+      "year": 2025,
+      "query": "Анаконда Anaconda 2025",
+      "genres": [
+        "ужасы",
+        "боевик",
+        "комедия",
+        "приключения"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 5.8,
+          "votes": 8421,
+          "percent": 58
+        },
+        "imdb": {
+          "value": 5.9,
+          "votes": 20000,
+          "percent": 59
+        },
+        "rottenTomatoes": {
+          "critics": 48,
+          "audience": 76
+        }
+      }
+    },
+    {
+      "id": "opasnyy-duet-the-wrecking-crew-2026",
+      "title": "Опасный дуэт",
+      "originalTitle": "The Wrecking Crew",
+      "year": 2026,
+      "query": "Опасный дуэт The Wrecking Crew 2026",
+      "genres": [
+        "боевик",
+        "комедия"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.4,
+          "votes": 822,
+          "percent": 64
+        },
+        "imdb": {
+          "value": 6.5,
+          "votes": 3000,
+          "percent": 65
+        },
+        "rottenTomatoes": {
+          "critics": 78,
+          "audience": 68
+        }
+      }
+    },
+    {
+      "id": "grenlandiya-2-migraciya-greenland-2-migration-2026",
+      "title": "Гренландия 2: Миграция",
+      "originalTitle": "Greenland 2: Migration",
+      "year": 2026,
+      "query": "Гренландия 2: Миграция Greenland 2: Migration 2026",
+      "genres": [
+        "фантастика",
+        "боевик",
+        "триллер",
+        "приключения"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 5.5,
+          "votes": 7852,
+          "percent": 55
+        },
+        "imdb": {
+          "value": 5.5,
+          "votes": 7500,
+          "percent": 55
+        },
+        "rottenTomatoes": {
+          "critics": 51,
+          "audience": 66
+        }
+      }
+    },
+    {
+      "id": "tihaya-noch-smertel-naya-noch-silent-night-deadly-night-2025",
+      "title": "Тихая ночь, смертельная ночь",
+      "originalTitle": "Silent Night, Deadly Night",
+      "year": 2025,
+      "query": "Тихая ночь, смертельная ночь Silent Night, Deadly Night 2025",
+      "genres": [
+        "ужасы"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6,
+          "votes": 1978,
+          "percent": 60
+        },
+        "imdb": {
+          "value": 6.3,
+          "votes": 3400,
+          "percent": 63
+        },
+        "rottenTomatoes": {
+          "critics": 77,
+          "audience": 78
+        }
+      }
+    },
+    {
+      "id": "didzhey-ahmet-dj-ahmet-2025",
+      "title": "Диджей Ахмет",
+      "originalTitle": "DJ Ahmet",
+      "year": 2025,
+      "query": "Диджей Ахмет DJ Ahmet 2025",
+      "genres": [
+        "драма",
+        "комедия"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.5,
+          "votes": 746,
+          "percent": 75
+        },
+        "rottenTomatoes": {
+          "critics": 92
+        }
+      }
+    },
+    {
+      "id": "payk-river-pike-river-2025",
+      "title": "Пайк Ривер",
+      "originalTitle": "Pike River",
+      "year": 2025,
+      "query": "Пайк Ривер Pike River 2025",
+      "genres": [
+        "триллер",
+        "драма",
+        "биография"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.5,
+          "votes": 189,
+          "percent": 75
+        },
+        "rottenTomatoes": {
+          "critics": 80
+        }
+      }
+    },
+    {
+      "id": "orel-ili-reshka-testa-o-croce-heads-or-tails-2025",
+      "title": "Орёл или решка?",
+      "originalTitle": "Testa o croce? (Heads or Tails?)",
+      "year": 2025,
+      "query": "Орёл или решка? Testa o croce? (Heads or Tails?) 2025",
+      "genres": [
+        "драма",
+        "вестерн"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.4,
+          "votes": 277,
+          "percent": 64
+        },
+        "rottenTomatoes": {
+          "critics": 91
+        }
+      }
+    },
+    {
+      "id": "volchok-2025",
+      "title": "Волчок",
+      "year": 2025,
+      "query": "Волчок 2025",
+      "genres": [
+        "приключения",
+        "комедия"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 8,
+          "votes": 41187,
+          "percent": 80
+        }
+      }
+    },
+    {
+      "id": "rovesnik-2024",
+      "title": "Ровесник",
+      "year": 2024,
+      "query": "Ровесник 2024",
+      "genres": [
+        "драма",
+        "фантастика",
+        "фэнтези",
+        "боевик",
+        "комедия",
+        "приключения"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.1,
+          "votes": 1136,
+          "percent": 71
+        },
+        "imdb": {
+          "value": 7.6,
+          "votes": 7500,
+          "percent": 76
+        },
+        "rottenTomatoes": {
+          "critics": 90,
+          "audience": 89
+        }
+      }
+    }
+  ]
+}
