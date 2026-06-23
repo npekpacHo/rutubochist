@@ -7,7 +7,7 @@
 [![Tampermonkey](https://img.shields.io/badge/Tampermonkey-Compatible-00485b.svg)](https://www.tampermonkey.net/)
 [![Userscript](https://img.shields.io/badge/type-userscript-blue.svg)](https://en.wikipedia.org/wiki/Userscript)
 [![RUTUBE](https://img.shields.io/badge/site-RUTUBE-111111.svg)](https://rutube.ru/)
-[![Version](https://img.shields.io/badge/version-1.1-blue.svg)](https://github.com/npekpacHo/rutubochist)
+[![Version](https://img.shields.io/badge/version-1.2-blue.svg)](https://github.com/npekpacHo/rutubochist)
 
 
 Скрипт добавляет пользовательский контроль над лентой и страницей просмотра: позволяет скрывать нежелательные каналы, Shorts, рекомендации под видео, комментарии, телевизионные разделы, промо-блоки и лишние элементы бокового меню.
