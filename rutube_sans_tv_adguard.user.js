@@ -1,7 +1,8 @@
+
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.2.1
+// @version      1.2.2
 // @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии и лишнее вокруг просмотра. Есть рекомендации что посмотреть, чистый плеер, анти-автозапуск, импорт/экспорт ЧС.
 // @author       elekt_riki
 // @license      MIT
@@ -357,7 +358,7 @@
           <button type="button" class="rtst-movie-cta-btn" data-rtst-action="open-movie-modal">Что посмотреть?</button>
           <div class="rtst-movie-cta-caption">подборки от CentralZD</div>
         </div>
-        <div class="rtst-small">Кнопка «⊘» скрывает канал. Чистый просмотр оставляет видео, описание и действия и точечно убирает рекомендательные секции.</div>
+        <div class="rtst-small">Кнопка «⊘» скрывает канал.</div>
       </div>
     `;
 
@@ -488,7 +489,7 @@
     modal.innerHTML = `
       <div class="rtst-modal" role="dialog" aria-modal="true">
         <div class="rtst-modal-head">
-          <div><div class="rtst-modal-title">Настройки Рутубочиста</div><div class="rtst-small">Всё хозяйство убрано сюда, чтобы панель больше не изображала шкаф управления.</div></div>
+          <div><div class="rtst-modal-title">Настройки Рутубочиста</div><div class="rtst-small">Здесь можно включить или отключить отдельные функции скрипта</div></div>
           <button type="button" data-rtst-action="close-modal">×</button>
         </div>
         <div class="rtst-modal-body">
@@ -503,20 +504,20 @@
           <div class="rtst-section">
             <div class="rtst-section-title">Отображение</div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-show-hidden"> показывать скрытое бледным</label></div>
-            <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-menu"> чистить боковое меню</label></div>
-            <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-shorts"> скрывать Shorts</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-menu"> чистить боковое меню от саморекламы и ТВ</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-shorts"> скрывать Шортсы в основных лентах</label></div>
           </div>
 
           <div class="rtst-section">
             <div class="rtst-section-title">Страница просмотра</div>
-            <div class="rtst-row"><label><input type="checkbox" id="rtst-clean-watch"> чистый просмотр видео</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-clean-watch"> чистить видеоплеер от рекомендаций</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-disable-autoplay"> подавлять автовоспроизведение</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-comments"> скрывать комментарии</label></div>
           </div>
 
           <div class="rtst-section">
-            <div class="rtst-section-title">Добавить в Чёрный список</div>
-            <input type="text" id="rtst-add-input" placeholder="Название канала или слово/фраза">
+            <div class="rtst-section-title">Добавить в ЧС</div>
+            <input type="text" id="rtst-add-input" placeholder="Слово или Фраза">
             <div class="rtst-actions">
               <button type="button" class="rtst-mini-btn" data-rtst-action="add-channel">Добавить канал</button>
               <button type="button" class="rtst-mini-btn" data-rtst-action="add-word">Добавить фразу</button>
@@ -524,7 +525,7 @@
           </div>
 
           <div class="rtst-section">
-            <div class="rtst-section-title">Списки блокировок</div>
+            <div class="rtst-section-title">Мои Черные списки</div>
             <div class="rtst-actions">
               <button type="button" class="rtst-mini-btn" data-rtst-action="open-list-modal" data-rtst-list="channels">Каналы <span class="rtst-count" id="rtst-channel-count"></span></button>
               <button type="button" class="rtst-mini-btn" data-rtst-action="open-list-modal" data-rtst-list="words">Фразы <span class="rtst-count" id="rtst-word-count"></span></button>
@@ -532,11 +533,11 @@
           </div>
 
           <div class="rtst-section">
-            <div class="rtst-section-title">Резервная копия</div>
+            <div class="rtst-section-title">Резервная копия ЧС</div>
             <div class="rtst-actions">
               <button type="button" class="rtst-mini-btn" data-rtst-action="export-settings">Экспорт</button>
               <button type="button" class="rtst-mini-btn" data-rtst-action="import-settings">Импорт</button>
-              <button type="button" class="rtst-mini-btn rtst-danger" data-rtst-action="reset-user">Очистить списки</button>
+              <button type="button" class="rtst-mini-btn rtst-danger" data-rtst-action="reset-user">Очистить ВСЁ</button>
               <input type="file" id="rtst-import-file" accept="application/json,.json">
             </div>
           </div>
