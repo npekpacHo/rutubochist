@@ -1,0 +1,149 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.1",
+  "id": "2026-01-10-centralzd",
+  "title": "Что посмотреть от 10.01.2026",
+  "date": "2026-01-10",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_10012026_13582461",
+  "extractedAt": "2026-06-23T07:20:47.033Z",
+  "count": 6,
+  "items": [
+    {
+      "id": "vyzhivshiy-not-without-hope-2025",
+      "title": "Выживший",
+      "originalTitle": "Not Without Hope",
+      "year": 2025,
+      "query": "Выживший Not Without Hope 2025",
+      "genres": [
+        "триллер",
+        "драма"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 5.8,
+          "votes": 3974,
+          "percent": 58
+        },
+        "imdb": {
+          "value": 5.4,
+          "votes": 472,
+          "percent": 54
+        },
+        "rottenTomatoes": {
+          "critics": 75,
+          "audience": 68
+        }
+      }
+    },
+    {
+      "id": "den-pitera-hudzhara-peter-hujar-s-day-2025",
+      "title": "День Питера Худжара",
+      "originalTitle": "Peter Hujar's Day",
+      "year": 2025,
+      "query": "День Питера Худжара Peter Hujar's Day 2025",
+      "genres": [
+        "драма",
+        "биография",
+        "история"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.5,
+          "votes": 442,
+          "percent": 65
+        },
+        "rottenTomatoes": {
+          "critics": 91
+        }
+      }
+    },
+    {
+      "id": "otpusk-na-dvoih-people-we-meet-on-vacation-2026",
+      "title": "Отпуск на двоих",
+      "originalTitle": "People We Meet on Vacation",
+      "year": 2026,
+      "query": "Отпуск на двоих People We Meet on Vacation 2026",
+      "genres": [
+        "мелодрама",
+        "комедия",
+        "экранизация"
+      ],
+      "ratings": {
+        "rottenTomatoes": {
+          "critics": 85
+        }
+      }
+    },
+    {
+      "id": "goluboy-put-o-ltimo-azul-the-blue-trail-2025",
+      "title": "Голубой путь",
+      "originalTitle": "O Último Azul (The Blue Trail)",
+      "year": 2025,
+      "query": "Голубой путь O Último Azul (The Blue Trail) 2025",
+      "genres": [
+        "фантастика",
+        "фэнтези",
+        "драма",
+        "приключения"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.2,
+          "votes": 2200,
+          "percent": 72
+        },
+        "rottenTomatoes": {
+          "critics": 100
+        }
+      }
+    },
+    {
+      "id": "na-vybros-2025",
+      "title": "На выброс",
+      "year": 2025,
+      "query": "На выброс 2025",
+      "genres": [
+        "мультфильм",
+        "приключения"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.6,
+          "votes": 1464,
+          "percent": 76
+        }
+      }
+    },
+    {
+      "id": "ego-i-ee-his-hers-1-sezon-2026",
+      "title": "Его и её",
+      "originalTitle": "His & Hers (1 сезон)",
+      "year": 2026,
+      "query": "Его и её His & Hers (1 сезон) 2026",
+      "genres": [
+        "триллер",
+        "драма",
+        "криминал",
+        "детектив",
+        "история",
+        "спорт"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.3,
+          "votes": 10000,
+          "percent": 73
+        },
+        "rottenTomatoes": {
+          "critics": 83,
+          "audience": 78
+        },
+        "kinopoisk": {
+          "value": 6.7,
+          "votes": 2388,
+          "percent": 67
+        }
+      }
+    }
+  ]
+}
