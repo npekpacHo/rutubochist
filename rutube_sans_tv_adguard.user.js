@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.1.20
-// @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии и лишнее вокруг просмотра. Есть чистый просмотр, анти-автозапуск, импорт/экспорт.
+// @version      1.2
+// @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии и лишнее вокруг просмотра. Есть рекомендации  что посмотреть, чистый плеер, анти-автозапуск, импорт/экспорт.
 // @author       elekt_riki
 // @license      MIT
 // @homepageURL  https://npekpacho.github.io/rutubochist/
@@ -19,7 +19,7 @@
   'use strict';
 
   const STORE_KEY = 'rtSansTvSettings:v1';
-  const UI_VERSION = '1.1.20';
+  const UI_VERSION = '1.1.25';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -87,6 +87,13 @@
   let nextAutoplayBlockUntil = 0;
   let lastVideoEndedAt = 0;
   let autoplayGuardInstalled = false;
+
+  const MOVIE_DB_BASE_URLS = [
+    'https://npekpacho.github.io/rutubochist/movies/',
+    'https://raw.githubusercontent.com/npekpacHo/rutubochist/main/movies/'
+  ];
+  const MOVIE_DB_INDEX_FILE = 'index.json';
+  const movieCache = { index: null, batches: new Map(), currentIndex: 0, currentBatch: null };
 
   function loadSettings() {
     try {
@@ -235,7 +242,10 @@
       .rtst-panel-subtitle { margin-top: 1px !important; opacity: .72 !important; font-size: 12px !important; }
       .rtst-panel-counter { margin-top: 3px !important; opacity: .78 !important; font-size: 12px !important; }
       .rtst-panel-caret { width: 28px !important; height: 28px !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; border-radius: 6px !important; background: rgba(255,255,255,.08) !important; border: 1px solid rgba(255,255,255,.11) !important; }
-      .rtst-panel-body { padding: 12px 14px 14px !important; }
+      .rtst-panel .rtst-head-gear { width: 28px !important; height: 28px !important; min-width: 28px !important; min-height: 28px !important; padding: 0 !important; border-radius: 6px !important; background: rgba(255,255,255,.08) !important; border: 1px solid rgba(255,255,255,.11) !important; color: #f4fff7 !important; box-shadow: none !important; font: 700 15px/1 Arial, sans-serif !important; }
+    .rtst-panel .rtst-head-gear:hover { background: rgba(255,255,255,.16) !important; filter: none !important; }
+    .rtst-panel[data-collapsed="1"] .rtst-head-gear { display: none !important; }
+    .rtst-panel-body { padding: 12px 14px 14px !important; }
       .rtst-row { display: flex !important; gap: 8px !important; align-items: center !important; flex-wrap: wrap !important; margin: 8px 0 !important; }
       .rtst-panel label { display: flex !important; gap: 7px !important; align-items: center !important; cursor: pointer !important; }
       .rtst-panel input[type="text"] { width: 100% !important; min-height: 32px !important; padding: 6px 8px !important; border-radius: 11px !important; border: 1px solid rgba(186,242,198,.22) !important; background: rgba(255,255,255,.08) !important; color: #f4fff7 !important; outline: none !important; }
@@ -251,6 +261,10 @@
       .rtst-radio { min-height: 30px !important; padding: 6px 8px !important; border: 1px solid rgba(255,255,255,.14) !important; border-radius: 6px !important; background: rgba(255,255,255,.055) !important; }
       .rtst-panel input[type="radio"], .rtst-panel input[type="checkbox"] { accent-color: #bdf2c8 !important; }
       .rtst-actions { display: flex !important; gap: 6px !important; flex-wrap: wrap !important; margin-top: 8px !important; }
+    .rtst-panel .rtst-movie-cta { margin: 2px 0 13px !important; padding: 0 !important; }
+    .rtst-panel .rtst-movie-cta-btn { width: 100% !important; min-height: 42px !important; padding: 8px 14px !important; border-radius: 10px !important; font: 800 14px/1.2 Arial, sans-serif !important; letter-spacing: .1px !important; }
+    .rtst-panel .rtst-movie-cta-caption { margin-top: 7px !important; color: rgba(244,255,247,.66) !important; font: 12px/1.35 Arial, sans-serif !important; text-align: center !important; }
+
       .rtst-panel .rtst-mini-btn { min-height: 28px !important; padding: 5px 8px !important; border-radius: 6px !important; background: rgba(255,255,255,.10) !important; color: #f4fff7 !important; border: 1px solid rgba(255,255,255,.14) !important; box-shadow: none !important; font-weight: 600 !important; }
       .rtst-panel .rtst-mini-btn:hover { background: rgba(255,255,255,.18) !important; }
       .rtst-count { opacity: .62 !important; font-weight: 400 !important; }
@@ -263,7 +277,20 @@
       .rtst-modal-actions { display: flex !important; justify-content: space-between !important; gap: 8px !important; flex-wrap: wrap !important; margin-top: 10px !important; }
       .rtst-modal button { min-height: 30px !important; padding: 6px 10px !important; border: 1px solid rgba(255,255,255,.14) !important; border-radius: 6px !important; background: #ececec !important; color: #111 !important; cursor: pointer !important; font: 600 12px/1.2 Arial, sans-serif !important; }
       .rtst-modal .rtst-danger { background: #ffcbc6 !important; color: #2a0805 !important; }
-      .rtst-toast { position: fixed !important; right: 14px !important; bottom: 14px !important; z-index: 2147483647 !important; max-width: calc(100vw - 28px) !important; padding: 10px 12px !important; border-radius: 12px !important; background: rgba(0,0,0,.86) !important; color: #fff !important; font: 13px/1.35 Arial, sans-serif !important; box-shadow: 0 8px 30px rgba(0,0,0,.3) !important; }
+      .rtst-modal.rtst-movie-modal { width: 820px !important; max-width: calc(100vw - 32px) !important; }
+    .rtst-movie-source { color: rgba(244,255,247,.76) !important; text-decoration: underline !important; }
+    .rtst-movie-toolbar { display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 8px !important; flex-wrap: wrap !important; margin: 0 0 10px !important; }
+    .rtst-movie-nav { display: flex !important; gap: 6px !important; flex-wrap: wrap !important; align-items: center !important; }
+    .rtst-movie-status { color: rgba(244,255,247,.78) !important; font: 12px/1.35 Arial, sans-serif !important; }
+    .rtst-movie-list { display: flex !important; flex-direction: column !important; gap: 6px !important; margin-top: 8px !important; }
+    .rtst-modal .rtst-movie-row { display: block !important; width: 100% !important; min-height: 0 !important; margin: 0 !important; padding: 8px 10px !important; border: 1px solid rgba(255,255,255,.10) !important; border-radius: 8px !important; background: rgba(255,255,255,.055) !important; color: #f4fff7 !important; cursor: pointer !important; text-align: left !important; box-shadow: none !important; font: 13px/1.35 Arial, sans-serif !important; }
+    .rtst-modal .rtst-movie-row:hover { background: rgba(255,255,255,.105) !important; filter: none !important; }
+    .rtst-movie-title-line { display: block !important; color: #f4fff7 !important; font-weight: 800 !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+    .rtst-movie-meta-line { display: block !important; margin-top: 2px !important; color: rgba(244,255,247,.76) !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; font-size: 12px !important; }
+    .rtst-movie-loading, .rtst-movie-error, .rtst-movie-empty { padding: 12px !important; border: 1px solid rgba(255,255,255,.10) !important; border-radius: 8px !important; background: rgba(255,255,255,.055) !important; color: rgba(244,255,247,.82) !important; font: 13px/1.45 Arial, sans-serif !important; }
+    .rtst-movie-error { color: #ffd6d2 !important; }
+    @media (max-width: 680px) { .rtst-modal.rtst-movie-modal { width: calc(100vw - 20px) !important; max-width: calc(100vw - 20px) !important; } .rtst-movie-meta-line { white-space: normal !important; } }
+    .rtst-toast { position: fixed !important; right: 14px !important; bottom: 14px !important; z-index: 2147483647 !important; max-width: calc(100vw - 28px) !important; padding: 10px 12px !important; border-radius: 12px !important; background: rgba(0,0,0,.86) !important; color: #fff !important; font: 13px/1.35 Arial, sans-serif !important; box-shadow: 0 8px 30px rgba(0,0,0,.3) !important; }
     `;
 
     const inject = () => {
@@ -320,52 +347,13 @@
           <span class="rtst-panel-compact-icon">⊘</span>
           <span class="rtst-panel-compact-count" id="rtst-compact-count">0</span>
         </div>
+        <button type="button" class="rtst-head-gear" data-rtst-action="open-settings-modal" title="Настройки">⚙</button>
         <div class="rtst-panel-caret">▾</div>
       </div>
       <div class="rtst-panel-body">
-        <div class="rtst-section">
-          <div class="rtst-section-title">Состояние фильтра</div>
-          <div class="rtst-radio-group">
-            <label class="rtst-radio"><input type="radio" name="rtst-enabled-radio" id="rtst-enabled-on" value="on"> включён</label>
-            <label class="rtst-radio"><input type="radio" name="rtst-enabled-radio" id="rtst-enabled-off" value="off"> выключен</label>
-          </div>
-        </div>
-
-        <div class="rtst-section">
-          <div class="rtst-section-title">Настройки</div>
-          <div class="rtst-row"><label><input type="checkbox" id="rtst-show-hidden"> показывать скрытое бледным</label></div>
-          <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-menu"> чистить боковое меню</label></div>
-          <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-shorts"> скрывать Shorts</label></div>
-          <div class="rtst-row"><label><input type="checkbox" id="rtst-clean-watch"> чистый просмотр видео</label></div>
-          <div class="rtst-row"><label><input type="checkbox" id="rtst-disable-autoplay"> подавлять автовоспроизведение</label></div>
-          <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-comments"> скрывать комментарии</label></div>
-        </div>
-
-        <div class="rtst-section">
-          <div class="rtst-section-title">Добавить в Чёрный список</div>
-          <input type="text" id="rtst-add-input" placeholder="Название канала или слово/фраза">
-          <div class="rtst-actions">
-            <button type="button" class="rtst-mini-btn" data-rtst-action="add-channel">Добавить канал</button>
-            <button type="button" class="rtst-mini-btn" data-rtst-action="add-word">Добавить фразу</button>
-          </div>
-        </div>
-
-        <div class="rtst-section">
-          <div class="rtst-section-title">Списки блокировок</div>
-          <div class="rtst-actions">
-            <button type="button" class="rtst-mini-btn" data-rtst-action="open-list-modal" data-rtst-list="channels">Каналы <span class="rtst-count" id="rtst-channel-count"></span></button>
-            <button type="button" class="rtst-mini-btn" data-rtst-action="open-list-modal" data-rtst-list="words">Фразы <span class="rtst-count" id="rtst-word-count"></span></button>
-          </div>
-        </div>
-
-        <div class="rtst-section">
-          <div class="rtst-section-title">Резервная копия</div>
-          <div class="rtst-actions">
-            <button type="button" class="rtst-mini-btn" data-rtst-action="export-settings">Экспорт</button>
-            <button type="button" class="rtst-mini-btn" data-rtst-action="import-settings">Импорт</button>
-            <button type="button" class="rtst-mini-btn rtst-danger" data-rtst-action="reset-user">Очистить списки</button>
-            <input type="file" id="rtst-import-file" accept="application/json,.json">
-          </div>
+        <div class="rtst-movie-cta">
+          <button type="button" class="rtst-movie-cta-btn" data-rtst-action="open-movie-modal">Что посмотреть?</button>
+          <div class="rtst-movie-cta-caption">подборки от CentralZD</div>
         </div>
         <div class="rtst-small">Кнопка «⊘» скрывает канал. Чистый просмотр оставляет видео, описание и действия и точечно убирает рекомендательные секции.</div>
       </div>
@@ -388,21 +376,20 @@
     updatePanelRouteState();
     const enabledOn = document.getElementById('rtst-enabled-on');
     const enabledOff = document.getElementById('rtst-enabled-off');
-    if (!enabledOn || !enabledOff) return;
-    enabledOn.checked = Boolean(settings.enabled);
-    enabledOff.checked = !settings.enabled;
-    document.getElementById('rtst-show-hidden').checked = Boolean(settings.showHidden);
-    document.getElementById('rtst-hide-menu').checked = Boolean(settings.hideSideMenuPolitics || settings.cleanRutubeChrome);
-    
+    if (enabledOn && enabledOff) {
+      enabledOn.checked = Boolean(settings.enabled);
+      enabledOff.checked = !settings.enabled;
+    }
+    const showHidden = document.getElementById('rtst-show-hidden');
+    if (showHidden) showHidden.checked = Boolean(settings.showHidden);
+    const hideMenu = document.getElementById('rtst-hide-menu');
+    if (hideMenu) hideMenu.checked = Boolean(settings.hideSideMenuPolitics || settings.cleanRutubeChrome);
     const hideShorts = document.getElementById('rtst-hide-shorts');
     if (hideShorts) hideShorts.checked = Boolean(settings.hideShorts);
-    
     const cleanWatch = document.getElementById('rtst-clean-watch');
     if (cleanWatch) cleanWatch.checked = Boolean(settings.cleanWatchPage);
-    
     const disableAutoplay = document.getElementById('rtst-disable-autoplay');
     if (disableAutoplay) disableAutoplay.checked = Boolean(settings.disableAutoplay);
-    
     const hideCommentsToggle = document.getElementById('rtst-hide-comments');
     if (hideCommentsToggle) hideCommentsToggle.checked = Boolean(settings.hideComments);
     
@@ -458,6 +445,13 @@
         else toast('Не смог определить канал.');
         return;
       }
+      if (action === 'open-movie-modal') { openMovieModal(); return; }
+      if (action === 'open-settings-modal') { openSettingsModal(); return; }
+      if (action === 'movie-newer') { switchMovieBatch(-1); return; }
+      if (action === 'movie-older') { switchMovieBatch(1); return; }
+      if (action === 'movie-refresh') { refreshMovieNavigator(); return; }
+      if (action === 'movie-random') { openRandomMovieSearch(); return; }
+      if (action === 'movie-search') { event.preventDefault(); event.stopPropagation(); openRutubeMovieSearch(actionEl.dataset.rtstQuery || '', actionEl.dataset.rtstTrailer === '1'); return; }
       if (action === 'open-list-modal') { openListModal(actionEl.dataset.rtstList || 'channels'); return; }
       if (action === 'close-modal') { closeModal(); return; }
       if (action === 'modal-save-list') { saveListFromModal(actionEl.dataset.rtstList || 'channels'); return; }
@@ -482,6 +476,295 @@
       if (action === 'export-settings') { exportSettings(); return; }
       if (action === 'import-settings') { const input = document.getElementById('rtst-import-file'); if (input) input.click(); }
     }, true);
+  }
+
+  function openSettingsModal() {
+    closeModal();
+    const modal = document.createElement('div');
+    modal.className = 'rtst-modal-backdrop';
+    modal.innerHTML = `
+      <div class="rtst-modal" role="dialog" aria-modal="true">
+        <div class="rtst-modal-head">
+          <div><div class="rtst-modal-title">Настройки Рутубочиста</div><div class="rtst-small">Всё хозяйство убрано сюда, чтобы панель больше не изображала шкаф управления.</div></div>
+          <button type="button" data-rtst-action="close-modal">×</button>
+        </div>
+        <div class="rtst-modal-body">
+          <div class="rtst-section">
+            <div class="rtst-section-title">Состояние фильтра</div>
+            <div class="rtst-radio-group">
+              <label class="rtst-radio"><input type="radio" name="rtst-enabled-radio" id="rtst-enabled-on" value="on"> включён</label>
+              <label class="rtst-radio"><input type="radio" name="rtst-enabled-radio" id="rtst-enabled-off" value="off"> выключен</label>
+            </div>
+          </div>
+
+          <div class="rtst-section">
+            <div class="rtst-section-title">Отображение</div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-show-hidden"> показывать скрытое бледным</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-menu"> чистить боковое меню</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-shorts"> скрывать Shorts</label></div>
+          </div>
+
+          <div class="rtst-section">
+            <div class="rtst-section-title">Страница просмотра</div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-clean-watch"> чистый просмотр видео</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-disable-autoplay"> подавлять автовоспроизведение</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-comments"> скрывать комментарии</label></div>
+          </div>
+
+          <div class="rtst-section">
+            <div class="rtst-section-title">Добавить в Чёрный список</div>
+            <input type="text" id="rtst-add-input" placeholder="Название канала или слово/фраза">
+            <div class="rtst-actions">
+              <button type="button" class="rtst-mini-btn" data-rtst-action="add-channel">Добавить канал</button>
+              <button type="button" class="rtst-mini-btn" data-rtst-action="add-word">Добавить фразу</button>
+            </div>
+          </div>
+
+          <div class="rtst-section">
+            <div class="rtst-section-title">Списки блокировок</div>
+            <div class="rtst-actions">
+              <button type="button" class="rtst-mini-btn" data-rtst-action="open-list-modal" data-rtst-list="channels">Каналы <span class="rtst-count" id="rtst-channel-count"></span></button>
+              <button type="button" class="rtst-mini-btn" data-rtst-action="open-list-modal" data-rtst-list="words">Фразы <span class="rtst-count" id="rtst-word-count"></span></button>
+            </div>
+          </div>
+
+          <div class="rtst-section">
+            <div class="rtst-section-title">Резервная копия</div>
+            <div class="rtst-actions">
+              <button type="button" class="rtst-mini-btn" data-rtst-action="export-settings">Экспорт</button>
+              <button type="button" class="rtst-mini-btn" data-rtst-action="import-settings">Импорт</button>
+              <button type="button" class="rtst-mini-btn rtst-danger" data-rtst-action="reset-user">Очистить списки</button>
+              <input type="file" id="rtst-import-file" accept="application/json,.json">
+            </div>
+          </div>
+
+          <div class="rtst-modal-actions">
+            <button type="button" data-rtst-action="close-modal">Закрыть</button>
+          </div>
+        </div>
+      </div>`;
+    document.documentElement.appendChild(modal);
+    syncPanel();
+  }
+
+  function openMovieModal(index) {
+    closeModal();
+    movieCache.currentIndex = Number.isFinite(index) ? index : (movieCache.currentIndex || 0);
+    const modal = document.createElement('div');
+    modal.className = 'rtst-modal-backdrop';
+    modal.innerHTML = `
+      <div class="rtst-modal rtst-movie-modal" role="dialog" aria-modal="true">
+        <div class="rtst-modal-head">
+          <div>
+            <div class="rtst-modal-title">Что посмотреть?</div>
+            <div class="rtst-small">Компактные подборки фильмов из базы Рутубочиста. Клик по фильму открывает поиск на RUTUBE.</div>
+          </div>
+          <button type="button" data-rtst-action="close-modal">×</button>
+        </div>
+        <div class="rtst-modal-body" id="rtst-movie-body">
+          <div class="rtst-movie-loading">Загружаю подборки. Если GitHub опять решил быть GitHub, подождём секунду.</div>
+        </div>
+      </div>`;
+    document.documentElement.appendChild(modal);
+    renderMovieBatch(movieCache.currentIndex);
+  }
+
+  async function renderMovieBatch(index) {
+    const body = document.getElementById('rtst-movie-body');
+    if (!body) return;
+    body.innerHTML = '<div class="rtst-movie-loading">Загружаю подборку...</div>';
+    try {
+      const result = await loadMovieBatch(index);
+      const stillBody = document.getElementById('rtst-movie-body');
+      if (!stillBody) return;
+      stillBody.innerHTML = renderMovieBatchHtml(result.batch, result.entry, result.indexData, result.index);
+    } catch (e) {
+      const stillBody = document.getElementById('rtst-movie-body');
+      if (!stillBody) return;
+      stillBody.innerHTML = `
+        <div class="rtst-movie-error">
+          Не удалось загрузить базу фильмов.<br>
+          Проверь, что на GitHub лежит <b>movies/index.json</b> и файлы подборок в <b>movies/batches/</b>.<br>
+          <span class="rtst-small">${escapeHtml(e && e.message ? e.message : String(e))}</span>
+        </div>`;
+    }
+  }
+
+  function renderMovieBatchHtml(batch, entry, indexData, index) {
+    const items = Array.isArray(batch.items) ? batch.items : [];
+    const total = Array.isArray(indexData.batches) ? indexData.batches.length : 0;
+    const title = batch.title || (entry && entry.title) || 'Подборка фильмов';
+    const sourceUrl = batch.sourceUrl || (entry && entry.sourceUrl) || '';
+    const sourceLink = sourceUrl ? `<a class="rtst-movie-source" href="${escapeAttribute(sourceUrl)}" target="_blank" rel="noopener noreferrer">пост на Пикабу</a>` : '';
+    const rows = items.length ? items.map(renderMovieRow).join('') : '<div class="rtst-movie-empty">В этой подборке пусто. Даже кино не выдержало.</div>';
+    return `
+      <div class="rtst-movie-toolbar">
+        <div>
+          <div class="rtst-modal-title">${escapeHtml(title)}</div>
+          <div class="rtst-movie-status">${escapeHtml(String(index + 1))} из ${escapeHtml(String(total))} · фильмов: ${escapeHtml(String(items.length))}${sourceLink ? ' · ' + sourceLink : ''}</div>
+        </div>
+        <div class="rtst-movie-nav">
+          <button type="button" data-rtst-action="movie-newer" ${index <= 0 ? 'disabled' : ''}>← новее</button>
+          <button type="button" data-rtst-action="movie-random">случайный</button>
+          <button type="button" data-rtst-action="movie-refresh">обновить</button>
+          <button type="button" data-rtst-action="movie-older" ${index >= total - 1 ? 'disabled' : ''}>старее →</button>
+        </div>
+      </div>
+      <div class="rtst-movie-list">${rows}</div>`;
+  }
+
+  function renderMovieRow(movie) {
+    const query = movie && (movie.query || buildMovieQuery(movie));
+    const title = movieTitleLine(movie);
+    const meta = [renderMovieGenres(movie && movie.genres), renderMovieRatings(movie && movie.ratings)].filter(Boolean).join('   ');
+    return `
+      <button type="button" class="rtst-movie-row" data-rtst-action="movie-search" data-rtst-query="${escapeAttribute(query)}" title="Искать на RUTUBE: ${escapeAttribute(query)}">
+        <span class="rtst-movie-title-line">${escapeHtml(title)}</span>
+        <span class="rtst-movie-meta-line">${escapeHtml(meta || 'без жанров и рейтингов')}</span>
+      </button>`;
+  }
+
+  function movieTitleLine(movie) {
+    if (!movie) return 'Без названия';
+    const title = String(movie.title || '').trim() || 'Без названия';
+    const original = String(movie.originalTitle || '').trim();
+    const year = movie.year ? ` (${movie.year})` : '';
+    return `${title}${original ? ' / ' + original : ''}${year}`;
+  }
+
+  function buildMovieQuery(movie) {
+    if (!movie) return '';
+    return [movie.title, movie.originalTitle, movie.year].filter(Boolean).join(' ');
+  }
+
+  function renderMovieGenres(genres) {
+    if (!Array.isArray(genres) || !genres.length) return '';
+    const shown = genres.slice(0, 3).map((genre) => `${movieGenreIcon(genre)} ${genre}`);
+    const rest = genres.length - shown.length;
+    if (rest > 0) shown.push(`+${rest}`);
+    return shown.join('   ');
+  }
+
+  function movieGenreIcon(genre) {
+    const g = normalize(genre);
+    if (g.includes('мюзикл') || g.includes('музык')) return '🎵';
+    if (g.includes('драма')) return '🎭';
+    if (g.includes('комед')) return '😄';
+    if (g.includes('боев')) return '💥';
+    if (g.includes('трилл')) return '⚡';
+    if (g.includes('ужас')) return '👻';
+    if (g.includes('фантаст')) return '🚀';
+    if (g.includes('фэнт')) return '🐉';
+    if (g.includes('мульт') || g.includes('анима')) return '🎨';
+    if (g.includes('детектив')) return '🕵️';
+    if (g.includes('криминал')) return '🧩';
+    if (g.includes('приключ')) return '🧭';
+    if (g.includes('мелодрам')) return '💞';
+    if (g.includes('документ')) return '📚';
+    if (g.includes('семейн')) return '🏠';
+    if (g.includes('вестерн')) return '🤠';
+    if (g.includes('воен')) return '🪖';
+    if (g.includes('биограф')) return '👤';
+    if (g.includes('истор')) return '🏛️';
+    if (g.includes('спорт')) return '🏆';
+    return '🎬';
+  }
+
+  function renderMovieRatings(ratings) {
+    if (!ratings || typeof ratings !== 'object') return '';
+    const parts = [];
+    if (ratings.imdb && Number.isFinite(Number(ratings.imdb.value))) {
+      const percent = Number.isFinite(Number(ratings.imdb.percent)) ? Number(ratings.imdb.percent) : Number(ratings.imdb.value) * 10;
+      parts.push(`IMDb ${movieRatingBar(percent)} ${formatMovieRatingValue(ratings.imdb.value)}/10`);
+    }
+    if (ratings.kinopoisk && Number.isFinite(Number(ratings.kinopoisk.value))) {
+      const percent = Number.isFinite(Number(ratings.kinopoisk.percent)) ? Number(ratings.kinopoisk.percent) : Number(ratings.kinopoisk.value) * 10;
+      parts.push(`КП ${movieRatingBar(percent)} ${formatMovieRatingValue(ratings.kinopoisk.value)}/10`);
+    }
+    if (ratings.rottenTomatoes && typeof ratings.rottenTomatoes === 'object') {
+      const critics = ratings.rottenTomatoes.critics != null ? ratings.rottenTomatoes.critics : '–';
+      const audience = ratings.rottenTomatoes.audience != null ? ratings.rottenTomatoes.audience : '–';
+      parts.push(`🍅 ${critics}/${audience}`);
+    }
+    return parts.join('   ');
+  }
+
+  function formatMovieRatingValue(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return String(value || '');
+    return Number.isInteger(n) ? String(n) : String(Math.round(n * 10) / 10);
+  }
+
+  function movieRatingBar(percent) {
+    const filled = Math.max(0, Math.min(10, Math.round((Number(percent) || 0) / 10)));
+    return '█'.repeat(filled) + '░'.repeat(10 - filled);
+  }
+
+  async function loadMovieBatch(index) {
+    const indexData = await loadMovieIndex();
+    const batches = Array.isArray(indexData.batches) ? indexData.batches : [];
+    if (!batches.length) throw new Error('movies/index.json загружен, но в нём нет batches. Прекрасно, база есть, а фильмов нет.');
+    const safeIndex = Math.max(0, Math.min(batches.length - 1, Number(index) || 0));
+    const entry = batches[safeIndex];
+    const cacheKey = entry.id || entry.file || String(safeIndex);
+    let batch = movieCache.batches.get(cacheKey);
+    if (!batch) {
+      if (!entry.file) throw new Error(`У подборки ${entry.title || cacheKey} не указан file.`);
+      batch = await loadMovieJson(entry.file);
+      movieCache.batches.set(cacheKey, batch);
+    }
+    movieCache.currentIndex = safeIndex;
+    movieCache.currentBatch = batch;
+    return { indexData, entry, batch, index: safeIndex };
+  }
+
+  async function loadMovieIndex() {
+    if (movieCache.index) return movieCache.index;
+    movieCache.index = await loadMovieJson(MOVIE_DB_INDEX_FILE);
+    return movieCache.index;
+  }
+
+  async function loadMovieJson(path) {
+    const cleanPath = String(path || '').replace(/^\/+/, '');
+    const urls = /^https?:\/\//i.test(cleanPath) ? [cleanPath] : MOVIE_DB_BASE_URLS.map((base) => base + cleanPath);
+    let lastError = null;
+    for (const baseUrl of urls) {
+      const url = baseUrl + (baseUrl.includes('?') ? '&' : '?') + 'rtst=' + Date.now();
+      try {
+        const response = await fetch(url, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+        return await response.json();
+      } catch (e) {
+        lastError = e;
+      }
+    }
+    throw lastError || new Error('Не удалось загрузить JSON базы фильмов.');
+  }
+
+  function switchMovieBatch(delta) {
+    renderMovieBatch((movieCache.currentIndex || 0) + delta);
+  }
+
+  function refreshMovieNavigator() {
+    movieCache.index = null;
+    movieCache.batches.clear();
+    movieCache.currentBatch = null;
+    renderMovieBatch(movieCache.currentIndex || 0);
+  }
+
+  function openRandomMovieSearch() {
+    const items = movieCache.currentBatch && Array.isArray(movieCache.currentBatch.items) ? movieCache.currentBatch.items : [];
+    if (!items.length) { toast('В текущей подборке фильмов нет. Даже случайности не из чего выбирать.'); return; }
+    const movie = items[Math.floor(Math.random() * items.length)];
+    openRutubeMovieSearch(movie.query || buildMovieQuery(movie), false);
+  }
+
+  function openRutubeMovieSearch(query, trailer) {
+    const clean = String(query || '').trim();
+    if (!clean) { toast('Пустой поисковый запрос. Кино без названия, артхаус победил.'); return; }
+    const finalQuery = trailer ? `${clean} трейлер` : clean;
+    const params = new URLSearchParams({ query: finalQuery, content_type: 'video' });
+    window.open('https://rutube.ru/search/?' + params.toString(), '_blank', 'noopener');
   }
 
   function openListModal(type) {
@@ -549,7 +832,7 @@
 
   function exportSettings() {
     const payload = {
-      app: 'RUTUBE Sans TV', version: '1.1.20', exportedAt: new Date().toISOString(),
+      app: 'RUTUBE Sans TV', version: '1.1.25', exportedAt: new Date().toISOString(),
       settings: {
         enabled: settings.enabled, showHidden: settings.showHidden, hideSideMenuPolitics: settings.hideSideMenuPolitics,
         hideShorts: settings.hideShorts, hardRemove: settings.hardRemove, cleanRutubeChrome: settings.cleanRutubeChrome,
@@ -701,6 +984,20 @@
       return;
     }
 
+    // Страницы поиска не трогаем фильтрами просмотра и комментариев.
+    // Rutube на /search/ легко превращается в чёрный прямоугольник, если прятать слишком широкие блоки.
+    if (isSearchPage()) {
+      if (settings.hideSideMenuPolitics || settings.cleanRutubeChrome) {
+        scanNavigationLinks();
+        cleanRutubeChrome();
+        reorderSidebar();
+      }
+      if (settings.disableAutoplay) scanAutoplayVideos();
+      applyHiddenVisibility();
+      updateCounter();
+      return;
+    }
+
     scanCards();
     if (settings.hideSideMenuPolitics || settings.cleanRutubeChrome) {
       scanNavigationLinks();
@@ -709,7 +1006,7 @@
     }
     hideShortsBlocks(); 
     if (settings.cleanWatchPage) cleanWatchPage();
-    if (settings.hideComments) hideComments();
+    if (settings.hideComments && isVideoPage()) hideComments();
     if (settings.disableAutoplay) scanAutoplayVideos();
     
     applyHiddenVisibility();
@@ -742,6 +1039,7 @@
   function isPlaylistPage() { return /^\/plst\//.test(location.pathname); }
   function isWatchPage() { return isVideoPage() || isPlaylistPage(); }
   function isMyPage() { return /^\/my(?:\/|$)/.test(location.pathname); }
+  function isSearchPage() { return /^\/search(?:\/|$)/.test(location.pathname); }
   function isProtectedHeader(el) { return Boolean(el && el.closest('header, [role="banner"], .wdp-header-module__header, [class*="header-module__header"], [class*="Header-module__header"]')); }
 
   function cleanWatchPage() {
