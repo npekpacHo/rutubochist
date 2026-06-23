@@ -369,9 +369,10 @@
           <div class="rtst-movie-cta-caption">подборки от CentralZD</div>
         </div>
         <div class="rtst-panel-footer">
-          <div class="rtst-small">Кнопка «⊘» скрывает канал.</div>
-		  <div class="rtst-small">©2026 npekpacHo</div>
-          <button type="button" class="rtst-github-link" id="rtst-github-link" data-rtst-action="open-project" data-state="unknown" title="GitHub проекта">🐙</button>
+          <div class="rtst-small">Кнопка «⊘» скрывает канал.
+		  ©2026 npekpacHo
+		  </div>
+          <button type="button" class="rtst-github-link" id="rtst-github-link" data-rtst-action="open-project" data-state="unknown" title="GitHub">🐙</button>
         </div>
       </div>
     `;
