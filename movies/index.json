@@ -3,6 +3,14 @@
   "updatedAt": "2026-06-23",
   "batches": [
     {
+  "id": "2026-02-21-centralzd",
+  "title": "Что посмотреть от 21.02.2026",
+  "date": "2026-02-21",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_21022026_13715381",
+  "file": "batches/2026-02-21-centralzd.json",
+  "count": 7
+},
+    {
   "id": "2026-02-14-centralzd",
   "title": "Что посмотреть от 14.02.2026",
   "date": "2026-02-14",
