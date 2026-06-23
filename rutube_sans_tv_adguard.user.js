@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.2
-// @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии и лишнее вокруг просмотра. Есть рекомендации  что посмотреть, чистый плеер, анти-автозапуск, импорт/экспорт.
+// @version      1.2.1
+// @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии и лишнее вокруг просмотра. Есть рекомендации что посмотреть, чистый плеер, анти-автозапуск, импорт/экспорт ЧС.
 // @author       elekt_riki
 // @license      MIT
 // @homepageURL  https://npekpacho.github.io/rutubochist/
@@ -19,7 +19,7 @@
   'use strict';
 
   const STORE_KEY = 'rtSansTvSettings:v1';
-  const UI_VERSION = '1.1.25';
+  const UI_VERSION = '1.1.26';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -279,6 +279,8 @@
       .rtst-modal .rtst-danger { background: #ffcbc6 !important; color: #2a0805 !important; }
       .rtst-modal.rtst-movie-modal { width: 820px !important; max-width: calc(100vw - 32px) !important; }
     .rtst-movie-source { color: rgba(244,255,247,.76) !important; text-decoration: underline !important; }
+    .rtst-modal .rtst-movie-source-btn { min-height: 0 !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; background: transparent !important; color: rgba(244,255,247,.76) !important; box-shadow: none !important; text-decoration: underline !important; font: 12px/1.35 Arial, sans-serif !important; cursor: pointer !important; }
+    .rtst-modal .rtst-movie-source-btn:hover { color: #f4fff7 !important; filter: none !important; }
     .rtst-movie-toolbar { display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 8px !important; flex-wrap: wrap !important; margin: 0 0 10px !important; }
     .rtst-movie-nav { display: flex !important; gap: 6px !important; flex-wrap: wrap !important; align-items: center !important; }
     .rtst-movie-status { color: rgba(244,255,247,.78) !important; font: 12px/1.35 Arial, sans-serif !important; }
@@ -452,6 +454,7 @@
       if (action === 'movie-refresh') { refreshMovieNavigator(); return; }
       if (action === 'movie-random') { openRandomMovieSearch(); return; }
       if (action === 'movie-search') { event.preventDefault(); event.stopPropagation(); openRutubeMovieSearch(actionEl.dataset.rtstQuery || '', actionEl.dataset.rtstTrailer === '1'); return; }
+      if (action === 'movie-source') { event.preventDefault(); event.stopPropagation(); openExternalMovieSource(actionEl.dataset.rtstUrl || ''); return; }
       if (action === 'open-list-modal') { openListModal(actionEl.dataset.rtstList || 'channels'); return; }
       if (action === 'close-modal') { closeModal(); return; }
       if (action === 'modal-save-list') { saveListFromModal(actionEl.dataset.rtstList || 'channels'); return; }
@@ -595,7 +598,7 @@
     const total = Array.isArray(indexData.batches) ? indexData.batches.length : 0;
     const title = batch.title || (entry && entry.title) || 'Подборка фильмов';
     const sourceUrl = batch.sourceUrl || (entry && entry.sourceUrl) || '';
-    const sourceLink = sourceUrl ? `<a class="rtst-movie-source" href="${escapeAttribute(sourceUrl)}" target="_blank" rel="noopener noreferrer">пост на Пикабу</a>` : '';
+    const sourceLink = sourceUrl ? `<button type="button" class="rtst-movie-source-btn" data-rtst-action="movie-source" data-rtst-url="${escapeAttribute(sourceUrl)}">пост на Пикабу</button>` : '';
     const rows = items.length ? items.map(renderMovieRow).join('') : '<div class="rtst-movie-empty">В этой подборке пусто. Даже кино не выдержало.</div>';
     return `
       <div class="rtst-movie-toolbar">
@@ -767,6 +770,13 @@
     window.open('https://rutube.ru/search/?' + params.toString(), '_blank', 'noopener');
   }
 
+  function openExternalMovieSource(url) {
+    const clean = String(url || '').trim();
+    if (!/^https:\/\/pikabu\.ru\//i.test(clean)) { toast('Ссылка на источник выглядит подозрительно. Не открываю.'); return; }
+    const opened = window.open(clean, '_blank', 'noopener,noreferrer');
+    if (!opened) toast('Браузер заблокировал новую вкладку. Такое вот цифровое гостеприимство.');
+  }
+
   function openListModal(type) {
     closeModal();
     const isWords = type === 'words';
@@ -832,7 +842,7 @@
 
   function exportSettings() {
     const payload = {
-      app: 'RUTUBE Sans TV', version: '1.1.25', exportedAt: new Date().toISOString(),
+      app: 'RUTUBE Sans TV', version: '1.1.26', exportedAt: new Date().toISOString(),
       settings: {
         enabled: settings.enabled, showHidden: settings.showHidden, hideSideMenuPolitics: settings.hideSideMenuPolitics,
         hideShorts: settings.hideShorts, hardRemove: settings.hardRemove, cleanRutubeChrome: settings.cleanRutubeChrome,
