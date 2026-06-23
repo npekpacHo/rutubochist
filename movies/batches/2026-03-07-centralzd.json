@@ -1,0 +1,165 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.1",
+  "id": "2026-03-07-centralzd",
+  "title": "Что посмотреть от 07.03.2026",
+  "date": "2026-03-07",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_07032026_13760874",
+  "extractedAt": "2026-06-23T07:44:31.506Z",
+  "count": 6,
+  "items": [
+    {
+      "id": "voennaya-mashina-war-machine-2026",
+      "title": "Военная машина",
+      "originalTitle": "War Machine",
+      "year": 2026,
+      "query": "Военная машина War Machine 2026",
+      "genres": [
+        "фантастика",
+        "боевик"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.8,
+          "votes": 1030,
+          "percent": 68
+        },
+        "rottenTomatoes": {
+          "critics": 80
+        }
+      }
+    },
+    {
+      "id": "na-cepi-heel-2025",
+      "title": "На цепи",
+      "originalTitle": "Heel",
+      "year": 2025,
+      "query": "На цепи Heel 2025",
+      "genres": [
+        "ужасы",
+        "триллер",
+        "драма",
+        "криминал",
+        "детектив"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.7,
+          "votes": 289,
+          "percent": 67
+        },
+        "rottenTomatoes": {
+          "critics": 92
+        }
+      }
+    },
+    {
+      "id": "zaraza-cold-storage-2026",
+      "title": "Зараза",
+      "originalTitle": "Cold Storage",
+      "year": 2026,
+      "query": "Зараза Cold Storage 2026",
+      "genres": [
+        "ужасы",
+        "фантастика",
+        "комедия"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 5.8,
+          "votes": 2947,
+          "percent": 58
+        },
+        "imdb": {
+          "value": 6.4,
+          "votes": 4100,
+          "percent": 64
+        },
+        "rottenTomatoes": {
+          "critics": 78,
+          "audience": 76
+        }
+      }
+    },
+    {
+      "id": "postoronniy-l-tranger-2025",
+      "title": "Посторонний",
+      "originalTitle": "L'Étranger",
+      "year": 2025,
+      "query": "Посторонний L'Étranger 2025",
+      "genres": [
+        "драма",
+        "криминал"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.6,
+          "votes": 1204,
+          "percent": 76
+        },
+        "imdb": {
+          "value": 7.1,
+          "votes": 2000,
+          "percent": 71
+        },
+        "rottenTomatoes": {
+          "critics": 89
+        }
+      }
+    },
+    {
+      "id": "saypan-saipan-2025",
+      "title": "Сайпан",
+      "originalTitle": "Saipan",
+      "year": 2025,
+      "query": "Сайпан Saipan 2025",
+      "genres": [
+        "драма",
+        "биография",
+        "история",
+        "спорт"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.8,
+          "votes": 867,
+          "percent": 68
+        },
+        "rottenTomatoes": {
+          "critics": 93
+        }
+      }
+    },
+    {
+      "id": "chastnaya-zhizn-vie-priv-e-a-private-life-2025",
+      "title": "Частная жизнь",
+      "originalTitle": "Vie privée (A Private Life)",
+      "year": 2025,
+      "query": "Частная жизнь Vie privée (A Private Life) 2025",
+      "genres": [
+        "детектив",
+        "триллер",
+        "комедия",
+        "боевик",
+        "драма",
+        "криминал",
+        "приключения"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.4,
+          "votes": 10704,
+          "percent": 74
+        },
+        "imdb": {
+          "value": 7.9,
+          "votes": 39000,
+          "percent": 79
+        },
+        "rottenTomatoes": {
+          "audience": 88
+        }
+      }
+    }
+  ]
+}

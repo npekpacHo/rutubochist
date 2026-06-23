@@ -1,0 +1,177 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.1",
+  "id": "2026-02-21-centralzd",
+  "title": "Что посмотреть от 21.02.2026",
+  "date": "2026-02-21",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_21022026_13715381",
+  "extractedAt": "2026-06-23T07:41:53.965Z",
+  "count": 7,
+  "items": [
+    {
+      "id": "28-let-spustya-chast-ii-hram-kostey-28-years-later-the-bone-temple-2026",
+      "title": "28 лет спустя: Часть II. Храм костей",
+      "originalTitle": "28 Years Later: The Bone Temple",
+      "year": 2026,
+      "query": "28 лет спустя: Часть II. Храм костей 28 Years Later: The Bone Temple 2026",
+      "genres": [
+        "ужасы"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.1,
+          "votes": 11081,
+          "percent": 71
+        },
+        "imdb": {
+          "value": 7.6,
+          "votes": 42000,
+          "percent": 76
+        },
+        "rottenTomatoes": {
+          "critics": 92,
+          "audience": 88
+        }
+      }
+    },
+    {
+      "id": "kaznit-nel-zya-pomilovat-mercy-2026",
+      "title": "Казнить нельзя помиловать",
+      "originalTitle": "Mercy",
+      "year": 2026,
+      "query": "Казнить нельзя помиловать Mercy 2026",
+      "genres": [
+        "фантастика",
+        "боевик",
+        "триллер",
+        "драма",
+        "криминал",
+        "детектив"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.7,
+          "votes": 7890,
+          "percent": 67
+        },
+        "imdb": {
+          "value": 6.2,
+          "votes": 13000,
+          "percent": 62
+        },
+        "rottenTomatoes": {
+          "critics": 24,
+          "audience": 83
+        }
+      }
+    },
+    {
+      "id": "medovyy-buket-sladkaya-parochka-buket-lyubimyh-honey-bunch-2025",
+      "title": "Медовый букет",
+      "originalTitle": "Сладкая парочка / Букет любимых / Honey Bunch",
+      "year": 2025,
+      "query": "Медовый букет Сладкая парочка / Букет любимых / Honey Bunch 2025",
+      "genres": [
+        "фантастика",
+        "триллер"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 5.9,
+          "votes": 822,
+          "percent": 59
+        },
+        "rottenTomatoes": {
+          "critics": 91
+        }
+      }
+    },
+    {
+      "id": "proklyatyy-rycar-the-dreadful-2026",
+      "title": "Проклятый рыцарь",
+      "originalTitle": "The Dreadful",
+      "year": 2026,
+      "query": "Проклятый рыцарь The Dreadful 2026",
+      "genres": [
+        "ужасы",
+        "фантастика",
+        "боевик"
+      ],
+      "ratings": {
+        "rottenTomatoes": {
+          "critics": 37
+        }
+      }
+    },
+    {
+      "id": "bokser-tyazheloves-heavyweight-2025",
+      "title": "Боксёр",
+      "originalTitle": "Тяжеловес / Heavyweight",
+      "year": 2025,
+      "query": "Боксёр Тяжеловес / Heavyweight 2025",
+      "genres": [
+        "спорт",
+        "триллер"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.7,
+          "votes": 51,
+          "percent": 77
+        }
+      }
+    },
+    {
+      "id": "vse-chto-ostalos-allly-baqi-mink-all-that-s-left-of-you-2025",
+      "title": "Всё, что осталось",
+      "originalTitle": "Allly baqi mink (All That's Left of You)",
+      "year": 2025,
+      "query": "Всё, что осталось Allly baqi mink (All That's Left of You) 2025",
+      "genres": [
+        "драма",
+        "мелодрама"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 8.1,
+          "votes": 1400,
+          "percent": 81
+        },
+        "rottenTomatoes": {
+          "critics": 100,
+          "audience": 100
+        }
+      }
+    },
+    {
+      "id": "gorodok-gechzhi-gezhi-town-de-xian-jin-zhi-2025",
+      "title": "Городок Гэчжи",
+      "originalTitle": "Gezhi Town (De xian jin zhi)",
+      "year": 2025,
+      "query": "Городок Гэчжи Gezhi Town (De xian jin zhi) 2025",
+      "genres": [
+        "драма",
+        "военный",
+        "боевик",
+        "история",
+        "триллер",
+        "детектив"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.7,
+          "votes": 31000,
+          "percent": 77
+        },
+        "rottenTomatoes": {
+          "critics": 100
+        },
+        "kinopoisk": {
+          "value": 7.5,
+          "votes": 11451,
+          "percent": 75
+        }
+      }
+    }
+  ]
+}

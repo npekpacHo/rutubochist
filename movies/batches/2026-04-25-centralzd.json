@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.1",
+  "id": "2026-04-25-centralzd",
+  "title": "Что посмотреть от 25.04.2026",
+  "date": "2026-04-25",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_25042026_13915775",
+  "extractedAt": "2026-06-23T07:50:07.763Z",
+  "count": 4,
+  "items": [
+    {
+      "id": "vershina-apex-2026",
+      "title": "Вершина",
+      "originalTitle": "Apex",
+      "year": 2026,
+      "query": "Вершина Apex 2026",
+      "genres": [
+        "боевик",
+        "триллер"
+      ],
+      "ratings": {
+        "rottenTomatoes": {
+          "critics": 66
+        }
+      }
+    },
+    {
+      "id": "na-obochine-zhizni-tow-2025",
+      "title": "На обочине жизни",
+      "originalTitle": "Tow",
+      "year": 2025,
+      "query": "На обочине жизни Tow 2025",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.3,
+          "votes": 90,
+          "percent": 63
+        },
+        "rottenTomatoes": {
+          "critics": 77,
+          "audience": 61
+        }
+      }
+    },
+    {
+      "id": "operaciya-panda-dikaya-missiya-panda-plan-2-the-magical-trible-xiong-mao-ji-hua-zhi-bi-luo",
+      "title": "Операция «Панда». Дикая миссия",
+      "originalTitle": "Panda Plan 2: The Magical Trible (Xiong mao ji hua zhi bi luo qi yu ji)",
+      "year": 2026,
+      "query": "Операция «Панда». Дикая миссия Panda Plan 2: The Magical Trible (Xiong mao ji hua zhi bi luo qi yu ji) 2026",
+      "genres": [
+        "комедия",
+        "боевик",
+        "приключения"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 5.6,
+          "votes": 102,
+          "percent": 56
+        }
+      }
+    },
+    {
+      "id": "kartiny-druzheskih-svyazey-2025",
+      "title": "Картины дружеских связей",
+      "year": 2025,
+      "query": "Картины дружеских связей 2025",
+      "genres": [
+        "драма",
+        "комедия",
+        "ужасы",
+        "фантастика",
+        "триллер",
+        "детектив",
+        "мультфильм",
+        "фэнтези",
+        "реальное тв",
+        "боевик",
+        "приключения",
+        "документальный"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.6,
+          "votes": 267769,
+          "percent": 76
+        },
+        "imdb": {
+          "value": 7.4,
+          "votes": 209,
+          "percent": 74
+        },
+        "rottenTomatoes": {
+          "critics": 72
+        }
+      }
+    }
+  ]
+}

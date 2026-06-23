@@ -1,0 +1,207 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.1",
+  "id": "2026-02-07-centralzd",
+  "title": "Что посмотреть от 07.02.2026",
+  "date": "2026-02-07",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_07022026_13670326",
+  "extractedAt": "2026-06-23T07:39:04.411Z",
+  "count": 8,
+  "items": [
+    {
+      "id": "gornichnaya-the-housemaid-2025",
+      "title": "Горничная",
+      "originalTitle": "The Housemaid",
+      "year": 2025,
+      "query": "Горничная The Housemaid 2025",
+      "genres": [
+        "триллер"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.3,
+          "votes": 106076,
+          "percent": 73
+        },
+        "imdb": {
+          "value": 7,
+          "votes": 51000,
+          "percent": 70
+        },
+        "rottenTomatoes": {
+          "critics": 74,
+          "audience": 92
+        }
+      }
+    },
+    {
+      "id": "hamnet-istoriya-vdohnovivshaya-gamleta-hamnet-2025",
+      "title": "Хамнет: История, вдохновившая Гамлета",
+      "originalTitle": "Hamnet",
+      "year": 2025,
+      "query": "Хамнет: История, вдохновившая Гамлета Hamnet 2025",
+      "genres": [
+        "драма",
+        "биография",
+        "история"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.7,
+          "votes": 3937,
+          "percent": 77
+        },
+        "imdb": {
+          "value": 8.1,
+          "votes": 30000,
+          "percent": 81
+        },
+        "rottenTomatoes": {
+          "critics": 86,
+          "audience": 93
+        }
+      }
+    },
+    {
+      "id": "chuma-the-plague-zaraza-2025",
+      "title": "Чума",
+      "originalTitle": "The Plague (Zaraza)",
+      "year": 2025,
+      "query": "Чума The Plague (Zaraza) 2025",
+      "genres": [
+        "драма",
+        "триллер"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.8,
+          "votes": 446,
+          "percent": 68
+        },
+        "imdb": {
+          "value": 7,
+          "votes": 1600,
+          "percent": 70
+        },
+        "rottenTomatoes": {
+          "critics": 97,
+          "audience": 65
+        }
+      }
+    },
+    {
+      "id": "gollandec-the-dutchman-2025",
+      "title": "Голландец",
+      "originalTitle": "The Dutchman",
+      "year": 2025,
+      "query": "Голландец The Dutchman 2025",
+      "genres": [
+        "триллер",
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.3,
+          "votes": 3100,
+          "percent": 63
+        },
+        "rottenTomatoes": {
+          "critics": 59,
+          "audience": 85
+        }
+      }
+    },
+    {
+      "id": "v-poiskah-zhivyh-we-bury-the-dead-2024",
+      "title": "В поисках живых",
+      "originalTitle": "We Bury the Dead",
+      "year": 2024,
+      "query": "В поисках живых We Bury the Dead 2024",
+      "genres": [
+        "ужасы"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 5.3,
+          "votes": 2250,
+          "percent": 53
+        },
+        "imdb": {
+          "value": 5.9,
+          "votes": 3100,
+          "percent": 59
+        },
+        "rottenTomatoes": {
+          "critics": 88,
+          "audience": 46
+        }
+      }
+    },
+    {
+      "id": "graciya-la-grazia-2025",
+      "title": "Грация",
+      "originalTitle": "La grazia",
+      "year": 2025,
+      "query": "Грация La grazia 2025",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.5,
+          "votes": 2600,
+          "percent": 75
+        },
+        "rottenTomatoes": {
+          "critics": 81
+        }
+      }
+    },
+    {
+      "id": "dellouey-dalloway-2025",
+      "title": "Дэллоуэй",
+      "originalTitle": "Dalloway",
+      "year": 2025,
+      "query": "Дэллоуэй Dalloway 2025",
+      "genres": [
+        "триллер",
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.1,
+          "votes": 413,
+          "percent": 61
+        }
+      }
+    },
+    {
+      "id": "nino-nino-2025",
+      "title": "Нино",
+      "originalTitle": "Nino",
+      "year": 2025,
+      "query": "Нино Nino 2025",
+      "genres": [
+        "драма",
+        "триллер",
+        "криминал",
+        "детектив"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.8,
+          "votes": 88000,
+          "percent": 78
+        },
+        "rottenTomatoes": {
+          "critics": 100
+        },
+        "kinopoisk": {
+          "value": 7.4,
+          "votes": 6374,
+          "percent": 74
+        }
+      }
+    }
+  ]
+}

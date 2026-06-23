@@ -1,0 +1,206 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.1",
+  "id": "2026-04-11-centralzd",
+  "title": "Что посмотреть от 11.04.2026",
+  "date": "2026-04-11",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_11042026_13871899",
+  "extractedAt": "2026-06-23T07:48:32.777Z",
+  "count": 8,
+  "items": [
+    {
+      "id": "proekt-konec-sveta-project-hail-maryproekt-konec-sveta-project-hail-mary-2026",
+      "title": "Проект «Конец света»",
+      "originalTitle": "Project Hail MaryПроект «Конец света» / Project Hail Mary",
+      "year": 2026,
+      "query": "Проект «Конец света» Project Hail MaryПроект «Конец света» / Project Hail Mary 2026",
+      "genres": [
+        "фантастика"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 8.4,
+          "votes": 50542,
+          "percent": 84
+        },
+        "imdb": {
+          "value": 8.4,
+          "votes": 127808,
+          "percent": 84
+        },
+        "rottenTomatoes": {
+          "critics": 94,
+          "audience": 96
+        }
+      }
+    },
+    {
+      "id": "nevesta-the-bride-nevesta-the-bride-nevesta-the-bride-nevesta-the-bride-nevesta-the-bride-",
+      "title": "Невеста!",
+      "originalTitle": "The Bride!Невеста! / The Bride!Невеста! / The Bride!Невеста! / The Bride!Невеста! / The Bride!Невеста! / The Bride!Невеста! / The Bride!",
+      "year": 2026,
+      "query": "Невеста! The Bride!Невеста! / The Bride!Невеста! / The Bride!Невеста! / The Bride!Невеста! / The Bride!Невеста! / The Bride!Невеста! / The Bride! 2026",
+      "genres": [
+        "ужасы",
+        "фантастика",
+        "драма",
+        "мелодрама"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.1,
+          "votes": 3419,
+          "percent": 61
+        },
+        "imdb": {
+          "value": 5.9,
+          "votes": 14000,
+          "percent": 59
+        },
+        "rottenTomatoes": {
+          "critics": 57,
+          "audience": 70
+        }
+      }
+    },
+    {
+      "id": "ya-idu-iskat-2-ready-or-not-2-here-i-come-ya-idu-iskat-2-ready-or-not-2-here-i-come-2026",
+      "title": "Я иду искать 2",
+      "originalTitle": "Ready or Not 2: Here I Come Я иду искать 2 / Ready or Not 2: Here I Come",
+      "year": 2026,
+      "query": "Я иду искать 2 Ready or Not 2: Here I Come Я иду искать 2 / Ready or Not 2: Here I Come 2026",
+      "genres": [
+        "ужасы",
+        "триллер",
+        "комедия"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.5,
+          "votes": 7229,
+          "percent": 65
+        },
+        "imdb": {
+          "value": 6.9,
+          "votes": 13000,
+          "percent": 69
+        },
+        "rottenTomatoes": {
+          "critics": 74,
+          "audience": 90
+        }
+      }
+    },
+    {
+      "id": "posledstviya-outcomeposledstviya-outcome-2026",
+      "title": "Последствия",
+      "originalTitle": "OutcomeПоследствия / Outcome",
+      "year": 2026,
+      "query": "Последствия OutcomeПоследствия / Outcome 2026",
+      "genres": [
+        "триллер",
+        "комедия",
+        "криминал",
+        "детектив"
+      ],
+      "ratings": {
+        "rottenTomatoes": {
+          "critics": 30
+        }
+      }
+    },
+    {
+      "id": "ograbit-london-fuzeograbit-london-fuze-2025",
+      "title": "Ограбить Лондон",
+      "originalTitle": "FuzeОграбить Лондон / Fuze",
+      "year": 2025,
+      "query": "Ограбить Лондон FuzeОграбить Лондон / Fuze 2025",
+      "genres": [
+        "боевик",
+        "триллер",
+        "криминал",
+        "детектив"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.9,
+          "votes": 92,
+          "percent": 69
+        },
+        "rottenTomatoes": {
+          "critics": 79
+        }
+      }
+    },
+    {
+      "id": "musorschik-wastemanmusorschik-wasteman-2025",
+      "title": "Мусорщик",
+      "originalTitle": "WastemanМусорщик / Wasteman",
+      "year": 2025,
+      "query": "Мусорщик WastemanМусорщик / Wasteman 2025",
+      "genres": [
+        "триллер",
+        "драма",
+        "криминал"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.7,
+          "votes": 1400,
+          "percent": 77
+        },
+        "rottenTomatoes": {
+          "critics": 100
+        }
+      }
+    },
+    {
+      "id": "kosmos-zasypaetkosmos-zasypaet-2025",
+      "title": "Космос засыпаетКосмос засыпает",
+      "year": 2025,
+      "query": "Космос засыпаетКосмос засыпает 2025",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.1,
+          "votes": 1450,
+          "percent": 71
+        }
+      }
+    },
+    {
+      "id": "den-rozhdeniya-sidni-lyumeta-2025",
+      "title": "День рождения Сидни Люмета",
+      "year": 2025,
+      "query": "День рождения Сидни Люмета 2025",
+      "genres": [
+        "драма",
+        "фантастика",
+        "боевик",
+        "комедия",
+        "криминал",
+        "мультфильм",
+        "приключения",
+        "семейный",
+        "триллер"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 8.3,
+          "percent": 83
+        },
+        "imdb": {
+          "value": 8.1,
+          "votes": 720,
+          "percent": 81
+        },
+        "rottenTomatoes": {
+          "critics": 86,
+          "audience": 60
+        }
+      }
+    }
+  ]
+}

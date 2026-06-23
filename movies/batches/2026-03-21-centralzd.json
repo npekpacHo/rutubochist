@@ -1,0 +1,197 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.1",
+  "id": "2026-03-21-centralzd",
+  "title": "Что посмотреть от 21.03.2026",
+  "date": "2026-03-21",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_21032026_13805422",
+  "extractedAt": "2026-06-23T07:46:01.177Z",
+  "count": 8,
+  "items": [
+    {
+      "id": "ostrye-kozyr-ki-bessmertnyy-chelovek-peaky-blinders-the-immortal-man-2026",
+      "title": "Острые козырьки: Бессмертный человек",
+      "originalTitle": "Peaky Blinders: The Immortal Man",
+      "year": 2026,
+      "query": "Острые козырьки: Бессмертный человек Peaky Blinders: The Immortal Man 2026",
+      "genres": [
+        "криминал",
+        "драма",
+        "история"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.3,
+          "votes": 3850,
+          "percent": 73
+        },
+        "imdb": {
+          "value": 7.7,
+          "votes": 3300,
+          "percent": 77
+        },
+        "rottenTomatoes": {
+          "critics": 91,
+          "audience": 89
+        }
+      }
+    },
+    {
+      "id": "krik-7-scream-7-2026",
+      "title": "Крик 7",
+      "originalTitle": "Scream 7",
+      "year": 2026,
+      "query": "Крик 7 Scream 7 2026",
+      "genres": [
+        "ужасы",
+        "детектив"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6,
+          "votes": 15597,
+          "percent": 60
+        },
+        "imdb": {
+          "value": 5.8,
+          "votes": 28000,
+          "percent": 58
+        },
+        "rottenTomatoes": {
+          "critics": 31,
+          "audience": 76
+        }
+      }
+    },
+    {
+      "id": "delo-137-dossier-137-case-137-2025",
+      "title": "Дело № 137",
+      "originalTitle": "Dossier 137 (Case 137)",
+      "year": 2025,
+      "query": "Дело № 137 Dossier 137 (Case 137) 2025",
+      "genres": [
+        "драма",
+        "криминал"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.8,
+          "votes": 864,
+          "percent": 68
+        },
+        "imdb": {
+          "value": 7.3,
+          "votes": 1200,
+          "percent": 73
+        },
+        "rottenTomatoes": {
+          "critics": 93
+        }
+      }
+    },
+    {
+      "id": "po-zadumke-by-design-2025",
+      "title": "По задумке",
+      "originalTitle": "By Design",
+      "year": 2025,
+      "query": "По задумке By Design 2025",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 5.7,
+          "votes": 211,
+          "percent": 57
+        },
+        "rottenTomatoes": {
+          "critics": 72
+        }
+      }
+    },
+    {
+      "id": "zhan-val-zhan-jean-valjean-2025",
+      "title": "Жан Вальжан",
+      "originalTitle": "Jean Valjean",
+      "year": 2025,
+      "query": "Жан Вальжан Jean Valjean 2025",
+      "genres": [
+        "драма",
+        "история"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.2,
+          "votes": 154,
+          "percent": 62
+        }
+      }
+    },
+    {
+      "id": "nevesty-brides-2025",
+      "title": "Невесты",
+      "originalTitle": "Brides",
+      "year": 2025,
+      "query": "Невесты Brides 2025",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.7,
+          "votes": 185,
+          "percent": 67
+        },
+        "rottenTomatoes": {
+          "critics": 83
+        }
+      }
+    },
+    {
+      "id": "zdes-byl-yura-2025",
+      "title": "Здесь был Юра",
+      "year": 2025,
+      "query": "Здесь был Юра 2025",
+      "genres": [
+        "драма",
+        "комедия",
+        "музыка",
+        "аниме",
+        "мультфильм",
+        "фэнтези",
+        "боевик"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 8.3,
+          "votes": 16288,
+          "percent": 83
+        },
+        "imdb": {
+          "value": 8.1,
+          "votes": 210,
+          "percent": 81
+        }
+      }
+    },
+    {
+      "id": "goyaniya-radiacionnaya-avariya-emerg-ncia-radioativa-1-sezon-2026",
+      "title": "Гояния: Радиационная авария",
+      "originalTitle": "Emergência Radioativa (1 сезон)",
+      "year": 2026,
+      "query": "Гояния: Радиационная авария Emergência Radioativa (1 сезон) 2026",
+      "genres": [
+        "триллер",
+        "драма",
+        "история"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.2,
+          "votes": 263,
+          "percent": 72
+        }
+      }
+    }
+  ]
+}

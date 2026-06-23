@@ -1,0 +1,222 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.1",
+  "id": "2026-05-23-centralzd",
+  "title": "Что посмотреть от 23.05.2026",
+  "date": "2026-05-23",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_23052026_13997377",
+  "extractedAt": "2026-06-23T07:54:33.345Z",
+  "count": 8,
+  "items": [
+    {
+      "id": "mortal-kombat-2-mortal-kombat-ii-2026",
+      "title": "Мортал Комбат 2",
+      "originalTitle": "Mortal Kombat II",
+      "year": 2026,
+      "query": "Мортал Комбат 2 Mortal Kombat II 2026",
+      "genres": [
+        "фэнтези",
+        "боевик",
+        "фантастика"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.4,
+          "votes": 24623,
+          "percent": 64
+        },
+        "imdb": {
+          "value": 6.8,
+          "votes": 28000,
+          "percent": 68
+        },
+        "rottenTomatoes": {
+          "critics": 64,
+          "audience": 88
+        }
+      }
+    },
+    {
+      "id": "d-yavol-nosit-prada-2-the-devil-wears-prada-2-2026",
+      "title": "Дьявол носит Prada 2",
+      "originalTitle": "The Devil Wears Prada 2",
+      "year": 2026,
+      "query": "Дьявол носит Prada 2 The Devil Wears Prada 2 2026",
+      "genres": [
+        "комедия"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.9,
+          "votes": 35847,
+          "percent": 69
+        },
+        "imdb": {
+          "value": 7,
+          "votes": 3990,
+          "percent": 70
+        },
+        "rottenTomatoes": {
+          "critics": 78,
+          "audience": 85
+        }
+      }
+    },
+    {
+      "id": "mumiya-the-mummy-lee-cronin-s-the-mummy-2026",
+      "title": "Мумия",
+      "originalTitle": "The Mummy (Lee Cronin's The Mummy)",
+      "year": 2026,
+      "query": "Мумия The Mummy (Lee Cronin's The Mummy) 2026",
+      "genres": [
+        "ужасы"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.5,
+          "votes": 13237,
+          "percent": 65
+        },
+        "imdb": {
+          "value": 6.6,
+          "votes": 1374,
+          "percent": 66
+        },
+        "rottenTomatoes": {
+          "critics": 47,
+          "audience": 74
+        }
+      }
+    },
+    {
+      "id": "dzhek-rayan-prizrachnaya-voyna-tom-clancy-s-jack-ryan-ghost-war-2026",
+      "title": "Джек Райан: Призрачная война",
+      "originalTitle": "Tom Clancy's Jack Ryan: Ghost War",
+      "year": 2026,
+      "query": "Джек Райан: Призрачная война Tom Clancy's Jack Ryan: Ghost War 2026",
+      "genres": [
+        "боевик"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 5.1,
+          "votes": 406,
+          "percent": 51
+        },
+        "imdb": {
+          "value": 6.2,
+          "votes": 2442,
+          "percent": 62
+        },
+        "rottenTomatoes": {
+          "critics": 44,
+          "audience": 43
+        }
+      }
+    },
+    {
+      "id": "mat-mariya-mother-mary-2026",
+      "title": "Мать Мария",
+      "originalTitle": "Mother Mary",
+      "year": 2026,
+      "query": "Мать Мария Mother Mary 2026",
+      "genres": [
+        "музыка",
+        "ужасы"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 5.6,
+          "votes": 1509,
+          "percent": 56
+        },
+        "imdb": {
+          "value": 5.9,
+          "votes": 3715,
+          "percent": 59
+        },
+        "rottenTomatoes": {
+          "critics": 70,
+          "audience": 60
+        }
+      }
+    },
+    {
+      "id": "snachala-damy-ladies-first-2026",
+      "title": "Сначала дамы",
+      "originalTitle": "Ladies First",
+      "year": 2026,
+      "query": "Сначала дамы Ladies First 2026",
+      "genres": [
+        "комедия"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 5.9,
+          "votes": 1400,
+          "percent": 59
+        },
+        "rottenTomatoes": {
+          "critics": 17,
+          "audience": 57
+        }
+      }
+    },
+    {
+      "id": "drayv-driver-s-ed-2025",
+      "title": "Драйв",
+      "originalTitle": "Driver's Ed",
+      "year": 2025,
+      "query": "Драйв Driver's Ed 2025",
+      "genres": [
+        "боевик",
+        "мелодрама",
+        "комедия"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.3,
+          "votes": 57,
+          "percent": 63
+        },
+        "rottenTomatoes": {
+          "critics": 69
+        }
+      }
+    },
+    {
+      "id": "molchalivyy-drug-stille-freundin-silent-friend-2025",
+      "title": "Молчаливый друг",
+      "originalTitle": "Stille Freundin / Silent Friend",
+      "year": 2025,
+      "query": "Молчаливый друг Stille Freundin / Silent Friend 2025",
+      "genres": [
+        "драма",
+        "история",
+        "биография",
+        "фантастика",
+        "фэнтези",
+        "детектив",
+        "приключения",
+        "триллер",
+        "комедия"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.3,
+          "votes": 386,
+          "percent": 73
+        },
+        "imdb": {
+          "value": 7,
+          "votes": 464,
+          "percent": 70
+        },
+        "rottenTomatoes": {
+          "critics": 92,
+          "audience": 84
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,188 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.1",
+  "id": "2026-02-14-centralzd",
+  "title": "Что посмотреть от 14.02.2026",
+  "date": "2026-02-14",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_14022026_13693067",
+  "extractedAt": "2026-06-23T07:40:12.950Z",
+  "count": 7,
+  "items": [
+    {
+      "id": "marti-velikolepnyy-marty-supreme-2025",
+      "title": "Марти Великолепный",
+      "originalTitle": "Marty Supreme",
+      "year": 2025,
+      "query": "Марти Великолепный Marty Supreme 2025",
+      "genres": [
+        "комедия",
+        "спорт"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.7,
+          "votes": 47806,
+          "percent": 77
+        },
+        "imdb": {
+          "value": 8.1,
+          "votes": 70000,
+          "percent": 81
+        },
+        "rottenTomatoes": {
+          "critics": 94,
+          "audience": 82
+        }
+      }
+    },
+    {
+      "id": "eta-shtuka-rabotaet-is-this-thing-on-2025",
+      "title": "Эта штука работает?",
+      "originalTitle": "Is This Thing On?",
+      "year": 2025,
+      "query": "Эта штука работает? Is This Thing On? 2025",
+      "genres": [
+        "драма",
+        "комедия"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7,
+          "votes": 4500,
+          "percent": 70
+        },
+        "rottenTomatoes": {
+          "critics": 86,
+          "audience": 83
+        }
+      }
+    },
+    {
+      "id": "ya-byl-neznakomcem-i-was-a-stranger-2024",
+      "title": "Я был незнакомцем",
+      "originalTitle": "I Was a Stranger",
+      "year": 2024,
+      "query": "Я был незнакомцем I Was a Stranger 2024",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 9.1,
+          "votes": 10000,
+          "percent": 91
+        },
+        "rottenTomatoes": {
+          "critics": 76,
+          "audience": 83
+        }
+      }
+    },
+    {
+      "id": "hronologiya-vody-the-chronology-of-water-2025",
+      "title": "Хронология воды",
+      "originalTitle": "The Chronology of Water",
+      "year": 2025,
+      "query": "Хронология воды The Chronology of Water 2025",
+      "genres": [
+        "драма",
+        "мелодрама",
+        "биография"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.6,
+          "votes": 1500,
+          "percent": 66
+        },
+        "rottenTomatoes": {
+          "critics": 90,
+          "audience": 76
+        }
+      }
+    },
+    {
+      "id": "vozvraschenie-v-saylent-hill-return-to-silent-hill-2026",
+      "title": "Возвращение в Сайлент Хилл",
+      "originalTitle": "Return to Silent Hill",
+      "year": 2026,
+      "query": "Возвращение в Сайлент Хилл Return to Silent Hill 2026",
+      "genres": [
+        "ужасы"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 5,
+          "votes": 32074,
+          "percent": 50
+        },
+        "imdb": {
+          "value": 4.1,
+          "votes": 8300,
+          "percent": 41
+        },
+        "rottenTomatoes": {
+          "critics": 18,
+          "audience": 30
+        }
+      }
+    },
+    {
+      "id": "primat-primate-2025",
+      "title": "Примат",
+      "originalTitle": "Primate",
+      "year": 2025,
+      "query": "Примат Primate 2025",
+      "genres": [
+        "ужасы"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 5.5,
+          "votes": 2260,
+          "percent": 55
+        },
+        "imdb": {
+          "value": 6.1,
+          "votes": 11000,
+          "percent": 61
+        },
+        "rottenTomatoes": {
+          "critics": 78,
+          "audience": 71
+        }
+      }
+    },
+    {
+      "id": "povelitel-muh-lord-of-the-flies-1-sezon-2026",
+      "title": "Повелитель мух",
+      "originalTitle": "Lord of the Flies (1 сезон)",
+      "year": 2026,
+      "query": "Повелитель мух Lord of the Flies (1 сезон) 2026",
+      "genres": [
+        "драма",
+        "комедия",
+        "криминал",
+        "история",
+        "мелодрама",
+        "биография"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.7,
+          "votes": 7916,
+          "percent": 77
+        },
+        "imdb": {
+          "value": 7.6,
+          "votes": 81,
+          "percent": 76
+        },
+        "rottenTomatoes": {
+          "critics": 91,
+          "audience": 99
+        }
+      }
+    }
+  ]
+}

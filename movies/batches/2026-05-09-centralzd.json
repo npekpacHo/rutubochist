@@ -1,0 +1,160 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.1",
+  "id": "2026-05-09-centralzd",
+  "title": "Что посмотреть от 09.05.2026",
+  "date": "2026-05-09",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_09052026_13957898",
+  "extractedAt": "2026-06-23T07:52:33.493Z",
+  "count": 6,
+  "items": [
+    {
+      "id": "vot-eto-drama-the-drama-2026",
+      "title": "Вот это драма!",
+      "originalTitle": "The Drama",
+      "year": 2026,
+      "query": "Вот это драма! The Drama 2026",
+      "genres": [
+        "драма",
+        "мелодрама",
+        "комедия"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.1,
+          "votes": 48543,
+          "percent": 71
+        },
+        "imdb": {
+          "value": 7.4,
+          "votes": 46000,
+          "percent": 74
+        },
+        "rottenTomatoes": {
+          "critics": 76,
+          "audience": 78
+        }
+      }
+    },
+    {
+      "id": "boy-so-zverem-beast-2026",
+      "title": "Бой со зверем",
+      "originalTitle": "Beast",
+      "year": 2026,
+      "query": "Бой со зверем Beast 2026",
+      "genres": [
+        "боевик",
+        "драма",
+        "спорт"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.3,
+          "votes": 1177,
+          "percent": 63
+        },
+        "imdb": {
+          "value": 6.2,
+          "votes": 497,
+          "percent": 62
+        },
+        "rottenTomatoes": {
+          "critics": 86,
+          "audience": 74
+        }
+      }
+    },
+    {
+      "id": "karamel-ka-lollipop-2024",
+      "title": "Карамелька",
+      "originalTitle": "Lollipop",
+      "year": 2024,
+      "query": "Карамелька Lollipop 2024",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7,
+          "votes": 293,
+          "percent": 70
+        },
+        "rottenTomatoes": {
+          "critics": 100
+        }
+      }
+    },
+    {
+      "id": "lyubi-menya-nezhno-love-me-tender-2025",
+      "title": "Люби меня нежно",
+      "originalTitle": "Love Me Tender",
+      "year": 2025,
+      "query": "Люби меня нежно Love Me Tender 2025",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.9,
+          "votes": 340,
+          "percent": 69
+        },
+        "rottenTomatoes": {
+          "critics": 85
+        }
+      }
+    },
+    {
+      "id": "zhizn-kak-skazka-fantasy-life-2025",
+      "title": "Жизнь как сказка",
+      "originalTitle": "Fantasy Life",
+      "year": 2025,
+      "query": "Жизнь как сказка Fantasy Life 2025",
+      "genres": [
+        "комедия"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.2,
+          "votes": 177,
+          "percent": 62
+        },
+        "rottenTomatoes": {
+          "critics": 81,
+          "audience": 69
+        }
+      }
+    },
+    {
+      "id": "vittoriya-vittoria-2024",
+      "title": "Виттория",
+      "originalTitle": "Vittoria",
+      "year": 2024,
+      "query": "Виттория Vittoria 2024",
+      "genres": [
+        "драма",
+        "триллер",
+        "детектив",
+        "криминал",
+        "ужасы",
+        "история",
+        "фэнтези"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.8,
+          "votes": 61263,
+          "percent": 78
+        },
+        "kinopoisk": {
+          "value": 7.2,
+          "votes": 34473,
+          "percent": 72
+        },
+        "rottenTomatoes": {
+          "critics": 94
+        }
+      }
+    }
+  ]
+}

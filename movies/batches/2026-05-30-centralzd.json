@@ -1,0 +1,132 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.1",
+  "id": "2026-05-30-centralzd",
+  "title": "Что посмотреть от 30.05.2026",
+  "date": "2026-05-30",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_30052026_14018129",
+  "extractedAt": "2026-06-23T07:55:29.458Z",
+  "count": 5,
+  "items": [
+    {
+      "id": "propeller-nochnoy-reys-v-odin-konec-propeller-one-way-night-coach-2026",
+      "title": "Пропеллер: Ночной рейс в один конец",
+      "originalTitle": "Propeller One-Way Night Coach",
+      "year": 2026,
+      "query": "Пропеллер: Ночной рейс в один конец Propeller One-Way Night Coach 2026",
+      "genres": [
+        "драма",
+        "приключения",
+        "семейный"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 5.4,
+          "votes": 203,
+          "percent": 54
+        },
+        "rottenTomatoes": {
+          "critics": 56
+        }
+      }
+    },
+    {
+      "id": "guru-gourou-guru-2025",
+      "title": "Гуру",
+      "originalTitle": "Gourou (Guru)",
+      "year": 2025,
+      "query": "Гуру Gourou (Guru) 2025",
+      "genres": [
+        "триллер"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.6,
+          "votes": 2156,
+          "percent": 66
+        },
+        "imdb": {
+          "value": 6.4,
+          "votes": 1200,
+          "percent": 64
+        }
+      }
+    },
+    {
+      "id": "opasnye-otnosheniya-over-your-dead-body-2026",
+      "title": "Опасные отношения",
+      "originalTitle": "Over Your Dead Body",
+      "year": 2026,
+      "query": "Опасные отношения Over Your Dead Body 2026",
+      "genres": [
+        "боевик",
+        "триллер",
+        "комедия",
+        "фантастика",
+        "фэнтези",
+        "драма",
+        "криминал",
+        "детектив",
+        "приключения",
+        "мультфильм",
+        "мелодрама"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.2,
+          "votes": 5379,
+          "percent": 72
+        },
+        "imdb": {
+          "value": 7.2,
+          "votes": 3578,
+          "percent": 72
+        },
+        "rottenTomatoes": {
+          "critics": 100
+        }
+      }
+    },
+    {
+      "id": "rafa-rafa-1-sezon-2026",
+      "title": "Рафа",
+      "originalTitle": "Rafa (1 сезон)",
+      "year": 2026,
+      "query": "Рафа Rafa (1 сезон) 2026",
+      "genres": [
+        "документальный",
+        "биография",
+        "спорт"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 8.9,
+          "votes": 103,
+          "percent": 89
+        },
+        "rottenTomatoes": {
+          "critics": 100
+        }
+      }
+    },
+    {
+      "id": "vtoraya-mirovaya-voyna-s-tomom-henksom-world-war-ii-with-tom-hanks-1-sezon-2026",
+      "title": "Вторая мировая война с Томом Хэнксом",
+      "originalTitle": "World War II with Tom Hanks (1 сезон)",
+      "year": 2026,
+      "query": "Вторая мировая война с Томом Хэнксом World War II with Tom Hanks (1 сезон) 2026",
+      "genres": [
+        "документальный",
+        "военный",
+        "история"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 8.1,
+          "votes": 241,
+          "percent": 81
+        }
+      }
+    }
+  ]
+}

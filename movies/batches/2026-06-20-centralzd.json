@@ -1,0 +1,237 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.1",
+  "id": "2026-06-20-centralzd",
+  "title": "Что посмотреть от 20.06.2026",
+  "date": "2026-06-20",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_20062026_14078696",
+  "extractedAt": "2026-06-23T07:58:00.601Z",
+  "count": 10,
+  "items": [
+    {
+      "id": "davlenie-pressure-2026",
+      "title": "Давление",
+      "originalTitle": "Pressure",
+      "year": 2026,
+      "query": "Давление Pressure 2026",
+      "genres": [
+        "триллер",
+        "драма",
+        "военный",
+        "история"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.1,
+          "votes": 900,
+          "percent": 71
+        },
+        "imdb": {
+          "value": 7.7,
+          "votes": 1227,
+          "percent": 77
+        },
+        "rottenTomatoes": {
+          "critics": 87,
+          "audience": 95
+        }
+      }
+    },
+    {
+      "id": "esh-molis-hudey-saccharine-2025",
+      "title": "Ешь. Молись. Худей",
+      "originalTitle": "Saccharine",
+      "year": 2025,
+      "query": "Ешь. Молись. Худей Saccharine 2025",
+      "genres": [
+        "ужасы"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 5.8,
+          "votes": 709,
+          "percent": 58
+        },
+        "imdb": {
+          "value": 6.1,
+          "votes": 724,
+          "percent": 61
+        },
+        "rottenTomatoes": {
+          "critics": 70,
+          "audience": 58
+        }
+      }
+    },
+    {
+      "id": "naydi-svoih-druzey-nayti-druzey-find-your-friends-2025",
+      "title": "Найди своих друзей (Найти друзей)",
+      "originalTitle": "Find Your Friends",
+      "year": 2025,
+      "query": "Найди своих друзей (Найти друзей) Find Your Friends 2025",
+      "genres": [
+        "триллер"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.3,
+          "votes": 68,
+          "percent": 63
+        },
+        "rottenTomatoes": {
+          "critics": 44
+        }
+      }
+    },
+    {
+      "id": "soobscheniya-dlya-izabel-voicemails-for-isabelle-2026",
+      "title": "Сообщения для Изабель",
+      "originalTitle": "Voicemails for Isabelle",
+      "year": 2026,
+      "query": "Сообщения для Изабель Voicemails for Isabelle 2026",
+      "genres": [
+        "драма",
+        "мелодрама",
+        "комедия"
+      ],
+      "ratings": {
+        "rottenTomatoes": {
+          "critics": 73
+        }
+      }
+    },
+    {
+      "id": "glenrotan-glenrothan-2025",
+      "title": "Гленротан",
+      "originalTitle": "Glenrothan",
+      "year": 2025,
+      "query": "Гленротан Glenrothan 2025",
+      "genres": [
+        "драма",
+        "комедия"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7,
+          "votes": 68,
+          "percent": 70
+        },
+        "rottenTomatoes": {
+          "critics": 17
+        }
+      }
+    },
+    {
+      "id": "mechtat-ne-vredno-le-r-ve-am-ricain-2026",
+      "title": "Мечтать не вредно",
+      "originalTitle": "Le rêve américain",
+      "year": 2026,
+      "query": "Мечтать не вредно Le rêve américain 2026",
+      "genres": [
+        "комедия",
+        "спорт"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.8,
+          "votes": 718,
+          "percent": 78
+        },
+        "imdb": {
+          "value": 7.6,
+          "votes": 733,
+          "percent": 76
+        }
+      }
+    },
+    {
+      "id": "klinki-hraniteley-biao-ren-feng-qi-da-mo-2026",
+      "title": "Клинки хранителей",
+      "originalTitle": "Biao ren: feng qi da mo",
+      "year": 2026,
+      "query": "Клинки хранителей Biao ren: feng qi da mo 2026",
+      "genres": [
+        "боевик",
+        "фэнтези"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.3,
+          "votes": 1395,
+          "percent": 73
+        },
+        "rottenTomatoes": {
+          "critics": 97,
+          "audience": 96
+        }
+      }
+    },
+    {
+      "id": "tvoya-vina-london-your-fault-london-2026",
+      "title": "Твоя вина: Лондон",
+      "originalTitle": "Your Fault: London",
+      "year": 2026,
+      "query": "Твоя вина: Лондон Your Fault: London 2026",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.3,
+          "votes": 872,
+          "percent": 63
+        }
+      }
+    },
+    {
+      "id": "ray-pod-nogami-materey-2-pis-mo-materi-2025",
+      "title": "Рай под ногами матерей 2: Письмо матери",
+      "year": 2025,
+      "query": "Рай под ногами матерей 2: Письмо матери 2025",
+      "genres": [
+        "драма",
+        "приключения"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 8.9,
+          "votes": 154113,
+          "percent": 89
+        }
+      }
+    },
+    {
+      "id": "ya-naydu-tebya-i-will-find-you-1-sezon-2026",
+      "title": "Я найду тебя",
+      "originalTitle": "I Will Find You (1 сезон)",
+      "year": 2026,
+      "query": "Я найду тебя I Will Find You (1 сезон) 2026",
+      "genres": [
+        "триллер",
+        "драма",
+        "криминал",
+        "детектив",
+        "фантастика",
+        "фэнтези",
+        "боевик",
+        "приключения"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.1,
+          "votes": 26961,
+          "percent": 71
+        },
+        "rottenTomatoes": {
+          "critics": 67,
+          "audience": 86
+        },
+        "kinopoisk": {
+          "value": 5.9,
+          "votes": 3415,
+          "percent": 59
+        }
+      }
+    }
+  ]
+}

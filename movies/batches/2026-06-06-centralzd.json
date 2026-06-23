@@ -1,0 +1,177 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.1",
+  "id": "2026-06-06-centralzd",
+  "title": "Что посмотреть от 06.06.2026",
+  "date": "2026-06-06",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_06062026_14038836",
+  "extractedAt": "2026-06-23T07:56:30.634Z",
+  "count": 7,
+  "items": [
+    {
+      "id": "gryaznye-den-gi-in-the-grey-2026",
+      "title": "Грязные деньги",
+      "originalTitle": "In the Grey",
+      "year": 2026,
+      "query": "Грязные деньги In the Grey 2026",
+      "genres": [
+        "боевик",
+        "триллер"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.8,
+          "votes": 24533,
+          "percent": 68
+        },
+        "imdb": {
+          "value": 6.7,
+          "votes": 2994,
+          "percent": 67
+        },
+        "rottenTomatoes": {
+          "critics": 47,
+          "audience": 83
+        }
+      }
+    },
+    {
+      "id": "hokum-hokum-2026",
+      "title": "Хокум",
+      "originalTitle": "Hokum",
+      "year": 2026,
+      "query": "Хокум Hokum 2026",
+      "genres": [
+        "ужасы"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.6,
+          "votes": 11388,
+          "percent": 66
+        },
+        "imdb": {
+          "value": 7.4,
+          "votes": 4563,
+          "percent": 74
+        },
+        "rottenTomatoes": {
+          "critics": 89,
+          "audience": 83
+        }
+      }
+    },
+    {
+      "id": "sem-snayperov-seven-snipers-2026",
+      "title": "Семь снайперов",
+      "originalTitle": "Seven Snipers",
+      "year": 2026,
+      "query": "Семь снайперов Seven Snipers 2026",
+      "genres": [
+        "боевик",
+        "триллер"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.9,
+          "votes": 17,
+          "percent": 69
+        },
+        "rottenTomatoes": {
+          "critics": 68
+        }
+      }
+    },
+    {
+      "id": "skuchayu-po-tebe-lyublyu-tebya-miss-you-love-you-2026",
+      "title": "Скучаю по тебе, люблю тебя",
+      "originalTitle": "Miss You, Love You",
+      "year": 2026,
+      "query": "Скучаю по тебе, люблю тебя Miss You, Love You 2026",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.8,
+          "votes": 718,
+          "percent": 68
+        },
+        "rottenTomatoes": {
+          "critics": 90
+        }
+      }
+    },
+    {
+      "id": "omaha-omaha-2025",
+      "title": "Омаха",
+      "originalTitle": "Omaha",
+      "year": 2025,
+      "query": "Омаха Omaha 2025",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.3,
+          "votes": 424,
+          "percent": 73
+        },
+        "rottenTomatoes": {
+          "critics": 91,
+          "audience": 87
+        }
+      }
+    },
+    {
+      "id": "meksika-86-mexico-86-m-xico-86-2026",
+      "title": "Мексика-86",
+      "originalTitle": "Mexico 86 (México 86)",
+      "year": 2026,
+      "query": "Мексика-86 Mexico 86 (México 86) 2026",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.9,
+          "votes": 38,
+          "percent": 69
+        }
+      }
+    },
+    {
+      "id": "bespechnyy-vozrast-pools-piscinas-da-alma-2025",
+      "title": "Беспечный возраст",
+      "originalTitle": "Pools (Piscinas da Alma)",
+      "year": 2025,
+      "query": "Беспечный возраст Pools (Piscinas da Alma) 2025",
+      "genres": [
+        "драма",
+        "комедия",
+        "триллер",
+        "криминал",
+        "мультфильм",
+        "фэнтези",
+        "боевик",
+        "приключения",
+        "документальный"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 9,
+          "votes": 84000,
+          "percent": 90
+        },
+        "rottenTomatoes": {
+          "critics": 80
+        },
+        "kinopoisk": {
+          "value": 9.1,
+          "votes": 15965,
+          "percent": 91
+        }
+      }
+    }
+  ]
+}

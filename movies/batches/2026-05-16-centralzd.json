@@ -1,0 +1,134 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.1",
+  "id": "2026-05-16-centralzd",
+  "title": "Что посмотреть от 16.05.2026",
+  "date": "2026-05-16",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_16052026_13977705",
+  "extractedAt": "2026-06-23T07:53:40.978Z",
+  "count": 5,
+  "items": [
+    {
+      "id": "kristofery-the-christophers-2025",
+      "title": "Кристоферы",
+      "originalTitle": "The Christophers",
+      "year": 2025,
+      "query": "Кристоферы The Christophers 2025",
+      "genres": [
+        "драма",
+        "комедия"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.3,
+          "votes": 136,
+          "percent": 63
+        },
+        "rottenTomatoes": {
+          "critics": 96,
+          "audience": 86
+        }
+      }
+    },
+    {
+      "id": "ty-ya-i-leto-v-toskane-you-me-tuscany-2026",
+      "title": "Ты, я и лето в Тоскане",
+      "originalTitle": "You, Me & Tuscany",
+      "year": 2026,
+      "query": "Ты, я и лето в Тоскане You, Me & Tuscany 2026",
+      "genres": [
+        "мелодрама",
+        "комедия"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.5,
+          "votes": 859,
+          "percent": 65
+        },
+        "rottenTomatoes": {
+          "critics": 66,
+          "audience": 92
+        }
+      }
+    },
+    {
+      "id": "golubaya-skripka-fidil-ghorm-blue-fiddle-2024",
+      "title": "Голубая скрипка",
+      "originalTitle": "Fidil Ghorm (Blue Fiddle)",
+      "year": 2024,
+      "query": "Голубая скрипка Fidil Ghorm (Blue Fiddle) 2024",
+      "genres": [
+        "драма",
+        "фэнтези",
+        "музыка"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 8.2,
+          "votes": 22,
+          "percent": 82
+        }
+      }
+    },
+    {
+      "id": "isteriya-hysteria-2025",
+      "title": "Истерия",
+      "originalTitle": "Hysteria",
+      "year": 2025,
+      "query": "Истерия Hysteria 2025",
+      "genres": [
+        "триллер",
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.5,
+          "votes": 440,
+          "percent": 65
+        },
+        "rottenTomatoes": {
+          "critics": 93
+        }
+      }
+    },
+    {
+      "id": "karatel-poslednee-ubiystvo-the-punisher-one-last-kill-2026",
+      "title": "Каратель: Последнее убийство",
+      "originalTitle": "The Punisher: One Last Kill",
+      "year": 2026,
+      "query": "Каратель: Последнее убийство The Punisher: One Last Kill 2026",
+      "genres": [
+        "боевик",
+        "триллер",
+        "драма",
+        "криминал",
+        "приключения",
+        "мультфильм",
+        "фантастика",
+        "фэнтези",
+        "комедия",
+        "семейный",
+        "детектив",
+        "мелодрама",
+        "спорт",
+        "вестерн"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 8.3,
+          "votes": 2241,
+          "percent": 83
+        },
+        "imdb": {
+          "value": 8.2,
+          "votes": 2800,
+          "percent": 82
+        },
+        "rottenTomatoes": {
+          "critics": 86
+        }
+      }
+    }
+  ]
+}

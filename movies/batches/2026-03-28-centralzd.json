@@ -1,0 +1,221 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.1",
+  "id": "2026-03-28-centralzd",
+  "title": "Что посмотреть от 28.03.2026",
+  "date": "2026-03-28",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_28032026_13827584",
+  "extractedAt": "2026-06-23T07:46:48.664Z",
+  "count": 8,
+  "items": [
+    {
+      "id": "na-pomosch-send-help-2025",
+      "title": "На помощь!",
+      "originalTitle": "Send Help",
+      "year": 2025,
+      "query": "На помощь! Send Help 2025",
+      "genres": [
+        "триллер"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.4,
+          "votes": 14464,
+          "percent": 64
+        },
+        "imdb": {
+          "value": 7.2,
+          "votes": 35000,
+          "percent": 72
+        },
+        "rottenTomatoes": {
+          "critics": 93,
+          "audience": 87
+        }
+      }
+    },
+    {
+      "id": "naslednik-how-to-make-a-killing-2026",
+      "title": "Наследник",
+      "originalTitle": "How to Make a Killing",
+      "year": 2026,
+      "query": "Наследник How to Make a Killing 2026",
+      "genres": [
+        "триллер",
+        "драма",
+        "комедия"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.1,
+          "votes": 12682,
+          "percent": 71
+        },
+        "imdb": {
+          "value": 6.6,
+          "votes": 5500,
+          "percent": 66
+        },
+        "rottenTomatoes": {
+          "critics": 44,
+          "audience": 77
+        }
+      }
+    },
+    {
+      "id": "goat-mechtay-po-krupnomu-goat-2026",
+      "title": "GOAT: Мечтай по-крупному",
+      "originalTitle": "GOAT",
+      "year": 2026,
+      "query": "GOAT: Мечтай по-крупному GOAT 2026",
+      "genres": [
+        "мультфильм",
+        "боевик",
+        "комедия",
+        "приключения",
+        "семейный",
+        "спорт"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.3,
+          "votes": 7688,
+          "percent": 73
+        },
+        "imdb": {
+          "value": 6.9,
+          "votes": 7700,
+          "percent": 69
+        },
+        "rottenTomatoes": {
+          "critics": 84,
+          "audience": 93
+        }
+      }
+    },
+    {
+      "id": "pryguny-hoppers-2026",
+      "title": "Прыгуны",
+      "originalTitle": "Hoppers",
+      "year": 2026,
+      "query": "Прыгуны Hoppers 2026",
+      "genres": [
+        "мультфильм",
+        "фантастика",
+        "комедия",
+        "приключения",
+        "семейный"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.9,
+          "votes": 14321,
+          "percent": 79
+        },
+        "imdb": {
+          "value": 7.6,
+          "votes": 15000,
+          "percent": 76
+        },
+        "rottenTomatoes": {
+          "critics": 94,
+          "audience": 94
+        }
+      }
+    },
+    {
+      "id": "mayk-i-nik-i-nik-i-elis-mike-nick-nick-alice-2026",
+      "title": "Майк и Ник и Ник и Элис",
+      "originalTitle": "Mike & Nick & Nick & Alice",
+      "year": 2026,
+      "query": "Майк и Ник и Ник и Элис Mike & Nick & Nick & Alice 2026",
+      "genres": [
+        "боевик",
+        "комедия",
+        "криминал"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.3,
+          "votes": 156,
+          "percent": 63
+        },
+        "rottenTomatoes": {
+          "critics": 73
+        }
+      }
+    },
+    {
+      "id": "mozhno-tol-ko-predstavit-2-i-can-only-imagine-2-2026",
+      "title": "Можно только представить 2",
+      "originalTitle": "I Can Only Imagine 2",
+      "year": 2026,
+      "query": "Можно только представить 2 I Can Only Imagine 2 2026",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.5,
+          "votes": 756,
+          "percent": 75
+        },
+        "rottenTomatoes": {
+          "critics": 63,
+          "audience": 99
+        }
+      }
+    },
+    {
+      "id": "soyuz-aontas-2025",
+      "title": "Союз",
+      "originalTitle": "Aontas",
+      "year": 2025,
+      "query": "Союз Aontas 2025",
+      "genres": [
+        "триллер"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 8,
+          "votes": 89,
+          "percent": 80
+        }
+      }
+    },
+    {
+      "id": "lyubov-kotoraya-ostaetsya-stin-sem-eftir-er-the-love-that-remains-2025",
+      "title": "Любовь, которая остаётся",
+      "originalTitle": "Ástin sem eftir er (The Love That Remains)",
+      "year": 2025,
+      "query": "Любовь, которая остаётся Ástin sem eftir er (The Love That Remains) 2025",
+      "genres": [
+        "драма",
+        "комедия",
+        "семейный",
+        "фантастика",
+        "фэнтези",
+        "боевик",
+        "триллер",
+        "криминал",
+        "детектив"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.8,
+          "votes": 652,
+          "percent": 78
+        },
+        "rottenTomatoes": {
+          "critics": 95,
+          "audience": 94
+        },
+        "kinopoisk": {
+          "value": 7.3,
+          "votes": 17977,
+          "percent": 73
+        }
+      }
+    }
+  ]
+}

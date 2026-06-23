@@ -1,0 +1,187 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.1",
+  "id": "2026-06-13-centralzd",
+  "title": "Что посмотреть от 13.06.2026",
+  "date": "2026-06-13",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_13062026_14058560",
+  "extractedAt": "2026-06-23T07:57:18.885Z",
+  "count": 8,
+  "items": [
+    {
+      "id": "maykl-michael-2026",
+      "title": "Майкл",
+      "originalTitle": "Michael",
+      "year": 2026,
+      "query": "Майкл Michael 2026",
+      "genres": [
+        "биография",
+        "музыка",
+        "драма"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 8,
+          "votes": 63371,
+          "percent": 80
+        },
+        "imdb": {
+          "value": 7.7,
+          "votes": 66981,
+          "percent": 77
+        },
+        "rottenTomatoes": {
+          "critics": 38,
+          "audience": 97
+        }
+      }
+    },
+    {
+      "id": "est-li-bog-is-god-is-2026",
+      "title": "Есть ли бог?",
+      "originalTitle": "Is God Is",
+      "year": 2026,
+      "query": "Есть ли бог? Is God Is 2026",
+      "genres": [
+        "драма",
+        "детектив"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.7,
+          "votes": 3000,
+          "percent": 67
+        },
+        "rottenTomatoes": {
+          "critics": 97,
+          "audience": 90
+        }
+      }
+    },
+    {
+      "id": "golubaya-caplya-blue-heron-2025",
+      "title": "Голубая цапля",
+      "originalTitle": "Blue Heron",
+      "year": 2025,
+      "query": "Голубая цапля Blue Heron 2025",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.3,
+          "votes": 281,
+          "percent": 73
+        },
+        "rottenTomatoes": {
+          "critics": 98,
+          "audience": 71
+        }
+      }
+    },
+    {
+      "id": "voskresen-ya-los-domingos-2025",
+      "title": "Воскресенья",
+      "originalTitle": "Los domingos",
+      "year": 2025,
+      "query": "Воскресенья Los domingos 2025",
+      "genres": [
+        "триллер",
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.4,
+          "votes": 3300,
+          "percent": 74
+        }
+      }
+    },
+    {
+      "id": "zheltyy-galstuk-the-yellow-tie-2025",
+      "title": "Жёлтый галстук",
+      "originalTitle": "The Yellow Tie",
+      "year": 2025,
+      "query": "Жёлтый галстук The Yellow Tie 2025",
+      "genres": [
+        "драма",
+        "приключения",
+        "биография",
+        "музыка"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 8.9,
+          "votes": 3600,
+          "percent": 89
+        }
+      }
+    },
+    {
+      "id": "futbolka-boga-la-casaca-de-dios-2026",
+      "title": "Футболка Бога",
+      "originalTitle": "La casaca de Dios",
+      "year": 2026,
+      "query": "Футболка Бога La casaca de Dios 2026",
+      "genres": [
+        "комедия"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.6,
+          "votes": 47,
+          "percent": 66
+        }
+      }
+    },
+    {
+      "id": "na-rabote-pied-d-oeuvre-2025",
+      "title": "На работе",
+      "originalTitle": "À pied d'oeuvre",
+      "year": 2025,
+      "query": "На работе À pied d'oeuvre 2025",
+      "genres": [
+        "драма",
+        "биография"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.8,
+          "votes": 338,
+          "percent": 68
+        },
+        "rottenTomatoes": {
+          "critics": 55
+        }
+      }
+    },
+    {
+      "id": "kommersant-2025",
+      "title": "Коммерсант",
+      "year": 2025,
+      "query": "Коммерсант 2025",
+      "genres": [
+        "драма",
+        "фэнтези",
+        "ужасы",
+        "документальный"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.6,
+          "votes": 31332,
+          "percent": 76
+        },
+        "imdb": {
+          "value": 7.7,
+          "votes": 8,
+          "percent": 77
+        },
+        "rottenTomatoes": {
+          "critics": 99,
+          "audience": 78
+        }
+      }
+    }
+  ]
+}

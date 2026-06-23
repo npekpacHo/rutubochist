@@ -1,0 +1,171 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.1",
+  "id": "2026-03-14-centralzd",
+  "title": "Что посмотреть от 14.03.2026",
+  "date": "2026-03-14",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_14032026_13782402",
+  "extractedAt": "2026-06-23T07:45:27.614Z",
+  "count": 6,
+  "items": [
+    {
+      "id": "ograblenie-v-los-andzhelese-crime-101-2026",
+      "title": "Ограбление в Лос-Анджелесе",
+      "originalTitle": "Crime 101",
+      "year": 2026,
+      "query": "Ограбление в Лос-Анджелесе Crime 101 2026",
+      "genres": [
+        "триллер",
+        "драма",
+        "криминал"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.7,
+          "votes": 4741,
+          "percent": 67
+        },
+        "imdb": {
+          "value": 7.1,
+          "votes": 18000,
+          "percent": 71
+        },
+        "rottenTomatoes": {
+          "critics": 88,
+          "audience": 85
+        }
+      }
+    },
+    {
+      "id": "udachi-vesel-ya-ne-sdohni-good-luck-have-fun-don-t-die-2025",
+      "title": "Удачи, веселья, не сдохни",
+      "originalTitle": "Good Luck, Have Fun, Don't Die",
+      "year": 2025,
+      "query": "Удачи, веселья, не сдохни Good Luck, Have Fun, Don't Die 2025",
+      "genres": [
+        "фантастика",
+        "комедия"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7,
+          "votes": 4981,
+          "percent": 70
+        },
+        "imdb": {
+          "value": 7.4,
+          "votes": 9500,
+          "percent": 74
+        },
+        "rottenTomatoes": {
+          "critics": 83,
+          "audience": 86
+        }
+      }
+    },
+    {
+      "id": "grozovoy-pereval-wuthering-heights-2026",
+      "title": "Грозовой перевал",
+      "originalTitle": "Wuthering Heights",
+      "year": 2026,
+      "query": "Грозовой перевал Wuthering Heights 2026",
+      "genres": [
+        "драма",
+        "мелодрама"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.6,
+          "votes": 42566,
+          "percent": 66
+        },
+        "imdb": {
+          "value": 6.3,
+          "votes": 42000,
+          "percent": 63
+        },
+        "rottenTomatoes": {
+          "critics": 57,
+          "audience": 76
+        }
+      }
+    },
+    {
+      "id": "zaveschanie-anny-li-the-testament-of-ann-lee-2025",
+      "title": "Завещание Анны Ли",
+      "originalTitle": "The Testament of Ann Lee",
+      "year": 2025,
+      "query": "Завещание Анны Ли The Testament of Ann Lee 2025",
+      "genres": [
+        "мюзикл",
+        "драма",
+        "биография",
+        "история"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.5,
+          "votes": 442,
+          "percent": 65
+        },
+        "imdb": {
+          "value": 7,
+          "votes": 3300,
+          "percent": 70
+        },
+        "rottenTomatoes": {
+          "critics": 86,
+          "audience": 82
+        }
+      }
+    },
+    {
+      "id": "ne-plach-babochka-mua-tr-n-c-nh-buom-2024",
+      "title": "Не плачь, бабочка",
+      "originalTitle": "Mua trên cánh buom",
+      "year": 2024,
+      "query": "Не плачь, бабочка Mua trên cánh buom 2024",
+      "genres": [
+        "фэнтези",
+        "драма",
+        "комедия"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.4,
+          "votes": 150,
+          "percent": 64
+        }
+      }
+    },
+    {
+      "id": "tri-proschaniya-tre-ciotole-three-goodbyes-2025",
+      "title": "Три прощания",
+      "originalTitle": "Tre ciotole (Three Goodbyes)",
+      "year": 2025,
+      "query": "Три прощания Tre ciotole (Three Goodbyes) 2025",
+      "genres": [
+        "драма",
+        "комедия",
+        "приключения",
+        "фэнтези",
+        "боевик"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 8.3,
+          "votes": 188000,
+          "percent": 83
+        },
+        "rottenTomatoes": {
+          "critics": 85
+        },
+        "kinopoisk": {
+          "value": 8,
+          "votes": 39588,
+          "percent": 80
+        }
+      }
+    }
+  ]
+}

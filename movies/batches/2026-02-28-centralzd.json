@@ -1,0 +1,290 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.1",
+  "id": "2026-02-28-centralzd",
+  "title": "Что посмотреть от 28.02.2026",
+  "date": "2026-02-28",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_28022026_13737830",
+  "extractedAt": "2026-06-23T07:43:32.482Z",
+  "count": 12,
+  "items": [
+    {
+      "id": "ubezhische-shelter-2026",
+      "title": "Убежище",
+      "originalTitle": "Shelter",
+      "year": 2026,
+      "query": "Убежище Shelter 2026",
+      "genres": [
+        "боевик",
+        "триллер"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.5,
+          "votes": 19160,
+          "percent": 65
+        },
+        "imdb": {
+          "value": 6.3,
+          "votes": 7700,
+          "percent": 63
+        },
+        "rottenTomatoes": {
+          "critics": 64,
+          "audience": 87
+        }
+      }
+    },
+    {
+      "id": "gigant-giant-2025",
+      "title": "Гигант",
+      "originalTitle": "Giant",
+      "year": 2025,
+      "query": "Гигант Giant 2025",
+      "genres": [
+        "драма",
+        "спорт"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7,
+          "votes": 777,
+          "percent": 70
+        },
+        "rottenTomatoes": {
+          "critics": 61
+        }
+      }
+    },
+    {
+      "id": "blef-the-bluff-2026",
+      "title": "Блеф",
+      "originalTitle": "The Bluff",
+      "year": 2026,
+      "query": "Блеф The Bluff 2026",
+      "genres": [
+        "боевик"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 5.5,
+          "votes": 520,
+          "percent": 55
+        },
+        "imdb": {
+          "value": 5.9,
+          "votes": 777,
+          "percent": 59
+        },
+        "rottenTomatoes": {
+          "critics": 68,
+          "audience": 73
+        }
+      }
+    },
+    {
+      "id": "provod-mertveca-dead-man-s-wire-2025",
+      "title": "Провод мертвеца",
+      "originalTitle": "Dead Man's Wire",
+      "year": 2025,
+      "query": "Провод мертвеца Dead Man's Wire 2025",
+      "genres": [
+        "драма",
+        "криминал",
+        "биография",
+        "история"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.5,
+          "votes": 584,
+          "percent": 65
+        },
+        "imdb": {
+          "value": 6.7,
+          "votes": 2800,
+          "percent": 67
+        },
+        "rottenTomatoes": {
+          "critics": 91,
+          "audience": 77
+        }
+      }
+    },
+    {
+      "id": "otec-mat-sestra-brat-father-mother-sister-brother-2025",
+      "title": "Отец мать сестра брат",
+      "originalTitle": "Father Mother Sister Brother",
+      "year": 2025,
+      "query": "Отец мать сестра брат Father Mother Sister Brother 2025",
+      "genres": [
+        "драма",
+        "комедия"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.3,
+          "votes": 6807,
+          "percent": 73
+        },
+        "imdb": {
+          "value": 6.7,
+          "votes": 5100,
+          "percent": 67
+        },
+        "rottenTomatoes": {
+          "critics": 81,
+          "audience": 53
+        }
+      }
+    },
+    {
+      "id": "ya-znachit-yastreb-h-is-for-hawk-2025",
+      "title": "«Я» значит Ястреб",
+      "originalTitle": "H Is for Hawk",
+      "year": 2025,
+      "query": "«Я» значит Ястреб H Is for Hawk 2025",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.8,
+          "votes": 645,
+          "percent": 68
+        },
+        "rottenTomatoes": {
+          "critics": 80,
+          "audience": 77
+        }
+      }
+    },
+    {
+      "id": "v-mgnovenie-oka-in-the-blink-of-an-eye-2026",
+      "title": "В мгновение ока",
+      "originalTitle": "In the Blink of an Eye",
+      "year": 2026,
+      "query": "В мгновение ока In the Blink of an Eye 2026",
+      "genres": [
+        "фантастика",
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.1,
+          "votes": 54,
+          "percent": 71
+        },
+        "rottenTomatoes": {
+          "critics": 22
+        }
+      }
+    },
+    {
+      "id": "neozhidannaya-sem-ya-unexpected-family-guo-jia-jia-2025",
+      "title": "Неожиданная семья",
+      "originalTitle": "Unexpected Family (Guo Jia Jia)",
+      "year": 2025,
+      "query": "Неожиданная семья Unexpected Family (Guo Jia Jia) 2025",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7,
+          "votes": 176,
+          "percent": 70
+        }
+      }
+    },
+    {
+      "id": "ischeznovenie-yozefa-mengele-das-verschwinden-des-josef-mengele-2025",
+      "title": "Исчезновение Йозефа Менгеле",
+      "originalTitle": "Das Verschwinden des Josef Mengele",
+      "year": 2025,
+      "query": "Исчезновение Йозефа Менгеле Das Verschwinden des Josef Mengele 2025",
+      "genres": [
+        "драма",
+        "биография",
+        "история"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.1,
+          "votes": 1000,
+          "percent": 71
+        }
+      }
+    },
+    {
+      "id": "orly-respubliki-eagles-of-the-republic-2025",
+      "title": "Орлы Республики",
+      "originalTitle": "Eagles of the Republic",
+      "year": 2025,
+      "query": "Орлы Республики Eagles of the Republic 2025",
+      "genres": [
+        "боевик",
+        "триллер",
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.7,
+          "votes": 960,
+          "percent": 67
+        },
+        "rottenTomatoes": {
+          "critics": 65
+        }
+      }
+    },
+    {
+      "id": "poet-a-poet-un-poeta-2025",
+      "title": "Поэт",
+      "originalTitle": "A Poet (Un poeta)",
+      "year": 2025,
+      "query": "Поэт A Poet (Un poeta) 2025",
+      "genres": [
+        "драма",
+        "комедия"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.9,
+          "votes": 1700,
+          "percent": 79
+        },
+        "rottenTomatoes": {
+          "critics": 100
+        }
+      }
+    },
+    {
+      "id": "klinika-scrubs-1-sezon-2026",
+      "title": "Клиника",
+      "originalTitle": "Scrubs (1 сезон)",
+      "year": 2026,
+      "query": "Клиника Scrubs (1 сезон) 2026",
+      "genres": [
+        "комедия",
+        "драма"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 8.7,
+          "votes": 302577,
+          "percent": 87
+        },
+        "imdb": {
+          "value": 8.4,
+          "votes": 283000,
+          "percent": 84
+        },
+        "rottenTomatoes": {
+          "critics": 90,
+          "audience": 97
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,213 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.1",
+  "id": "2026-04-18-centralzd",
+  "title": "Что посмотреть от 18.04.2026",
+  "date": "2026-04-18",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_18042026_13893090",
+  "extractedAt": "2026-06-23T07:49:23.724Z",
+  "count": 9,
+  "items": [
+    {
+      "id": "super-mario-galakticheskoe-kino-the-super-mario-galaxy-movie-2026",
+      "title": "Супер Марио: Галактическое кино",
+      "originalTitle": "The Super Mario Galaxy Movie",
+      "year": 2026,
+      "query": "Супер Марио: Галактическое кино The Super Mario Galaxy Movie 2026",
+      "genres": [
+        "мультфильм",
+        "фэнтези",
+        "комедия",
+        "приключения",
+        "семейный"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.7,
+          "votes": 3609,
+          "percent": 67
+        },
+        "imdb": {
+          "value": 6.5,
+          "votes": 17439,
+          "percent": 65
+        },
+        "rottenTomatoes": {
+          "critics": 44,
+          "audience": 89
+        }
+      }
+    },
+    {
+      "id": "napominanie-o-nem-reminders-of-him-2026",
+      "title": "Напоминание о нём",
+      "originalTitle": "Reminders of Him",
+      "year": 2026,
+      "query": "Напоминание о нём Reminders of Him 2026",
+      "genres": [
+        "драма",
+        "мелодрама"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7,
+          "votes": 1206,
+          "percent": 70
+        },
+        "imdb": {
+          "value": 6.5,
+          "votes": 1700,
+          "percent": 65
+        },
+        "rottenTomatoes": {
+          "critics": 57,
+          "audience": 88
+        }
+      }
+    },
+    {
+      "id": "shary-vverh-balls-up-2026",
+      "title": "Шары вверх",
+      "originalTitle": "Balls Up",
+      "year": 2026,
+      "query": "Шары вверх Balls Up 2026",
+      "genres": [
+        "комедия",
+        "боевик"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 4.8,
+          "votes": 678,
+          "percent": 48
+        },
+        "rottenTomatoes": {
+          "critics": 33,
+          "audience": 17
+        }
+      }
+    },
+    {
+      "id": "otklonenie-slanted-2025",
+      "title": "Отклонение",
+      "originalTitle": "Slanted",
+      "year": 2025,
+      "query": "Отклонение Slanted 2025",
+      "genres": [
+        "ужасы",
+        "фантастика",
+        "драма",
+        "комедия"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.2,
+          "votes": 419,
+          "percent": 62
+        },
+        "rottenTomatoes": {
+          "critics": 69,
+          "audience": 65
+        }
+      }
+    },
+    {
+      "id": "timur-timur-2025",
+      "title": "Тимур",
+      "originalTitle": "Timur",
+      "year": 2025,
+      "query": "Тимур Timur 2025",
+      "genres": [
+        "боевик"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.4,
+          "votes": 66,
+          "percent": 74
+        }
+      }
+    },
+    {
+      "id": "mektub-moya-lyubov-pesn-vtoraya-mektoub-my-love-canto-due-2025",
+      "title": "Мектуб, моя любовь: Песнь вторая",
+      "originalTitle": "Mektoub, My Love: Canto Due",
+      "year": 2025,
+      "query": "Мектуб, моя любовь: Песнь вторая Mektoub, My Love: Canto Due 2025",
+      "genres": [
+        "драма",
+        "мелодрама"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.1,
+          "votes": 210,
+          "percent": 71
+        }
+      }
+    },
+    {
+      "id": "iz-lyubvi-les-enfants-vont-bien-2025",
+      "title": "Из любви",
+      "originalTitle": "Les enfants vont bien",
+      "year": 2025,
+      "query": "Из любви Les enfants vont bien 2025",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7,
+          "votes": 454,
+          "percent": 70
+        }
+      }
+    },
+    {
+      "id": "maestro-il-maestro-my-tennis-maestro-2025",
+      "title": "Маэстро",
+      "originalTitle": "Il maestro (My Tennis Maestro)",
+      "year": 2025,
+      "query": "Маэстро Il maestro (My Tennis Maestro) 2025",
+      "genres": [
+        "драма",
+        "комедия",
+        "спорт"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.9,
+          "votes": 346,
+          "percent": 69
+        }
+      }
+    },
+    {
+      "id": "u-margo-problemy-s-den-gami-margo-s-got-money-troubles-1-sezon-2026",
+      "title": "У Марго проблемы с деньгами",
+      "originalTitle": "Margo's Got Money Troubles (1 сезон)",
+      "year": 2026,
+      "query": "У Марго проблемы с деньгами Margo's Got Money Troubles (1 сезон) 2026",
+      "genres": [
+        "драма",
+        "комедия"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 8,
+          "votes": 162000,
+          "percent": 80
+        },
+        "rottenTomatoes": {
+          "critics": 86,
+          "audience": 65
+        },
+        "kinopoisk": {
+          "value": 7.7,
+          "votes": 30180,
+          "percent": 77
+        }
+      }
+    }
+  ]
+}

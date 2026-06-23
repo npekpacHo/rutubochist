@@ -1,0 +1,191 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.1",
+  "id": "2026-05-02-centralzd",
+  "title": "Что посмотреть от 02.05.2026",
+  "date": "2026-05-02",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_02052026_13937202",
+  "extractedAt": "2026-06-23T07:51:28.310Z",
+  "count": 8,
+  "items": [
+    {
+      "id": "oni-pridut-za-toboy-they-will-kill-you-2026",
+      "title": "Они придут за тобой",
+      "originalTitle": "They Will Kill You",
+      "year": 2026,
+      "query": "Они придут за тобой They Will Kill You 2026",
+      "genres": [
+        "комедия",
+        "ужасы"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.5,
+          "votes": 5512,
+          "percent": 65
+        },
+        "imdb": {
+          "value": 6.5,
+          "votes": 9516,
+          "percent": 65
+        },
+        "rottenTomatoes": {
+          "critics": 64,
+          "audience": 77
+        }
+      }
+    },
+    {
+      "id": "normal-normal-2025",
+      "title": "Нормал",
+      "originalTitle": "Normal",
+      "year": 2025,
+      "query": "Нормал Normal 2025",
+      "genres": [
+        "боевик",
+        "триллер",
+        "криминал"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.6,
+          "votes": 2809,
+          "percent": 66
+        },
+        "imdb": {
+          "value": 6.9,
+          "votes": 801,
+          "percent": 69
+        },
+        "rottenTomatoes": {
+          "critics": 75,
+          "audience": 76
+        }
+      }
+    },
+    {
+      "id": "legenda-ob-aange-posledniy-mag-vozduha-the-legend-of-aang-the-last-airbender-2026",
+      "title": "Легенда об Аанге: Последний маг воздуха",
+      "originalTitle": "The Legend of Aang: The Last Airbender",
+      "year": 2026,
+      "query": "Легенда об Аанге: Последний маг воздуха The Legend of Aang: The Last Airbender 2026",
+      "genres": [
+        "мультфильм"
+      ],
+      "ratings": {}
+    },
+    {
+      "id": "gamlet-hamlet-2025",
+      "title": "Гамлет",
+      "originalTitle": "Hamlet",
+      "year": 2025,
+      "query": "Гамлет Hamlet 2025",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.4,
+          "votes": 265,
+          "percent": 64
+        },
+        "rottenTomatoes": {
+          "critics": 72,
+          "audience": 55
+        }
+      }
+    },
+    {
+      "id": "zapretnyy-plod-forbidden-fruits-2026",
+      "title": "Запретный плод",
+      "originalTitle": "Forbidden Fruits",
+      "year": 2026,
+      "query": "Запретный плод Forbidden Fruits 2026",
+      "genres": [
+        "ужасы",
+        "комедия"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 5.1,
+          "votes": 1696,
+          "percent": 51
+        },
+        "imdb": {
+          "value": 6.1,
+          "votes": 1505,
+          "percent": 61
+        },
+        "rottenTomatoes": {
+          "critics": 74,
+          "audience": 72
+        }
+      }
+    },
+    {
+      "id": "ona-tancuet-she-dances-2025",
+      "title": "Она танцует",
+      "originalTitle": "She Dances",
+      "year": 2025,
+      "query": "Она танцует She Dances 2025",
+      "genres": [
+        "комедия",
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.6,
+          "votes": 206,
+          "percent": 66
+        },
+        "rottenTomatoes": {
+          "critics": 89
+        }
+      }
+    },
+    {
+      "id": "pegas-3-fei-chi-ren-sheng-3-2026",
+      "title": "Пегас 3",
+      "originalTitle": "Fei chi ren sheng 3",
+      "year": 2026,
+      "query": "Пегас 3 Fei chi ren sheng 3 2026",
+      "genres": [
+        "спорт",
+        "комедия",
+        "ужасы",
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.8,
+          "votes": 761,
+          "percent": 78
+        },
+        "rottenTomatoes": {
+          "critics": 100,
+          "audience": 95
+        }
+      }
+    },
+    {
+      "id": "dom-duhov-la-casa-de-los-esp-ritus-1-sezon-2026",
+      "title": "Дом духов",
+      "originalTitle": "La Casa de los Espíritus (1 сезон)",
+      "year": 2026,
+      "query": "Дом духов La Casa de los Espíritus (1 сезон) 2026",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.1,
+          "votes": 153,
+          "percent": 71
+        },
+        "rottenTomatoes": {
+          "critics": 86
+        }
+      }
+    }
+  ]
+}
