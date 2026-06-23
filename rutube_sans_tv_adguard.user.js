@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.2.5
+// @version      1.2.6
 // @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии и лишнее вокруг просмотра. Есть рекомендации что посмотреть, чистый плеер, анти-автозапуск, импорт/экспорт ЧС.
 // @author       elekt_riki
 // @license      MIT
@@ -19,7 +19,7 @@
   'use strict';
 
   const STORE_KEY = 'rtSansTvSettings:v1';
-  const UI_VERSION = '1.2.5';
+  const UI_VERSION = '1.2.6';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -706,10 +706,10 @@
           <div class="rtst-movie-status">${escapeHtml(String(index + 1))} из ${escapeHtml(String(total))} · фильмов: ${escapeHtml(String(items.length))}${sourceLink ? ' · ' + sourceLink : ''}</div>
         </div>
         <div class="rtst-movie-nav">
-          <button type="button" data-rtst-action="movie-newer" ${index <= 0 ? 'disabled' : ''}>⏪</button>
-          <button type="button" data-rtst-action="movie-random">🔀</button>
-          <button type="button" data-rtst-action="movie-refresh">📶</button>
-          <button type="button" data-rtst-action="movie-older" ${index >= total - 1 ? 'disabled' : ''}>⏩</button>
+          <button type="button" data-rtst-action="movie-newer" ${index <= 0 ? 'disabled' : ''}>⏪ Новее</button>
+          <button type="button" data-rtst-action="movie-random">🔀 Случайный выбор</button>
+          <button type="button" data-rtst-action="movie-refresh">📶 Обновить</button>
+          <button type="button" data-rtst-action="movie-older" ${index >= total - 1 ? 'disabled' : ''}>⏩ Старше</button>
         </div>
       </div>
       <div class="rtst-movie-list">${rows}</div>`;
@@ -965,7 +965,7 @@
     setGithubState('checking', 'Проверяю доступность GitHub...');
     try {
       await loadMovieJsonRemote(MOVIE_DB_INDEX_FILE);
-      setGithubState('ok', 'GitHub доступен.');
+      setGithubState('ok', 'Всё ОК!');
     } catch (e) {
       setGithubState('bad', e && e.message ? e.message : String(e));
     }
@@ -977,14 +977,14 @@
 
   function openRandomMovieSearch() {
     const items = movieCache.currentBatch && Array.isArray(movieCache.currentBatch.items) ? movieCache.currentBatch.items : [];
-    if (!items.length) { toast('В текущей подборке фильмов нет. Даже случайности не из чего выбирать.'); return; }
+    if (!items.length) { toast('В текущей подборке фильмов нет.'); return; }
     const movie = items[Math.floor(Math.random() * items.length)];
     openRutubeMovieSearch(movie.query || buildMovieQuery(movie), false);
   }
 
   function openRutubeMovieSearch(query, trailer) {
     const clean = String(query || '').trim();
-    if (!clean) { toast('Пустой поисковый запрос. Кино без названия, артхаус победил.'); return; }
+    if (!clean) { toast('Пустой поисковый запрос.'); return; }
     const finalQuery = trailer ? `${clean} трейлер` : clean;
     const params = new URLSearchParams({ query: finalQuery, content_type: 'video' });
     location.href = 'https://rutube.ru/search/?' + params.toString();
@@ -994,7 +994,7 @@
     const clean = String(url || '').trim();
     if (!/^https:\/\/pikabu\.ru\//i.test(clean)) { toast('Ссылка на источник выглядит подозрительно. Не открываю.'); return; }
     const opened = window.open(clean, '_blank', 'noopener,noreferrer');
-    if (!opened) toast('Браузер заблокировал новую вкладку. Такое вот цифровое гостеприимство.');
+    if (!opened) toast('Браузер заблокировал новую вкладку.');
   }
 
   function openListModal(type) {
