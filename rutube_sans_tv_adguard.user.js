@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.2.3
-// @description  Рутубочист: прячет на RUTUBE политоту, ТВ, шортсы, нежелательные каналы, комментарии и все лишнее. Есть рекомендации что посмотреть, чистый плеер, анти-автозапуск, импорт/экспорт ЧС.
+// @version      1.2.4
+// @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии и лишнее вокруг просмотра. Есть рекомендации что посмотреть, чистый плеер, анти-автозапуск, импорт/экспорт ЧС.
 // @author       elekt_riki
 // @license      MIT
 // @homepageURL  https://npekpacho.github.io/rutubochist/
@@ -369,8 +369,9 @@
           <div class="rtst-movie-cta-caption">подборки от CentralZD</div>
         </div>
         <div class="rtst-panel-footer">
-          <div class="rtst-small">Кнопка «⊘» скрывает канал. Чистый просмотр оставляет видео, описание и действия и точечно убирает рекомендательные секции.</div>
-          <button type="button" class="rtst-github-link" id="rtst-github-link" data-rtst-action="open-project" data-state="unknown" title="Открыть GitHub проекта">🐙</button>
+          <div class="rtst-small">Кнопка «⊘» скрывает канал.</div>
+		  <div class="rtst-small">©2026 npekpacHo</div>
+          <button type="button" class="rtst-github-link" id="rtst-github-link" data-rtst-action="open-project" data-state="unknown" title="GitHub проекта">🐙</button>
         </div>
       </div>
     `;
@@ -507,7 +508,7 @@
     modal.innerHTML = `
       <div class="rtst-modal" role="dialog" aria-modal="true">
         <div class="rtst-modal-head">
-          <div><div class="rtst-modal-title">Настройки Рутубочиста</div><div class="rtst-small">Всё хозяйство убрано сюда, чтобы панель больше не изображала шкаф управления.</div></div>
+          <div><div class="rtst-modal-title">Настройки Рутубочиста</div><div class="rtst-small">Здесь можно включать и отключать различные функции скрипта</div></div>
           <button type="button" data-rtst-action="close-modal">×</button>
         </div>
         <div class="rtst-modal-body">
@@ -523,47 +524,47 @@
             <div class="rtst-section-title">Отображение</div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-show-hidden"> показывать скрытое бледным</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-menu"> чистить боковое меню</label></div>
-            <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-shorts"> скрывать Shorts</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-shorts"> скрывать Шортсы</label></div>
           </div>
 
           <div class="rtst-section">
-            <div class="rtst-section-title">Страница просмотра</div>
-            <div class="rtst-row"><label><input type="checkbox" id="rtst-clean-watch"> чистый просмотр видео</label></div>
+            <div class="rtst-section-title">Просмотр</div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-clean-watch"> чистить плеер от рекомендаций</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-disable-autoplay"> подавлять автовоспроизведение</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-comments"> скрывать комментарии</label></div>
           </div>
 
           <div class="rtst-section">
             <div class="rtst-section-title">Добавить в Чёрный список</div>
-            <input type="text" id="rtst-add-input" placeholder="Название канала или слово/фраза">
+            <input type="text" id="rtst-add-input" placeholder="слово или фраза">
             <div class="rtst-actions">
-              <button type="button" class="rtst-mini-btn" data-rtst-action="add-channel">Добавить канал</button>
-              <button type="button" class="rtst-mini-btn" data-rtst-action="add-word">Добавить фразу</button>
+              <button type="button" class="rtst-mini-btn" data-rtst-action="add-channel">Добавить в каналы</button>
+              <button type="button" class="rtst-mini-btn" data-rtst-action="add-word">Добавить к фразам</button>
             </div>
           </div>
 
           <div class="rtst-section">
-            <div class="rtst-section-title">Списки блокировок</div>
+            <div class="rtst-section-title">Черные списки</div>
             <div class="rtst-actions">
-              <button type="button" class="rtst-mini-btn" data-rtst-action="open-list-modal" data-rtst-list="channels">Каналы <span class="rtst-count" id="rtst-channel-count"></span></button>
-              <button type="button" class="rtst-mini-btn" data-rtst-action="open-list-modal" data-rtst-list="words">Фразы <span class="rtst-count" id="rtst-word-count"></span></button>
+              <button type="button" class="rtst-mini-btn" data-rtst-action="open-list-modal" data-rtst-list="channels">Каналов: <span class="rtst-count" id="rtst-channel-count"></span></button>
+              <button type="button" class="rtst-mini-btn" data-rtst-action="open-list-modal" data-rtst-list="words">Фраз: <span class="rtst-count" id="rtst-word-count"></span></button>
             </div>
           </div>
 
           <div class="rtst-section">
-            <div class="rtst-section-title">Рекомендации</div>
+            <div class="rtst-section-title">Что посмотреть</div>
             <div class="rtst-small" id="rtst-movie-cache-status">${escapeHtml(movieCacheStatusText())}</div>
             <div class="rtst-actions">
-              <button type="button" class="rtst-mini-btn" data-rtst-action="update-movie-db">Обновить базу рекомендаций</button>
+              <button type="button" class="rtst-mini-btn" data-rtst-action="update-movie-db">Обновить базу</button>
             </div>
           </div>
 
           <div class="rtst-section">
-            <div class="rtst-section-title">Резервная копия</div>
+            <div class="rtst-section-title">Резервная копия ЧС</div>
             <div class="rtst-actions">
               <button type="button" class="rtst-mini-btn" data-rtst-action="export-settings">Экспорт</button>
               <button type="button" class="rtst-mini-btn" data-rtst-action="import-settings">Импорт</button>
-              <button type="button" class="rtst-mini-btn rtst-danger" data-rtst-action="reset-user">Очистить списки</button>
+              <button type="button" class="rtst-mini-btn rtst-danger" data-rtst-action="reset-user">Очистить Всё</button>
               <input type="file" id="rtst-import-file" accept="application/json,.json">
             </div>
           </div>
@@ -733,12 +734,12 @@
   async function loadMovieBatch(index) {
     const indexData = await loadMovieIndex();
     const batches = Array.isArray(indexData.batches) ? indexData.batches : [];
-    if (!batches.length) throw new Error('В локальной базе нет batches. Прекрасно, база есть, а фильмов нет.');
+    if (!batches.length) throw new Error('В локальной базе нет batches.');
     const safeIndex = Math.max(0, Math.min(batches.length - 1, Number(index) || 0));
     const entry = batches[safeIndex];
     const cacheKey = entry.id || entry.file || String(safeIndex);
     let batch = movieCache.batches.get(cacheKey);
-    if (!batch) throw new Error(`В локальном кэше нет подборки ${entry.title || cacheKey}. Нажми «Обновить базу рекомендаций» в настройках.`);
+    if (!batch) throw new Error(`В локальном кэше нет подборки ${entry.title || cacheKey}. Нажми «Обновить базу» в настройках.`);
     movieCache.currentIndex = safeIndex;
     movieCache.currentBatch = batch;
     maybeUpdateMovieDbInBackground();
@@ -764,7 +765,7 @@
       movieCache.savedAt = Number(data.savedAt) || 0;
       return movieCache.batches.size > 0;
     } catch (e) {
-      console.warn('[Рутубочист] Не удалось прочитать локальную базу фильмов:', e);
+      console.warn('[Рутубочист] Не удалось прочитать локальную базу:', e);
       return false;
     }
   }
@@ -789,7 +790,7 @@
     try {
       const indexData = await loadMovieJsonRemote(MOVIE_DB_INDEX_FILE);
       const batches = Array.isArray(indexData.batches) ? indexData.batches : [];
-      if (!batches.length) throw new Error('movies/index.json загружен, но в нём нет batches. Прекрасно, база есть, а фильмов нет.');
+      if (!batches.length) throw new Error('movies/index.json загружен, но в нём нет batches.');
       const packed = {};
       for (let i = 0; i < batches.length; i += 1) {
         const entry = batches[i];
@@ -798,12 +799,12 @@
         packed[cacheKey] = await loadMovieJsonRemote(entry.file);
       }
       saveMovieDbToLocalCache(indexData, packed, 'github');
-      setGithubState('ok', `GitHub доступен. База обновлена: ${formatDateTime(new Date())}.`);
-      if (!silent) toast('База рекомендаций обновлена и сохранена локально.');
+      setGithubState('ok', `База обновлена: ${formatDateTime(new Date())}.`);
+      if (!silent) toast('База обновлена и сохранена локально.');
       return true;
     } catch (e) {
       setGithubState('bad', `GitHub недоступен: ${e && e.message ? e.message : String(e)}`);
-      if (!silent) toast('Не удалось обновить базу рекомендаций. Беру локальный кэш, как взрослая программа.');
+      if (!silent) toast('Не удалось обновить базу. Беру локальный кэш.');
       if (!movieCache.index) loadMovieDbFromLocalCache();
       return false;
     }
@@ -846,12 +847,12 @@
     if (button) { button.disabled = true; button.textContent = 'Обновляю...'; }
     await refreshMovieDbCache({ silent: false });
     updateMovieCacheStatusText();
-    if (button) { button.disabled = false; button.textContent = 'Обновить базу рекомендаций'; }
+    if (button) { button.disabled = false; button.textContent = 'Обновить базу'; }
   }
 
   function movieCacheStatusText() {
     if (!movieCache.index) loadMovieDbFromLocalCache();
-    if (!movieCache.savedAt) return 'Локальная база рекомендаций ещё не загружена.';
+    if (!movieCache.savedAt) return 'Локальная база ещё не загружена.';
     const source = movieCache.source === 'github' ? 'GitHub' : 'локальный кэш';
     const count = movieCache.index && Array.isArray(movieCache.index.batches) ? movieCache.index.batches.length : 0;
     return `Локальная база: ${count} подборок, источник: ${source}, обновлена ${formatDateTime(new Date(movieCache.savedAt))}.`;
