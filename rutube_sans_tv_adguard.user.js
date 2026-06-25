@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.2.19
+// @version      1.2.23
 // @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии и лишнее вокруг просмотра. Есть рекомендации что посмотреть, чистый плеер, анти-автозапуск, импорт/экспорт ЧС.
 // @author       elekt_riki
 // @license      MIT
@@ -19,7 +19,7 @@
   'use strict';
 
   const STORE_KEY = 'rtSansTvSettings:v1';
-  const UI_VERSION = '1.2.19';
+  const UI_VERSION = '1.2.23';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -91,7 +91,7 @@
   let nextAutoplayBlockUntil = 0;
   let lastVideoEndedAt = 0;
   let autoplayGuardInstalled = false;
-  let modalOpenedAt = 0; // Для защиты от фантомных кликов на смартфонах
+  let modalOpenedAt = 0; 
   let panelSleepTimer = null;
 
   const MOVIE_DB_BASE_URLS = [
@@ -195,58 +195,6 @@
         display: none !important;
       }
 
-      /* --- ДЕЛИКАТНАЯ CSS-ЗАЧИСТКА ИНТЕРФЕЙСА RUTUBE ---
-         Только display:none по устойчивым признакам. Никаких удалений React-узлов. */
-      html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] .wdp-notification-bell-module__mobileS,
-      html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] .wdp-notification-bell-module__desktop,
-      html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] .safe-mode-header-entrypoint-module__button-mobile-s,
-      html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] .safe-mode-header-entrypoint-module__button-desktop,
-      html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] .premium-subscription-entrypoint-module__premium-entrypoint,
-      html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] .premium-subscription-entrypoint-module__desktop,
-      html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] .premium-subscription-entrypoint-module__mobileM,
-      html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] .premium-subscription-entrypoint-module__mobileS,
-      html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] button[aria-label*="уведом" i],
-      html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] button[aria-label*="безопасн" i],
-      html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] button[aria-label*="отключить рекламу" i] {
-        display: none !important;
-      }
-      @supports selector(:has(*)) {
-        html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] .wdp-header-right-module__wrapper > div:has(button[aria-label*="уведом" i]),
-        html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] .wdp-header-right-module__wrapper > div:has(button[aria-label*="безопасн" i]),
-        html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] .wdp-header-right-module__wrapper > div:has(button[aria-label*="отключить рекламу" i]),
-        html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] .wdp-header-right-module__wrapper > div:has(img[src*="Icon_paid_subscription"]) {
-          display: none !important;
-        }
-      }
-      html[data-rtst-enabled="1"][data-rtst-page="home"][data-rtst-clean-chrome="1"] [role="tablist"][aria-orientation="horizontal"] > button[role="tab"][id^="tab-"]:not([id^="tab-36312-"]):not([id^="tab-36314-"]):not([id^="tab-36315-"]) {
-        display: none !important;
-      }
-      html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] a[href^="https://rutube.sport/"],
-      html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] a[href^="//rutube.sport/"] {
-        display: none !important;
-      }
-      html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] a.wdp-mobile-menu-module__mobile-menu-item[href="/categories/"] {
-        display: none !important;
-      }
-      html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] a.menu-item-module__menu-item[href="/feeds/travel/"],
-      html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] a.menu-item-module__menu-item[href="/feeds/stream/"],
-      html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] a.menu-item-module__menu-item[href="/feeds/sport/"],
-      html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] a.wdp-mobile-menu-module__mobile-menu-item[href="/feeds/travel/"],
-      html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] a.wdp-mobile-menu-module__mobile-menu-item[href="/feeds/stream/"],
-      html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] a.wdp-mobile-menu-module__mobile-menu-item[href="/feeds/sport/"] {
-        display: none !important;
-      }
-      html[data-rtst-enabled="1"][data-rtst-hide-shorts="1"] a.wdp-mobile-menu-module__mobile-menu-item[href^="/shorts/"] {
-        display: none !important;
-      }
-      html[data-rtst-enabled="1"][data-rtst-hide-shorts="1"] section[aria-label="Shorts" i],
-      html[data-rtst-enabled="1"][data-rtst-hide-shorts="1"] .wdp-showcase-module__wdp-showcase:has(a[href^="/shorts/"]) {
-        display: none !important;
-      }
-      html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] .wdp-showcase-module__wdp-showcase:has(a[href="/tags/video/5989/"]),
-      html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] section[aria-label="Галерея Выбор RUTUBE" i] {
-        display: none !important;
-      }
       .rtst-hidden {
         display: none !important; width: 0 !important; height: 0 !important;
         min-width: 0 !important; min-height: 0 !important; margin: 0 !important;
@@ -404,39 +352,41 @@
       .rtst-modal .rtst-movie-row { display: block !important; width: 100% !important; min-height: 0 !important; margin: 0 !important; padding: 6px 8px !important; border: 1px solid rgba(255,255,255,.10) !important; border-radius: 8px !important; background: rgba(255,255,255,.055) !important; color: #f4fff7 !important; cursor: pointer !important; text-align: left !important; box-shadow: none !important; font: 12px/1.35 Arial, sans-serif !important; }
       .rtst-modal .rtst-movie-row:hover { background: rgba(255,255,255,.105) !important; filter: none !important; }
       .rtst-movie-title-line { display: block !important; color: #f4fff7 !important; font-weight: 800 !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
-      .rtst-movie-meta-line { display: block !important; margin-top: 2px !important; color: rgba(244,255,247,.76) !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; font-size: 11px !important; }
+      .rtst-movie-meta-line { display: flex !important; flex-wrap: wrap !important; gap: 4px 12px !important; margin-top: 6px !important; color: rgba(244,255,247,.76) !important; font-size: 11px !important; }
+      .rtst-movie-meta-line span { display: inline-flex !important; align-items: center !important; white-space: nowrap !important; }
       .rtst-movie-loading, .rtst-movie-error, .rtst-movie-empty { padding: 10px !important; border: 1px solid rgba(255,255,255,.10) !important; border-radius: 8px !important; background: rgba(255,255,255,.055) !important; color: rgba(244,255,247,.82) !important; font: 12px/1.4 Arial, sans-serif !important; }
       .rtst-movie-error { color: #ffd6d2 !important; }
       .rtst-toast { position: fixed !important; right: 14px !important; bottom: 14px !important; z-index: 2147483647 !important; max-width: calc(100vw - 28px) !important; padding: 8px 10px !important; border-radius: 8px !important; background: rgba(0,0,0,.86) !important; color: #fff !important; font: 12px/1.3 Arial, sans-serif !important; box-shadow: 0 8px 30px rgba(0,0,0,.3) !important; }
       
-      /* --- MOBILE OVERRIDES (Top Center Panel + Fullscreen Modals) --- */
+      /* --- MOBILE OVERRIDES --- */
       @media (max-width: 680px) {
-        .rtst-panel {
-          top: calc(env(safe-area-inset-top, 0px) + 8px) !important;
-          left: 50% !important; right: auto !important; bottom: auto !important;
-          transform: translateX(-50%) !important;
-        }
+        /* Свернутая кнопка: Наверху по центру (чтобы не мешать просмотру) */
         .rtst-panel[data-collapsed="1"] {
-          top: calc(env(safe-area-inset-top, 0px) + 8px) !important;
-          left: 50% !important; right: auto !important; bottom: auto !important;
+          top: calc(env(safe-area-inset-top, 0px) + 12px) !important;
+          bottom: auto !important;
+          left: 50% !important;
+          right: auto !important;
           transform: translateX(-50%) !important;
         }
+
+        /* Развернутая панель: Выезжает снизу (Bottom Sheet) для удобства пальца */
         .rtst-panel:not([data-collapsed="1"]) {
-          width: min(420px, calc(100vw - 20px)) !important;
-          max-width: calc(100vw - 20px) !important;
-          max-height: min(82vh, calc(100vh - env(safe-area-inset-top, 0px) - 18px)) !important;
-          top: calc(env(safe-area-inset-top, 0px) + 8px) !important;
-          left: 50% !important; right: auto !important; bottom: auto !important;
-          transform: translateX(-50%) !important;
-          border-radius: 14px !important;
-          border: 1px solid rgba(186,242,198,.28) !important;
-          overflow: auto !important;
-          font-size: 14px !important;
+          top: auto !important;
+          bottom: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          transform: none !important;
+          width: 100vw !important; max-width: 100vw !important;
+          border-radius: 16px 16px 0 0 !important;
+          border-left: 0 !important; border-right: 0 !important; border-bottom: 0 !important;
+          max-height: 85vh !important; font-size: 14px !important;
         }
+
         .rtst-panel:not([data-collapsed="1"]) .rtst-panel-head { padding: 14px 16px !important; }
         .rtst-panel:not([data-collapsed="1"]) .rtst-panel-title { font-size: 16px !important; }
         .rtst-panel:not([data-collapsed="1"]) .rtst-panel-subtitle { font-size: 13px !important; }
-        .rtst-panel:not([data-collapsed="1"]) .rtst-panel-body { padding: 12px 16px 18px !important; }
+        .rtst-panel:not([data-collapsed="1"]) .rtst-panel-body { padding: 12px 16px 24px !important; }
+        
         .rtst-panel[data-page="video"] .rtst-quick-nav { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
         .rtst-panel[data-page="video"] .rtst-quick-btn { min-height: 38px !important; font-size: 13px !important; padding: 8px 12px !important; }
         .rtst-panel[data-page="video"] .rtst-quick-movie { min-height: 46px !important; font-size: 15px !important; }
@@ -467,13 +417,25 @@
         .rtst-modal textarea { min-height: 30vh !important; }
         .rtst-modal.rtst-movie-modal { width: 100vw !important; max-width: 100vw !important; }
         .rtst-modal .rtst-movie-row { min-height: 60px !important; font-size: 14px !important; padding: 12px !important; margin-bottom: 8px !important; }
-        .rtst-movie-meta-line { white-space: normal !important; margin-top: 6px !important; font-size: 12px !important; }
+        .rtst-movie-meta-line { gap: 6px 10px !important; margin-top: 8px !important; font-size: 12px !important; }
         .rtst-movie-toolbar { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; }
         .rtst-movie-nav { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 8px !important; }
         .rtst-movie-nav button { width: 100% !important; padding-left: 8px !important; padding-right: 8px !important; }
         
         /* Тосты */
         .rtst-toast { right: 16px !important; left: 16px !important; bottom: 32px !important; max-width: none !important; text-align: center !important; font-size: 14px !important; padding: 12px !important; }
+      }
+
+      /* Мобильная альбомная ориентация часто шире 680px, поэтому базовый mobile-блок выше не срабатывает.
+         Свернутую кнопку всё равно держим сверху по центру, чтобы она не прыгала при повороте экрана. */
+      @media (hover: none) and (pointer: coarse), (max-height: 520px) and (orientation: landscape) {
+        .rtst-panel[data-collapsed="1"] {
+          top: calc(env(safe-area-inset-top, 0px) + 12px) !important;
+          bottom: auto !important;
+          left: 50% !important;
+          right: auto !important;
+          transform: translateX(-50%) !important;
+        }
       }
     `;
 
@@ -558,6 +520,10 @@
     `;
 
     document.documentElement.appendChild(panel);
+    
+    panel.addEventListener('mouseenter', () => wakePanel(30000));
+    panel.addEventListener('mouseleave', () => wakePanel(4800));
+
     updatePanelRouteState();
     syncGithubBadge();
     syncPanel();
@@ -598,6 +564,7 @@
     const styleId = 'rtst-dynamic-cleanup-style';
     const old = document.getElementById(styleId);
     const chromeOn = Boolean(cleanChromeOn != null ? cleanChromeOn : (settings.cleanRutubeChrome || settings.hideSideMenuPolitics));
+    
     if (isEmbeddedRutubePlayer() || !settings.enabled || (!chromeOn && !settings.hideShorts && !settings.cleanWatchPage)) {
       if (old) old.remove();
       return;
@@ -607,9 +574,7 @@
 
     if (chromeOn) {
       parts.push(`
-        /* Рутубочист: глобальная зачистка интерфейса.
-           Отдельный динамический слой нужен для страниц вроде /search/,
-           где RUTUBE может отрисовать шапку раньше/иначе основного сканера. */
+        /* Рутубочист: глобальная зачистка интерфейса. */
         .wdp-header-right-module__wrapper .wdp-notification-bell-module__mobileS,
         .wdp-header-right-module__wrapper .wdp-notification-bell-module__desktop,
         .wdp-header-right-module__wrapper [class*="wdp-notification-bell-module__"],
@@ -626,7 +591,8 @@
         a.menu-item-module__menu-item[href="/feeds/sport/"],
         a.wdp-mobile-menu-module__mobile-menu-item[href="/feeds/travel/"],
         a.wdp-mobile-menu-module__mobile-menu-item[href="/feeds/stream/"],
-        a.wdp-mobile-menu-module__mobile-menu-item[href="/feeds/sport/"] {
+        a.wdp-mobile-menu-module__mobile-menu-item[href="/feeds/sport/"],
+        section[aria-label="Галерея Выбор RUTUBE" i] {
           display: none !important;
         }
 
@@ -637,8 +603,7 @@
           .wdp-header-right-module__wrapper > div:has(img[src*="Icon_paid_subscription"]) {
             display: none !important;
           }
-          .wdp-showcase-module__wdp-showcase:has(a[href="/tags/video/5989/"]),
-          section:has(a[href="/tags/video/5989/"]) {
+          .wdp-showcase-module__wdp-showcase:has(a[href="/tags/video/5989/"]) {
             display: none !important;
           }
         }
@@ -648,12 +613,15 @@
     if (settings.hideShorts) {
       parts.push(`
         a.wdp-mobile-menu-module__mobile-menu-item[href^="/shorts/"],
-        section[aria-label="Shorts" i] {
+        section[aria-label="Shorts" i],
+        section[aria-label="Шортсы" i] {
           display: none !important;
         }
         @supports selector(:has(*)) {
-          .wdp-showcase-module__wdp-showcase:has(a[href^="/shorts/"]),
-          section:has(a[href^="/shorts/"]) {
+          article:has(a[href^="/shorts/"]),
+          [data-testid*="card" i]:has(a[href^="/shorts/"]),
+          .wdp-carousel-module__container:has(a[href^="/shorts/"]),
+          .wdp-slider-module__slider:has(a[href^="/shorts/"]) {
             display: none !important;
           }
         }
@@ -670,7 +638,7 @@
       `);
     }
 
-    const css = parts.join('\\n');
+    const css = parts.join('\n');
     const style = old || document.createElement('style');
     style.id = styleId;
     style.textContent = css;
@@ -802,7 +770,7 @@
       if (linkEl && !linkEl.closest('#rtst-panel')) suspendScanUntil = Date.now() + 1400;
       
       if (event.target && event.target.classList && event.target.classList.contains('rtst-modal-backdrop')) {
-        if (Date.now() - modalOpenedAt < 400) return; // Защита от фантомных кликов на смартфонах
+        if (Date.now() - modalOpenedAt < 400) return; 
         closeModal(); return;
       }
 
@@ -1036,11 +1004,13 @@
   function renderMovieRow(movie) {
     const query = movie && (movie.query || buildMovieQuery(movie));
     const title = movieTitleLine(movie);
-    const meta = [renderMovieGenres(movie && movie.genres), renderMovieRatings(movie && movie.ratings)].filter(Boolean).join('   ');
+    const genresHtml = renderMovieGenres(movie && movie.genres);
+    const ratingsHtml = renderMovieRatings(movie && movie.ratings);
+    const metaHtml = genresHtml + ratingsHtml;
     return `
       <button type="button" class="rtst-movie-row" data-rtst-action="movie-search" data-rtst-query="${escapeAttribute(query)}" title="Искать на RUTUBE: ${escapeAttribute(query)}">
         <span class="rtst-movie-title-line">${escapeHtml(title)}</span>
-        <span class="rtst-movie-meta-line">${escapeHtml(meta || 'без жанров и рейтингов')}</span>
+        <span class="rtst-movie-meta-line">${metaHtml || '<span>без жанров и рейтингов</span>'}</span>
       </button>`;
   }
 
@@ -1059,10 +1029,10 @@
 
   function renderMovieGenres(genres) {
     if (!Array.isArray(genres) || !genres.length) return '';
-    const shown = genres.slice(0, 3).map((genre) => `${movieGenreIcon(genre)} ${genre}`);
+    const shown = genres.slice(0, 3).map((genre) => `<span>${movieGenreIcon(genre)} ${escapeHtml(genre)}</span>`);
     const rest = genres.length - shown.length;
-    if (rest > 0) shown.push(`+${rest}`);
-    return shown.join('   ');
+    if (rest > 0) shown.push(`<span>+${rest}</span>`);
+    return shown.join('');
   }
 
   function movieGenreIcon(genre) {
@@ -1095,18 +1065,18 @@
     const parts = [];
     if (ratings.imdb && Number.isFinite(Number(ratings.imdb.value))) {
       const percent = Number.isFinite(Number(ratings.imdb.percent)) ? Number(ratings.imdb.percent) : Number(ratings.imdb.value) * 10;
-      parts.push(`IMDb ${movieRatingBar(percent)} ${formatMovieRatingValue(ratings.imdb.value)}/10`);
+      parts.push(`<span>IMDb ${movieRatingBar(percent)} ${formatMovieRatingValue(ratings.imdb.value)}/10</span>`);
     }
     if (ratings.kinopoisk && Number.isFinite(Number(ratings.kinopoisk.value))) {
       const percent = Number.isFinite(Number(ratings.kinopoisk.percent)) ? Number(ratings.kinopoisk.percent) : Number(ratings.kinopoisk.value) * 10;
-      parts.push(`КП ${movieRatingBar(percent)} ${formatMovieRatingValue(ratings.kinopoisk.value)}/10`);
+      parts.push(`<span>КП ${movieRatingBar(percent)} ${formatMovieRatingValue(ratings.kinopoisk.value)}/10</span>`);
     }
     if (ratings.rottenTomatoes && typeof ratings.rottenTomatoes === 'object') {
       const critics = ratings.rottenTomatoes.critics != null ? ratings.rottenTomatoes.critics : '–';
       const audience = ratings.rottenTomatoes.audience != null ? ratings.rottenTomatoes.audience : '–';
-      parts.push(`🍅 ${critics}/${audience}`);
+      parts.push(`<span>🍅 ${critics}/${audience}</span>`);
     }
-    return parts.join('   ');
+    return parts.join('');
   }
 
   function formatMovieRatingValue(value) {
@@ -1299,9 +1269,7 @@
       if (!movieCache.index) {
         await loadMovieIndex();
       }
-    } catch (e) {
-      // Если база недоступна, ниже всё равно попробуем текущую открытую подборку.
-    }
+    } catch (e) {}
 
     const batches = movieCache.batches instanceof Map ? Array.from(movieCache.batches.values()) : [];
     let items = batches.flatMap((batch) => Array.isArray(batch && batch.items) ? batch.items : []);
@@ -1507,8 +1475,6 @@
   }
 
   function hideShortsBlocks() {
-    // С версии 1.2.7 Shorts по возможности скрываются CSS-ом через data-rtst-hide-shorts.
-    // React-узлы RUTUBE не трогаем: эта зверушка нервная и при грубом DOM-массаже падает с «что-то пошло не так».
     syncRootFlags();
   }
 
@@ -1809,6 +1775,18 @@
       const match = blockHeadings.find((heading) => text === normalize(heading));
       if (match) softHideChromeElement(findChromeBlockTarget(el), `блок: ${match}`);
     });
+
+    // Очистка нежелательных вкладок на главной странице (Оставляем только нужное)
+    if (isHomePage() || isHomeFeedPage()) {
+      const goodTabs = ['главная', 'фильмы', 'сериалы'];
+      document.querySelectorAll('[role="tablist"] button[role="tab"]').forEach(tab => {
+        const text = normalize(tab.textContent || '');
+        // Если текст вкладки НЕ входит в белый список — скрываем её
+        if (!goodTabs.includes(text) && text !== '') {
+          tab.style.setProperty('display', 'none', 'important');
+        }
+      });
+    }
   }
 
   function softHideChromeElement(el, reason) {
