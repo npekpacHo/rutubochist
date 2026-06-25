@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.2.17
+// @version      1.2.18
 // @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии и лишнее вокруг просмотра. Есть рекомендации что посмотреть, чистый плеер, анти-автозапуск, импорт/экспорт ЧС.
 // @author       elekt_riki
 // @license      MIT
@@ -19,7 +19,7 @@
   'use strict';
 
   const STORE_KEY = 'rtSansTvSettings:v1';
-  const UI_VERSION = '1.2.17';
+  const UI_VERSION = '1.2.18';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -587,6 +587,90 @@
     root.dataset.rtstCleanChrome = (settings.enabled && cleanChromeOn) ? '1' : '0';
     root.dataset.rtstHideShorts = (settings.enabled && settings.hideShorts) ? '1' : '0';
     root.dataset.rtstCleanWatch = (settings.enabled && settings.cleanWatchPage) ? '1' : '0';
+    updateDynamicCleanupStyle(cleanChromeOn);
+  }
+
+  function updateDynamicCleanupStyle(cleanChromeOn) {
+    const styleId = 'rtst-dynamic-cleanup-style';
+    const old = document.getElementById(styleId);
+    const chromeOn = Boolean(cleanChromeOn != null ? cleanChromeOn : (settings.cleanRutubeChrome || settings.hideSideMenuPolitics));
+    if (isEmbeddedRutubePlayer() || !settings.enabled || (!chromeOn && !settings.hideShorts && !settings.cleanWatchPage)) {
+      if (old) old.remove();
+      return;
+    }
+
+    const parts = [];
+
+    if (chromeOn) {
+      parts.push(`
+        /* Рутубочист: глобальная зачистка интерфейса.
+           Отдельный динамический слой нужен для страниц вроде /search/,
+           где RUTUBE может отрисовать шапку раньше/иначе основного сканера. */
+        .wdp-header-right-module__wrapper .wdp-notification-bell-module__mobileS,
+        .wdp-header-right-module__wrapper .wdp-notification-bell-module__desktop,
+        .wdp-header-right-module__wrapper [class*="wdp-notification-bell-module__"],
+        .wdp-header-right-module__wrapper [class*="safe-mode-header-entrypoint-module__button"],
+        .wdp-header-right-module__wrapper [class*="premium-subscription-entrypoint-module__"],
+        button[aria-label*="уведом" i],
+        button[aria-label*="безопасн" i],
+        button[aria-label*="отключить рекламу" i],
+        a[href^="https://rutube.sport/"],
+        a[href^="//rutube.sport/"],
+        a.wdp-mobile-menu-module__mobile-menu-item[href="/categories/"],
+        a.menu-item-module__menu-item[href="/feeds/travel/"],
+        a.menu-item-module__menu-item[href="/feeds/stream/"],
+        a.menu-item-module__menu-item[href="/feeds/sport/"],
+        a.wdp-mobile-menu-module__mobile-menu-item[href="/feeds/travel/"],
+        a.wdp-mobile-menu-module__mobile-menu-item[href="/feeds/stream/"],
+        a.wdp-mobile-menu-module__mobile-menu-item[href="/feeds/sport/"] {
+          display: none !important;
+        }
+
+        @supports selector(:has(*)) {
+          .wdp-header-right-module__wrapper > div:has(button[aria-label*="уведом" i]),
+          .wdp-header-right-module__wrapper > div:has(button[aria-label*="безопасн" i]),
+          .wdp-header-right-module__wrapper > div:has(button[aria-label*="отключить рекламу" i]),
+          .wdp-header-right-module__wrapper > div:has(img[src*="Icon_paid_subscription"]) {
+            display: none !important;
+          }
+          .wdp-showcase-module__wdp-showcase:has(a[href="/tags/video/5989/"]),
+          section:has(a[href="/tags/video/5989/"]) {
+            display: none !important;
+          }
+        }
+      `);
+    }
+
+    if (settings.hideShorts) {
+      parts.push(`
+        a.wdp-mobile-menu-module__mobile-menu-item[href^="/shorts/"],
+        section[aria-label="Shorts" i] {
+          display: none !important;
+        }
+        @supports selector(:has(*)) {
+          .wdp-showcase-module__wdp-showcase:has(a[href^="/shorts/"]),
+          section:has(a[href^="/shorts/"]) {
+            display: none !important;
+          }
+        }
+      `);
+    }
+
+    if (settings.cleanWatchPage) {
+      parts.push(`
+        body[data-page="video"] .video-page-layout-module__right,
+        body[data-page="video"] .wdp-see-also-module__wrapper,
+        body[data-page="video"] section[aria-label="Рекомендации" i] {
+          display: none !important;
+        }
+      `);
+    }
+
+    const css = parts.join('\\n');
+    const style = old || document.createElement('style');
+    style.id = styleId;
+    style.textContent = css;
+    if (!old) (document.head || document.documentElement).appendChild(style);
   }
 
   function wakePanel(durationMs = 4800) {
