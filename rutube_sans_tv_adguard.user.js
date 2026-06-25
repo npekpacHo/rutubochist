@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.2.16
+// @version      1.2.17
 // @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии и лишнее вокруг просмотра. Есть рекомендации что посмотреть, чистый плеер, анти-автозапуск, импорт/экспорт ЧС.
 // @author       elekt_riki
 // @license      MIT
@@ -19,7 +19,7 @@
   'use strict';
 
   const STORE_KEY = 'rtSansTvSettings:v1';
-  const UI_VERSION = '1.2.16';
+  const UI_VERSION = '1.2.17';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -193,10 +193,26 @@
 
       /* --- ДЕЛИКАТНАЯ CSS-ЗАЧИСТКА ИНТЕРФЕЙСА RUTUBE ---
          Только display:none по устойчивым признакам. Никаких удалений React-узлов. */
+      html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] .wdp-notification-bell-module__mobileS,
+      html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] .wdp-notification-bell-module__desktop,
+      html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] .safe-mode-header-entrypoint-module__button-mobile-s,
+      html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] .safe-mode-header-entrypoint-module__button-desktop,
+      html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] .premium-subscription-entrypoint-module__premium-entrypoint,
+      html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] .premium-subscription-entrypoint-module__desktop,
+      html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] .premium-subscription-entrypoint-module__mobileM,
+      html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] .premium-subscription-entrypoint-module__mobileS,
       html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] button[aria-label*="уведом" i],
       html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] button[aria-label*="безопасн" i],
       html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] button[aria-label*="отключить рекламу" i] {
         display: none !important;
+      }
+      @supports selector(:has(*)) {
+        html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] .wdp-header-right-module__wrapper > div:has(button[aria-label*="уведом" i]),
+        html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] .wdp-header-right-module__wrapper > div:has(button[aria-label*="безопасн" i]),
+        html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] .wdp-header-right-module__wrapper > div:has(button[aria-label*="отключить рекламу" i]),
+        html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] .wdp-header-right-module__wrapper > div:has(img[src*="Icon_paid_subscription"]) {
+          display: none !important;
+        }
       }
       html[data-rtst-enabled="1"][data-rtst-page="home"][data-rtst-clean-chrome="1"] [role="tablist"][aria-orientation="horizontal"] > button[role="tab"][id^="tab-"]:not([id^="tab-36312-"]):not([id^="tab-36314-"]):not([id^="tab-36315-"]) {
         display: none !important;
