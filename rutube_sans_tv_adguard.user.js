@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.2.23
+// @version      1.2.31
 // @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии и лишнее вокруг просмотра. Есть рекомендации что посмотреть, чистый плеер, анти-автозапуск, импорт/экспорт ЧС.
 // @author       elekt_riki
 // @license      MIT
@@ -19,7 +19,7 @@
   'use strict';
 
   const STORE_KEY = 'rtSansTvSettings:v1';
-  const UI_VERSION = '1.2.23';
+  const UI_VERSION = '1.2.31';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -103,7 +103,7 @@
   const MOVIE_DB_UPDATE_INTERVAL_MS = 3 * 24 * 60 * 60 * 1000;
   const PROJECT_URL = 'https://github.com/npekpacHo/rutubochist';
   const movieCache = { index: null, batches: new Map(), currentIndex: 0, currentBatch: null, source: 'none', savedAt: 0 };
-  let githubState = { state: 'unknown', checkedAt: 0, message: 'GitHub ещё не проверялся.' };
+  let githubState = { state: 'unknown', checkedAt: 0, message: '' };
 
   function loadSettings() {
     try {
@@ -357,6 +357,18 @@
       .rtst-movie-loading, .rtst-movie-error, .rtst-movie-empty { padding: 10px !important; border: 1px solid rgba(255,255,255,.10) !important; border-radius: 8px !important; background: rgba(255,255,255,.055) !important; color: rgba(244,255,247,.82) !important; font: 12px/1.4 Arial, sans-serif !important; }
       .rtst-movie-error { color: #ffd6d2 !important; }
       .rtst-toast { position: fixed !important; right: 14px !important; bottom: 14px !important; z-index: 2147483647 !important; max-width: calc(100vw - 28px) !important; padding: 8px 10px !important; border-radius: 8px !important; background: rgba(0,0,0,.86) !important; color: #fff !important; font: 12px/1.3 Arial, sans-serif !important; box-shadow: 0 8px 30px rgba(0,0,0,.3) !important; }
+      .rtst-popup-close-proxy {
+        position: fixed !important; left: 50% !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 22px) !important;
+        transform: translateX(-50%) !important; z-index: 2147483646 !important;
+        min-width: 280px !important; min-height: 76px !important; padding: 18px 34px !important;
+        border: 1px solid rgba(255,255,255,.26) !important; border-radius: 999px !important;
+        background: rgba(18,18,18,.97) !important; color: #f4fff7 !important;
+        box-shadow: 0 14px 38px rgba(0,0,0,.52) !important; backdrop-filter: blur(8px) !important;
+        cursor: pointer !important; font: 800 22px/1.2 Arial, sans-serif !important; text-align: center !important;
+      }
+      .rtst-popup-close-proxy:hover { background: rgba(40,40,40,.98) !important; }
+      .rtst-popup-close-proxy:active { transform: translateX(-50%) scale(.97) !important; }
+
       
       /* --- MOBILE OVERRIDES --- */
       @media (max-width: 680px) {
@@ -575,11 +587,77 @@
     if (chromeOn) {
       parts.push(`
         /* Рутубочист: глобальная зачистка интерфейса. */
+        .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] .wdp-popup-module__popup[class*="onboardings-inventory-modal"],
+        .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] [class*="onboardings-inventory-modal-module__popup"] {
+          transform: scale(.72) !important;
+          transform-origin: center center !important;
+          max-width: min(92vw, 520px) !important;
+          max-height: 78vh !important;
+        }
+        .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] button[aria-label="Закрыть попап"],
+        .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] [class*="onboardings-inventory-modal-module__closeIcon"] {
+          width: 180px !important;
+          height: 180px !important;
+          min-width: 180px !important;
+          min-height: 180px !important;
+          padding: 0 !important;
+          border-radius: 24px !important;
+          background: rgba(0,0,0,.88) !important;
+          color: #fff !important;
+          box-shadow: 0 10px 34px rgba(0,0,0,.78) !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          z-index: 2147483646 !important;
+          position: absolute !important;
+          top: 10px !important;
+          right: 10px !important;
+          opacity: 1 !important;
+          filter: none !important;
+        }
+        .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] button[aria-label="Закрыть попап"] svg,
+        .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] [class*="onboardings-inventory-modal-module__closeIcon"] svg,
+        .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] .svg-icon--IconDsMainClose {
+          --rutube-icon-custom-size: 108px !important;
+          width: 108px !important;
+          height: 108px !important;
+          min-width: 108px !important;
+          min-height: 108px !important;
+        }
+        @media (max-width: 680px) {
+          .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] .wdp-popup-module__popup[class*="onboardings-inventory-modal"],
+          .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] [class*="onboardings-inventory-modal-module__popup"] {
+            transform: scale(.68) !important;
+            max-height: 74vh !important;
+          }
+          .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] button[aria-label="Закрыть попап"],
+          .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] [class*="onboardings-inventory-modal-module__closeIcon"] {
+            width: 196px !important;
+            height: 196px !important;
+            min-width: 196px !important;
+            min-height: 196px !important;
+          }
+          .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] button[aria-label="Закрыть попап"] svg,
+          .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] [class*="onboardings-inventory-modal-module__closeIcon"] svg,
+          .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] .svg-icon--IconDsMainClose {
+            --rutube-icon-custom-size: 118px !important;
+            width: 118px !important;
+            height: 118px !important;
+          }
+        }
+
+        .wdp-onboardings-inventory-banner-module__wrapper-section,
+        section[class*="onboardings-inventory-banner-module__wrapper-section"],
         .wdp-header-right-module__wrapper .wdp-notification-bell-module__mobileS,
         .wdp-header-right-module__wrapper .wdp-notification-bell-module__desktop,
         .wdp-header-right-module__wrapper [class*="wdp-notification-bell-module__"],
         .wdp-header-right-module__wrapper [class*="safe-mode-header-entrypoint-module__button"],
         .wdp-header-right-module__wrapper [class*="premium-subscription-entrypoint-module__"],
+        .menu-divider-module__divider,
+        hr.menu-divider-module__divider,
+        button.menu-collapse-module__collapse-trigger[name="По темам"],
+        button[name="По темам"][aria-roledescription*="по темам" i],
+        section.menu-auth-section-module__container,
         button[aria-label*="уведом" i],
         button[aria-label*="безопасн" i],
         button[aria-label*="отключить рекламу" i],
@@ -643,6 +721,44 @@
     style.id = styleId;
     style.textContent = css;
     if (!old) (document.head || document.documentElement).appendChild(style);
+  }
+
+
+  function syncRutubePopupCloseProxy() {
+    const id = 'rtst-popup-close-proxy';
+    const old = document.getElementById(id);
+    const chromeOn = Boolean(settings.cleanRutubeChrome || settings.hideSideMenuPolitics);
+    if (isEmbeddedRutubePlayer() || !settings.enabled || !chromeOn) {
+      if (old) old.remove();
+      return;
+    }
+    const closeBtn = document.querySelector(
+      '.wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] button[aria-label="Закрыть попап"], ' +
+      '.wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] [class*="onboardings-inventory-modal-module__closeIcon"]'
+    );
+    if (!closeBtn) {
+      if (old) old.remove();
+      return;
+    }
+    const proxy = old || document.createElement('button');
+    proxy.id = id;
+    proxy.type = 'button';
+    proxy.className = 'rtst-popup-close-proxy';
+    proxy.textContent = 'Закрыть';
+    proxy.title = 'Закрыть попап RUTUBE';
+    proxy.setAttribute('aria-label', 'Закрыть попап RUTUBE');
+    proxy.onclick = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const currentCloseBtn = document.querySelector(
+        '.wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] button[aria-label="Закрыть попап"], ' +
+        '.wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] [class*="onboardings-inventory-modal-module__closeIcon"]'
+      );
+      if (currentCloseBtn && typeof currentCloseBtn.click === 'function') currentCloseBtn.click();
+      const currentProxy = document.getElementById(id);
+      if (currentProxy) currentProxy.remove();
+    };
+    if (!old) document.documentElement.appendChild(proxy);
   }
 
   function wakePanel(durationMs = 4800) {
@@ -1162,7 +1278,7 @@
       if (!silent) toast('База обновлена и сохранена локально.');
       return true;
     } catch (e) {
-      setGithubState('bad', `GitHub недоступен: ${e && e.message ? e.message : String(e)}`);
+      setGithubState('bad', e && e.message ? String(e.message) : String(e));
       if (!silent) toast('Не удалось обновить базу. Используется локальный кэш.');
       if (!movieCache.index) loadMovieDbFromLocalCache();
       return false;
@@ -1239,22 +1355,24 @@
     const btn = document.getElementById('rtst-github-link');
     if (!btn) return;
     btn.dataset.state = githubState.state || 'unknown';
-    const label = githubState.state === 'ok'
-      ? 'GitHub доступен. Открыть страницу проекта.'
+    const actionLine = 'Открыть страницу проекта на GitHub.';
+    const statusLine = githubState.state === 'ok'
+      ? '🟢 ты в Интернете'
       : githubState.state === 'bad'
-        ? 'GitHub недоступен. Открыть страницу проекта.'
+        ? '🔴 ты в Чебурнете.'
         : githubState.state === 'checking'
-          ? 'Проверяю GitHub...'
-          : 'GitHub ещё не проверялся. Открыть страницу проекта.';
+          ? 'Проверяю доступ к GitHub...'
+          : 'Доступ к GitHub ещё не проверялся.';
     const versionLine = `Версия ${UI_VERSION}`;
-    btn.title = githubState.message ? `${label}\n${versionLine}\n${githubState.message}` : `${label}\n${versionLine}`;
+    const detailLine = githubState.message ? `Ошибка: ${githubState.message}` : '';
+    btn.title = [actionLine, statusLine, versionLine, detailLine].filter(Boolean).join('\n');
   }
 
   async function checkGithubAvailability() {
-    setGithubState('checking', 'Проверяю доступность GitHub...');
+    setGithubState('checking', '');
     try {
       await loadMovieJsonRemote(MOVIE_DB_INDEX_FILE);
-      setGithubState('ok', 'GitHub доступен.');
+      setGithubState('ok', '');
     } catch (e) {
       setGithubState('bad', e && e.message ? e.message : String(e));
     }
@@ -1488,10 +1606,11 @@
 
     syncRootFlags();
     createPanel();
+    syncRutubePopupCloseProxy();
     if (isEmbeddedRutubePlayer()) return;
     refreshLegacyControls();
 
-    if (!settings.enabled) { clearAllMarks(); updateCounter(); return; }
+    if (!settings.enabled) { syncRutubePopupCloseProxy(); clearAllMarks(); updateCounter(); return; }
 
     addCurrentChannelButton();
     addHomeButtonNearSubscribe();
@@ -1739,11 +1858,15 @@
   }
 
   function cleanRutubeChrome() {
-    const exactItems = ['rutube для блогеров', 'rutube x premier', 'rutube x start', 'вопросы и ответы', 'сообщить о проблеме', 'письмо в поддержку', 'поддержка в max', 'help@rutube.ru', 'о rutube', 'направления деятельности', 'пользовательское соглашение', 'конфиденциальность', 'правовая информация', 'рекомендательная система', 'фирменный стиль'];
+    const exactItems = ['rutube для блогеров', 'rutube x premier', 'rutube x start', 'активировать промокод', 'по темам', 'вопросы и ответы', 'сообщить о проблеме', 'письмо в поддержку', 'поддержка в max', 'help@rutube.ru', 'о rutube', 'направления деятельности', 'пользовательское соглашение', 'конфиденциальность', 'правовая информация', 'рекомендательная система', 'фирменный стиль'];
     const blockHeadings = ['rutube всегда с вами', 'cкачать приложения', 'скачать приложения', 'больше от rutube', 'rutube в других соцсетях'];
 
     document.querySelectorAll('section[aria-label="Моё" i], section[aria-label="Мое" i]').forEach((section) => {
       if (!section.closest('#rtst-panel')) forceHideChromeElement(section, 'раздел: мое');
+    });
+
+    document.querySelectorAll('.wdp-onboardings-inventory-banner-module__wrapper-section, section[class*="onboardings-inventory-banner-module__wrapper-section"]').forEach((banner) => {
+      if (!banner.closest('#rtst-panel')) forceHideChromeElement(banner, 'баннер rutube');
     });
 
     document.querySelectorAll('a[href*="/feeds/start/"], a[href*="/feeds/premier/"]').forEach((a) => {
