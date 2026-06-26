@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.2.32
+// @version      1.2.33
 // @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии и лишнее вокруг просмотра. Есть рекомендации что посмотреть, чистый плеер, анти-автозапуск, импорт/экспорт ЧС.
 // @author       elekt_riki
 // @license      MIT
@@ -19,7 +19,7 @@
   'use strict';
 
   const STORE_KEY = 'rtSansTvSettings:v1';
-  const UI_VERSION = '1.2.32';
+  const UI_VERSION = '1.2.33';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -681,7 +681,12 @@
           .wdp-header-right-module__wrapper > div:has(img[src*="Icon_paid_subscription"]) {
             display: none !important;
           }
-          .wdp-showcase-module__wdp-showcase:has(a[href="/tags/video/5989/"]) {
+          .wdp-showcase-module__wdp-showcase:has(a[href="/tags/video/5989/"]),
+          .wdp-video-carousel-module__outer:has(img[src*="/promoitem/"]),
+          .wdp-video-carousel-module__outer:has([data-slide*="промобаннер" i]),
+          .wdp-video-carousel-module__outer:has(a[href*="utm_medium=banner"]),
+          .wdp-video-carousel-module__outer:has(a[href*="utm_campaign="]),
+          .wdp-video-carousel-module__outer:has(a[href^="https://www.afisha.ru/"]) {
             display: none !important;
           }
         }
@@ -1681,6 +1686,7 @@
   function isPlaylistPage() { return /^\/plst\//.test(location.pathname); }
   function isHomePage() { return location.pathname === '/' || location.pathname === ''; }
   function isHomeFeedPage() { return /^\/feeds\/new_main_page(?:\/|$)/.test(location.pathname); }
+  function isMoviesSerialsPage() { return /^\/feeds\/movies-serials(?:\/|$)/.test(location.pathname); }
   function isChannelPage() { return /^\/channel\//.test(location.pathname) || /^\/video\/person\//.test(location.pathname) || /^\/u\//.test(location.pathname); }
   function isEmbeddedRutubePlayer() {
     try {
@@ -1869,6 +1875,14 @@
       if (!banner.closest('#rtst-panel')) forceHideChromeElement(banner, 'баннер rutube');
     });
 
+    document.querySelectorAll('.wdp-video-carousel-module__outer').forEach((carousel) => {
+      if (carousel.closest('#rtst-panel')) return;
+      const hasPromo = Boolean(carousel.querySelector(
+        'img[src*="/promoitem/"], [data-slide*="промобаннер" i], a[href*="utm_medium=banner"], a[href*="utm_campaign="], a[href^="https://www.afisha.ru/"]'
+      ));
+      if (hasPromo) forceHideChromeElement(carousel, 'промо-карусель rutube');
+    });
+
     document.querySelectorAll('a[href*="/feeds/start/"], a[href*="/feeds/premier/"]').forEach((a) => {
       if (!a.closest('#rtst-panel')) softHideChromeElement(findChromeItemTarget(a), 'пункт: rutube x start/premier');
     });
@@ -1908,6 +1922,18 @@
         if (!goodTabs.includes(text) && text !== '') {
           tab.style.setProperty('display', 'none', 'important');
         }
+      });
+    }
+
+    // Раздел «Кино и сериалы»: оставляем только базовые вкладки каталога.
+    if (isMoviesSerialsPage()) {
+      const goodMovieTabs = ['главная', 'фильмы', 'сериалы'];
+      document.querySelectorAll('[role="tablist"] button[role="tab"]').forEach((tab) => {
+        const text = normalize(tab.textContent || '');
+        if (!text || goodMovieTabs.includes(text)) return;
+        tab.style.setProperty('display', 'none', 'important');
+        tab.dataset.rtstChromeHidden = '1';
+        tab.dataset.rtstReason = 'скрыто, вкладка каталога';
       });
     }
   }
