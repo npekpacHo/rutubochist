@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.2.33
-// @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии и лишнее вокруг просмотра. Есть рекомендации что посмотреть, чистый плеер, анти-автозапуск, импорт/экспорт ЧС.
+// @version      1.2.41
+// @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии, лишнее вокруг просмотра и рекламные вставки в плеере, угловые баннеры и включает системное меню по правой кнопке мыши. Есть рекомендации что посмотреть, анти-автозапуск, импорт/экспорт ЧС.
 // @author       elekt_riki
 // @license      MIT
 // @homepageURL  https://npekpacho.github.io/rutubochist/
@@ -19,7 +19,7 @@
   'use strict';
 
   const STORE_KEY = 'rtSansTvSettings:v1';
-  const UI_VERSION = '1.2.33';
+  const UI_VERSION = '1.2.41';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -75,7 +75,8 @@
 
   const SETTINGS_DEFAULTS = {
     enabled: true, showHidden: false, hideSideMenuPolitics: true, hideShorts: true, hardRemove: false,
-    cleanRutubeChrome: true, cleanWatchPage: true, disableAutoplay: true, hideComments: false,
+    cleanRutubeChrome: true, cleanWatchPage: true, disableAutoplay: true, hideComments: false, hideVideoInfo: false,
+    stripPlayerAds: true, unlockContextMenu: true,
     safeRouterPatch060: true, safeDelayedScan070: true,
     blockedChannels: DEFAULT_BLOCKED_CHANNELS, blockedWords: DEFAULT_BLOCKED_WORDS, userChannels: [], userWords: []
   };
@@ -159,6 +160,267 @@
     return normalize((el && el.textContent) || '');
   }
 
+  function isRtstUiElement(el) {
+    return Boolean(el && el.closest && el.closest('#rtst-panel, .rtst-modal-backdrop, .rtst-toast, .rtst-popup-close-proxy'));
+  }
+
+  function installPlayOptionsAdvertStripper() {
+    const PATCHER_KEY = '__rtstPlayOptionsAdvertStripperV137';
+    if (window[PATCHER_KEY]) return;
+    window[PATCHER_KEY] = true;
+
+    window.__rtstPlayOptionsStats = window.__rtstPlayOptionsStats || {
+      seen: 0,
+      patched: 0,
+      errors: 0
+    };
+
+    const nativeFetch = window.fetch;
+    const NativeXHR = window.XMLHttpRequest;
+
+    function isStripEnabled() {
+      try {
+        return Boolean(settings && settings.enabled && settings.stripPlayerAds !== false);
+      } catch (e) {
+        return true;
+      }
+    }
+
+    function getRequestUrl(input) {
+      try {
+        if (typeof input === 'string') return input;
+        if (input instanceof URL) return input.href;
+        if (input && typeof input.url === 'string') return input.url;
+      } catch (e) {}
+      return '';
+    }
+
+    function isPlayOptionsUrl(url) {
+      try {
+        const u = new URL(url, location.href);
+        return /(^|\.)rutube\.ru$/i.test(u.hostname) && u.pathname.includes('/api/play/options');
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function stripAdvertPayload(payload) {
+      if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+        return { payload, changed: false };
+      }
+
+      let changed = false;
+      const out = { ...payload };
+
+      if (Object.prototype.hasOwnProperty.call(out, 'advert')) {
+        delete out.advert;
+        changed = true;
+      }
+
+      if (out.video && typeof out.video === 'object' && !Array.isArray(out.video)) {
+        const video = { ...out.video };
+
+        if (Object.prototype.hasOwnProperty.call(video, 'advert')) {
+          delete video.advert;
+          changed = true;
+        }
+
+        if (Object.prototype.hasOwnProperty.call(video, 'ad_breaks')) {
+          video.ad_breaks = [];
+          changed = true;
+        }
+
+        out.video = video;
+      }
+
+      return { payload: out, changed };
+    }
+
+    function markSeen() {
+      try { window.__rtstPlayOptionsStats.seen += 1; } catch (e) {}
+    }
+
+    function markPatched() {
+      try { window.__rtstPlayOptionsStats.patched += 1; } catch (e) {}
+    }
+
+    function markError() {
+      try { window.__rtstPlayOptionsStats.errors += 1; } catch (e) {}
+    }
+
+    if (typeof nativeFetch === 'function' && !nativeFetch.__rtstPlayOptionsPatched) {
+      const patchedFetch = async function rtstPlayOptionsFetchPatch(input, init) {
+        const response = await nativeFetch.apply(this, arguments);
+        const url = getRequestUrl(input);
+
+        if (!isStripEnabled() || !isPlayOptionsUrl(url)) return response;
+        markSeen();
+
+        try {
+          const text = await response.clone().text();
+          if (!text) return response;
+
+          const patched = stripAdvertPayload(JSON.parse(text));
+          if (!patched.changed) return response;
+
+          const headers = new Headers(response.headers);
+          headers.delete('content-length');
+          headers.delete('content-encoding');
+          headers.set('content-type', 'application/json; charset=utf-8');
+
+          const patchedResponse = new Response(JSON.stringify(patched.payload), {
+            status: response.status,
+            statusText: response.statusText,
+            headers
+          });
+
+          try {
+            Object.defineProperty(patchedResponse, 'url', { value: response.url, configurable: true });
+            Object.defineProperty(patchedResponse, 'redirected', { value: response.redirected, configurable: true });
+          } catch (e) {}
+
+          markPatched();
+          return patchedResponse;
+        } catch (e) {
+          markError();
+          return response;
+        }
+      };
+
+      patchedFetch.__rtstPlayOptionsPatched = true;
+      patchedFetch.__rtstOriginal = nativeFetch;
+      window.fetch = patchedFetch;
+    }
+
+    if (typeof NativeXHR === 'function' && NativeXHR.prototype && !NativeXHR.prototype.__rtstPlayOptionsPatched) {
+      const nativeOpen = NativeXHR.prototype.open;
+      const nativeSend = NativeXHR.prototype.send;
+
+      NativeXHR.prototype.open = function rtstPlayOptionsOpen(method, url) {
+        try {
+          this.__rtstPlayOptionsUrl = getRequestUrl(url);
+        } catch (e) {
+          this.__rtstPlayOptionsUrl = '';
+        }
+        return nativeOpen.apply(this, arguments);
+      };
+
+      NativeXHR.prototype.send = function rtstPlayOptionsSend() {
+        const xhr = this;
+        let patchedOnce = false;
+
+        function tryPatchXhrResponse() {
+          if (patchedOnce || !isStripEnabled() || !isPlayOptionsUrl(xhr.__rtstPlayOptionsUrl || '')) return;
+          markSeen();
+
+          try {
+            let source;
+
+            if (xhr.responseType === 'json' && xhr.response && typeof xhr.response === 'object') {
+              source = xhr.response;
+            } else if (!xhr.responseType || xhr.responseType === 'text') {
+              source = JSON.parse(String(xhr.responseText || ''));
+            } else {
+              return;
+            }
+
+            const patched = stripAdvertPayload(source);
+            if (!patched.changed) return;
+
+            const body = JSON.stringify(patched.payload);
+            patchedOnce = true;
+
+            try {
+              Object.defineProperty(xhr, 'responseText', {
+                configurable: true,
+                get: () => body
+              });
+            } catch (e) {}
+
+            try {
+              Object.defineProperty(xhr, 'response', {
+                configurable: true,
+                get: () => xhr.responseType === 'json' ? patched.payload : body
+              });
+            } catch (e) {}
+
+            markPatched();
+          } catch (e) {
+            markError();
+          }
+        }
+
+        try {
+          xhr.addEventListener('readystatechange', () => {
+            if (xhr.readyState === 4) tryPatchXhrResponse();
+          }, true);
+          xhr.addEventListener('load', tryPatchXhrResponse, true);
+        } catch (e) {}
+
+        return nativeSend.apply(xhr, arguments);
+      };
+
+      NativeXHR.prototype.__rtstPlayOptionsPatched = true;
+    }
+  }
+
+
+  function installRutubeContextMenuUnlocker() {
+    const PATCHER_KEY = '__rtstContextMenuUnlockerV137';
+    if (window[PATCHER_KEY]) return;
+    window[PATCHER_KEY] = true;
+
+    function isUnlockEnabled() {
+      try {
+        return Boolean(settings && settings.enabled && settings.unlockContextMenu !== false);
+      } catch (e) {
+        return true;
+      }
+    }
+
+    function unlockElement(el) {
+      if (!el || !el.removeAttribute) return;
+      try {
+        el.removeAttribute('oncontextmenu');
+        if (el.oncontextmenu) el.oncontextmenu = null;
+      } catch (e) {}
+    }
+
+    function unlockKnownTargets(root = document) {
+      if (!isUnlockEnabled()) return;
+      unlockElement(document.documentElement);
+      unlockElement(document.body);
+      const scope = root && root.querySelectorAll ? root : document;
+      try {
+        scope.querySelectorAll('video, [oncontextmenu], [class*="player" i], [data-testid*="player" i]').forEach(unlockElement);
+      } catch (e) {}
+    }
+
+    function releaseContextMenu(event) {
+      if (!isUnlockEnabled()) return;
+      const target = event.target;
+      if (!target) return;
+      const isRutubePlayerArea = Boolean(
+        target.closest && target.closest('video, [class*="wdp-player"], [class*="video-player"], [class*="VideoPlayer"], [id*="player"], [data-testid*="player" i]')
+      );
+      if (!isRutubePlayerArea) return;
+
+      try { unlockKnownTargets(target.closest('[class*="player" i], [data-testid*="player" i]') || document); } catch (e) {}
+      event.stopImmediatePropagation();
+    }
+
+    document.addEventListener('contextmenu', releaseContextMenu, true);
+    document.addEventListener('mousedown', (event) => {
+      if (event && event.button === 2) releaseContextMenu(event);
+    }, true);
+
+    const run = () => unlockKnownTargets(document);
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run, { once: true });
+    else run();
+
+    setInterval(run, 3000);
+  }
+
   function allBlockedChannels() {
     return unique([...settings.blockedChannels, ...settings.userChannels]);
   }
@@ -193,6 +455,41 @@
       html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] .wdp-see-also-module__wrapper,
       html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] section[aria-label="Рекомендации" i] {
         display: none !important;
+      }
+
+      html[data-rtst-enabled="1"][data-rtst-hide-video-info="1"][data-rtst-page="video"] .video-pageinfo-container-module__pageInfoContainer,
+      html[data-rtst-enabled="1"][data-rtst-hide-video-info="1"][data-rtst-page="video"] [class*="video-pageinfo-container-module__pageInfoContainer"] {
+        display: none !important;
+      }
+
+      html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] [data-testid="advert"],
+      html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] [data-testid="advert-video"],
+      html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] [data-testid^="disclaimer-"],
+      html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] [class*="wdp-communication-banner"],
+      html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] [class*="premium-banner"],
+      html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] [class*="premium-popup"],
+      html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] [class*="subscription-popup"],
+      html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] [class*="wdp-player"] [class*="adfox" i],
+      html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] [class*="wdp-player"] [id*="adfox" i],
+      html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] [class*="wdp-player"] [class*="advert" i],
+      html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] [class*="wdp-player"] [id*="advert" i],
+      html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] [class*="wdp-player"] [aria-label*="реклам" i],
+      html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] [class*="wdp-player"] [class*="communication-banner-module__" i],
+      html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] [class*="wdp-player"] [class*="banner-picture-module__" i],
+      html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] [class*="wdp-player"] button[aria-label*="Закрыть баннер" i],
+      html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] [class*="video-player" i] [class*="adfox" i],
+      html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] [class*="video-player" i] [id*="adfox" i],
+      html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] [class*="video-player" i] [class*="advert" i],
+      html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] [class*="video-player" i] [id*="advert" i],
+      html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] [class*="video-player" i] [aria-label*="реклам" i],
+      html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] [class*="video-player" i] [class*="communication-banner-module__" i],
+      html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] [class*="video-player" i] [class*="banner-picture-module__" i],
+      html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] [class*="video-player" i] button[aria-label*="Закрыть баннер" i],
+      .rtst-player-ad-hidden {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
       }
 
       .rtst-hidden {
@@ -515,8 +812,8 @@
       <div class="rtst-panel-body">
         <div class="rtst-quick-actions" id="rtst-quick-actions" hidden>
           <div class="rtst-quick-nav" id="rtst-quick-nav">
-            <a href="/" class="rtst-quick-btn" id="rtst-quick-channel" title="Перейти на канал автора">Канал</a>
-            <a href="/" class="rtst-quick-btn" title="На главную RUTUBE">Главная</a>
+            <a href="/" class="rtst-quick-btn" id="rtst-quick-channel" title="Перейти на канал автора">в Канал</a>
+            <a href="/" class="rtst-quick-btn" title="На главную RUTUBE">на Главную</a>
           </div>
           <button type="button" class="rtst-quick-btn rtst-quick-movie" data-rtst-action="open-movie-modal">Что посмотреть</button>
         </div>
@@ -569,6 +866,9 @@
     root.dataset.rtstCleanChrome = (settings.enabled && cleanChromeOn) ? '1' : '0';
     root.dataset.rtstHideShorts = (settings.enabled && settings.hideShorts) ? '1' : '0';
     root.dataset.rtstCleanWatch = (settings.enabled && settings.cleanWatchPage) ? '1' : '0';
+    root.dataset.rtstStripPlayerAds = (settings.enabled && settings.stripPlayerAds !== false) ? '1' : '0';
+    root.dataset.rtstUnlockContextMenu = (settings.enabled && settings.unlockContextMenu !== false) ? '1' : '0';
+    root.dataset.rtstHideVideoInfo = (settings.enabled && settings.hideVideoInfo) ? '1' : '0';
     updateDynamicCleanupStyle(cleanChromeOn);
   }
 
@@ -577,7 +877,7 @@
     const old = document.getElementById(styleId);
     const chromeOn = Boolean(cleanChromeOn != null ? cleanChromeOn : (settings.cleanRutubeChrome || settings.hideSideMenuPolitics));
     
-    if (isEmbeddedRutubePlayer() || !settings.enabled || (!chromeOn && !settings.hideShorts && !settings.cleanWatchPage)) {
+    if (isEmbeddedRutubePlayer() || !settings.enabled || (!chromeOn && !settings.hideShorts && !settings.cleanWatchPage && !settings.hideVideoInfo)) {
       if (old) old.remove();
       return;
     }
@@ -667,9 +967,12 @@
         a.menu-item-module__menu-item[href="/feeds/travel/"],
         a.menu-item-module__menu-item[href="/feeds/stream/"],
         a.menu-item-module__menu-item[href="/feeds/sport/"],
+        a.menu-item-module__menu-item[href="/feeds/chempionat-mira-po-futbolu-2026/"],
         a.wdp-mobile-menu-module__mobile-menu-item[href="/feeds/travel/"],
         a.wdp-mobile-menu-module__mobile-menu-item[href="/feeds/stream/"],
         a.wdp-mobile-menu-module__mobile-menu-item[href="/feeds/sport/"],
+        a.wdp-mobile-menu-module__mobile-menu-item[href="/feeds/chempionat-mira-po-futbolu-2026/"],
+        a[href="/feeds/chempionat-mira-po-futbolu-2026/"],
         section[aria-label="Галерея Выбор RUTUBE" i] {
           display: none !important;
         }
@@ -721,6 +1024,15 @@
       `);
     }
 
+    if (settings.hideVideoInfo) {
+      parts.push(`
+        body[data-page="video"] .video-pageinfo-container-module__pageInfoContainer,
+        body[data-page="video"] [class*="video-pageinfo-container-module__pageInfoContainer"] {
+          display: none !important;
+        }
+      `);
+    }
+
     const css = parts.join('\n');
     const style = old || document.createElement('style');
     style.id = styleId;
@@ -733,18 +1045,28 @@
     const id = 'rtst-popup-close-proxy';
     const old = document.getElementById(id);
     const chromeOn = Boolean(settings.cleanRutubeChrome || settings.hideSideMenuPolitics);
-    if (isEmbeddedRutubePlayer() || !settings.enabled || !chromeOn) {
-      if (old) old.remove();
-      return;
-    }
-    const closeBtn = document.querySelector(
-      '.wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] button[aria-label="Закрыть попап"], ' +
-      '.wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] [class*="onboardings-inventory-modal-module__closeIcon"]'
+
+    const popupOverlay = document.querySelector(
+      '.wdp-popup-overlay-module__overlay[data-testid="overlay-popup"], ' +
+      '[data-testid="overlay-popup"][class*="wdp-popup-overlay"], ' +
+      '[data-testid="overlay-popup"]'
     );
-    if (!closeBtn) {
+
+    const closeBtn = popupOverlay ? popupOverlay.querySelector(
+      'button[aria-label="Закрыть попап"], ' +
+      'button[aria-label*="Закрыть" i], ' +
+      '[class*="onboardings-inventory-modal-module__closeIcon"], ' +
+      '[class*="closeIcon"], ' +
+      '[class*="close-icon"]'
+    ) : null;
+
+    // Если попапа уже нет, но наша большая кнопка осталась, убираем её.
+    // Иначе получается «Закрыть что-нибудь», прекрасный образ современного интерфейса.
+    if (isEmbeddedRutubePlayer() || !settings.enabled || !chromeOn || !popupOverlay || !closeBtn || !document.documentElement.contains(closeBtn)) {
       if (old) old.remove();
       return;
     }
+
     const proxy = old || document.createElement('button');
     proxy.id = id;
     proxy.type = 'button';
@@ -755,14 +1077,32 @@
     proxy.onclick = (event) => {
       event.preventDefault();
       event.stopPropagation();
-      const currentCloseBtn = document.querySelector(
-        '.wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] button[aria-label="Закрыть попап"], ' +
-        '.wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] [class*="onboardings-inventory-modal-module__closeIcon"]'
+
+      const currentOverlay = document.querySelector(
+        '.wdp-popup-overlay-module__overlay[data-testid="overlay-popup"], ' +
+        '[data-testid="overlay-popup"][class*="wdp-popup-overlay"], ' +
+        '[data-testid="overlay-popup"]'
       );
+
+      const currentCloseBtn = currentOverlay ? currentOverlay.querySelector(
+        'button[aria-label="Закрыть попап"], ' +
+        'button[aria-label*="Закрыть" i], ' +
+        '[class*="onboardings-inventory-modal-module__closeIcon"], ' +
+        '[class*="closeIcon"], ' +
+        '[class*="close-icon"]'
+      ) : null;
+
       if (currentCloseBtn && typeof currentCloseBtn.click === 'function') currentCloseBtn.click();
+
       const currentProxy = document.getElementById(id);
       if (currentProxy) currentProxy.remove();
+
+      // Rutube иногда удаляет оверлей не мгновенно, иногда наоборот удаляет только внутренности.
+      // Проверяем ещё раз после микропауз, чтобы прокси не остался висеть после родного крестика.
+      setTimeout(syncRutubePopupCloseProxy, 80);
+      setTimeout(syncRutubePopupCloseProxy, 350);
     };
+
     if (!old) document.documentElement.appendChild(proxy);
   }
 
@@ -824,6 +1164,12 @@
     if (disableAutoplay) disableAutoplay.checked = Boolean(settings.disableAutoplay);
     const hideCommentsToggle = document.getElementById('rtst-hide-comments');
     if (hideCommentsToggle) hideCommentsToggle.checked = Boolean(settings.hideComments);
+    const hideVideoInfoToggle = document.getElementById('rtst-hide-video-info');
+    if (hideVideoInfoToggle) hideVideoInfoToggle.checked = Boolean(settings.hideVideoInfo);
+    const stripPlayerAdsToggle = document.getElementById('rtst-strip-player-ads');
+    if (stripPlayerAdsToggle) stripPlayerAdsToggle.checked = Boolean(settings.stripPlayerAds !== false);
+    const unlockContextMenuToggle = document.getElementById('rtst-unlock-context-menu');
+    if (unlockContextMenuToggle) unlockContextMenuToggle.checked = Boolean(settings.unlockContextMenu !== false);
     
     const channelCount = document.getElementById('rtst-channel-count');
     if (channelCount) channelCount.textContent = `(${settings.userChannels.length})`;
@@ -849,10 +1195,20 @@
   function shouldBlockCleanedMenuLink(linkEl) {
     if (!settings.enabled || !settings.cleanRutubeChrome || !linkEl || linkEl.closest('#rtst-panel')) return false;
     const href = String(linkEl.getAttribute('href') || '').trim();
-    return href === '/feeds/sport/' || href === '/feeds/stream/' || href === '/feeds/travel/';
+    return href === '/feeds/sport/' || href === '/feeds/stream/' || href === '/feeds/travel/' || href === '/feeds/chempionat-mira-po-futbolu-2026/';
   }
 
   function bindEvents() {
+    if (!window.__rtst_popup_proxy_global_click_guard) {
+      window.__rtst_popup_proxy_global_click_guard = true;
+      document.addEventListener('click', () => {
+        const proxy = document.getElementById('rtst-popup-close-proxy');
+        if (!proxy) return;
+        setTimeout(syncRutubePopupCloseProxy, 60);
+        setTimeout(syncRutubePopupCloseProxy, 300);
+      }, true);
+    }
+
     document.addEventListener('change', (event) => {
       const target = event.target;
       if (!target) return;
@@ -863,6 +1219,9 @@
       if (target.id === 'rtst-clean-watch') { settings.cleanWatchPage = target.checked; saveSettings(); syncRootFlags(); rescanNow(); }
       if (target.id === 'rtst-disable-autoplay') { settings.disableAutoplay = target.checked; saveSettings(); scanAutoplayVideos(); }
       if (target.id === 'rtst-hide-comments') { settings.hideComments = target.checked; saveSettings(); rescanNow(); }
+      if (target.id === 'rtst-hide-video-info') { settings.hideVideoInfo = target.checked; saveSettings(); syncRootFlags(); rescanNow(); }
+      if (target.id === 'rtst-strip-player-ads') { settings.stripPlayerAds = target.checked; saveSettings(); syncRootFlags(); rescanNow(); }
+      if (target.id === 'rtst-unlock-context-menu') { settings.unlockContextMenu = target.checked; saveSettings(); syncRootFlags(); installRutubeContextMenuUnlocker(); rescanNow(); }
       if (target.id === 'rtst-import-file' && target.files && target.files[0]) { importSettingsFromFile(target.files[0]); target.value = ''; }
     }, true);
 
@@ -986,17 +1345,24 @@
         </div>
         <div class="rtst-modal-body">
           <div class="rtst-section">
-            <div class="rtst-section-title">Отображение</div>
+            <div class="rtst-section-title">Лента и меню</div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-show-hidden"> показывать скрытые карточки бледным</label></div>
-            <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-menu"> чистить интерфейс RUTUBE</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-menu"> чистить боковое меню, шапку и промо-блоки</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-shorts"> скрывать Шортсы</label></div>
           </div>
 
           <div class="rtst-section">
-            <div class="rtst-section-title">Просмотр</div>
-            <div class="rtst-row"><label><input type="checkbox" id="rtst-clean-watch"> чистить плеер от рекомендаций</label></div>
+            <div class="rtst-section-title">Страница просмотра</div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-clean-watch"> скрывать рекомендации справа и под видео</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-video-info"> скрывать название, описание и информацию о видео</label></div>
+			<div class="rtst-row"><label><input type="checkbox" id="rtst-hide-comments"> скрывать комментарии</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-disable-autoplay"> подавлять автовоспроизведение</label></div>
-            <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-comments"> скрывать комментарии</label></div>
+          </div>
+
+          <div class="rtst-section">
+            <div class="rtst-section-title">Плеер</div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-strip-player-ads"> пытаться убирать рекламу</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-unlock-context-menu"> включить системное меню по по правой кнопке</label></div>
           </div>
 
           <div class="rtst-section">
@@ -1036,6 +1402,7 @@
         </div>
       </div>`;
     document.documentElement.appendChild(modal);
+    protectRtstUiFromCleanup(modal);
     syncPanel();
     modalOpenedAt = Date.now();
   }
@@ -1491,6 +1858,7 @@
         enabled: settings.enabled, showHidden: settings.showHidden, hideSideMenuPolitics: settings.hideSideMenuPolitics,
         hideShorts: settings.hideShorts, hardRemove: settings.hardRemove, cleanRutubeChrome: settings.cleanRutubeChrome,
         cleanWatchPage: settings.cleanWatchPage, disableAutoplay: settings.disableAutoplay, hideComments: settings.hideComments,
+        hideVideoInfo: settings.hideVideoInfo, stripPlayerAds: settings.stripPlayerAds, unlockContextMenu: settings.unlockContextMenu,
         blockedChannels: allBlockedChannels(), blockedWords: allBlockedWords(), userChannels: settings.userChannels, userWords: settings.userWords
       }
     };
@@ -1519,7 +1887,7 @@
     if (!src || typeof src !== 'object') throw new Error('bad settings json');
     const next = { ...settings };
     for (const key of ['blockedChannels', 'blockedWords', 'userChannels', 'userWords']) { if (Array.isArray(src[key])) next[key] = unique(src[key]); }
-    for (const key of ['enabled', 'showHidden', 'hideSideMenuPolitics', 'hideShorts', 'hardRemove', 'cleanRutubeChrome', 'cleanWatchPage', 'disableAutoplay', 'hideComments']) {
+    for (const key of ['enabled', 'showHidden', 'hideSideMenuPolitics', 'hideShorts', 'hardRemove', 'cleanRutubeChrome', 'cleanWatchPage', 'disableAutoplay', 'hideComments', 'hideVideoInfo', 'stripPlayerAds', 'unlockContextMenu']) {
       if (typeof src[key] === 'boolean') next[key] = src[key];
     }
     if (typeof src.cleanRutubeChrome === 'boolean' && typeof src.hideSideMenuPolitics !== 'boolean') next.hideSideMenuPolitics = src.cleanRutubeChrome;
@@ -1554,15 +1922,41 @@
 
   function clearAllMarks() {
     hiddenCount = 0; removedCount = 0;
-    document.querySelectorAll('.rtst-hidden,.rtst-dim,.rtst-chrome-hidden,.rtst-view-hidden').forEach((el) => {
-      el.classList.remove('rtst-hidden', 'rtst-dim', 'rtst-view-hidden', 'rtst-chrome-hidden');
+    document.querySelectorAll('.rtst-hidden,.rtst-dim,.rtst-chrome-hidden,.rtst-view-hidden,.rtst-player-ad-hidden').forEach((el) => {
+      el.classList.remove('rtst-hidden', 'rtst-dim', 'rtst-view-hidden', 'rtst-chrome-hidden', 'rtst-player-ad-hidden');
       el.removeAttribute('data-rtst-hidden'); el.removeAttribute('data-rtst-hide-target');
       el.removeAttribute('data-rtst-reason'); el.removeAttribute('data-rtst-chrome-hidden'); el.removeAttribute('data-rtst-view-hidden');
+      el.removeAttribute('data-rtst-player-ad-hidden'); el.removeAttribute('data-rtst-skip-clicked');
     });
     document.querySelectorAll('[data-rtst-processed]').forEach((el) => {
       el.removeAttribute('data-rtst-processed'); el.removeAttribute('data-rtst-card'); el.removeAttribute('data-rtst-hidden-child');
     });
     updateCounter();
+  }
+
+  function protectRtstUiFromCleanup(root = document) {
+    const scope = root && root.querySelectorAll ? root : document;
+    const nodes = [];
+
+    if (isRtstUiElement(scope)) nodes.push(scope);
+
+    try {
+      nodes.push(...scope.querySelectorAll('#rtst-panel, #rtst-panel *, .rtst-modal-backdrop, .rtst-modal-backdrop *, .rtst-toast, .rtst-popup-close-proxy'));
+    } catch (e) {}
+
+    nodes.forEach((el) => {
+      try {
+        el.classList.remove('rtst-hidden', 'rtst-dim', 'rtst-view-hidden', 'rtst-chrome-hidden', 'rtst-player-ad-hidden');
+        el.removeAttribute('data-rtst-hidden');
+        el.removeAttribute('data-rtst-hide-target');
+        el.removeAttribute('data-rtst-reason');
+        el.removeAttribute('data-rtst-card');
+        el.removeAttribute('data-rtst-chrome-hidden');
+        el.removeAttribute('data-rtst-view-hidden');
+        el.removeAttribute('data-rtst-player-ad-hidden');
+        el.removeAttribute('data-rtst-skip-clicked');
+      } catch (e) {}
+    });
   }
 
   function reorderSidebar() {
@@ -1601,6 +1995,213 @@
     syncRootFlags();
   }
 
+  function scanPlayerAds(root = document) {
+    if (!settings.enabled || settings.stripPlayerAds === false) return;
+
+    const scope = root && root.querySelectorAll ? root : document;
+    if (scope !== document && isRtstUiElement(scope)) return;
+    closeAndHidePlayerCommunicationBanners(scope);
+    hidePlayerAdElements(scope);
+    clickRutubeSkipButtons(scope);
+  }
+
+  function hidePlayerAdElements(scope) {
+    const selectors = [
+      '[data-testid="advert"]',
+      '[data-testid="advert-video"]',
+      '[data-testid^="disclaimer-"]',
+      '[data-testid*="advert" i]',
+      '[aria-label*="реклам" i]',
+      'button[aria-label*="Закрыть баннер" i]',
+      '[class*="communication-banner-module__" i]',
+      '[class*="banner-picture-module__" i]',
+      '[class*="wdp-communication-banner"]',
+      '[class*="premium-banner"]',
+      '[class*="premium-popup"]',
+      '[class*="subscription-popup"]',
+      '[class*="adfox" i]',
+      '[id*="adfox" i]',
+      '[class*="advert" i]',
+      '[id*="advert" i]',
+      'a[href*="adfox" i]',
+      'a[href*="/ads/" i]'
+    ];
+
+    scope.querySelectorAll(selectors.join(',')).forEach((el) => {
+      if (!el || isRtstUiElement(el) || isProtectedHeader(el) || isProtectedPlayerControl(el)) return;
+      if (isInsidePlayer(el) || compactText(el).includes('реклам')) {
+        markPlayerAdHidden(el);
+      }
+    });
+
+    closeAndHidePlayerCommunicationBanners(scope);
+    hideLikelyCornerAdOverlays(scope);
+  }
+
+  function closeAndHidePlayerCommunicationBanners(scope) {
+    const source = scope && scope.querySelectorAll ? scope : document;
+    if (isRtstUiElement(source)) return;
+
+    const closeButtons = source.querySelectorAll('button[aria-label*="Закрыть баннер" i], [role="button"][aria-label*="Закрыть баннер" i]');
+    closeButtons.forEach((btn) => {
+      if (!btn || isRtstUiElement(btn)) return;
+
+      const banner = findCommunicationBannerRoot(btn) || btn.parentElement;
+      if (banner && !isRtstUiElement(banner)) {
+        markPlayerAdHidden(banner);
+      }
+
+      if (btn.dataset.rtstBannerCloseClicked !== '1') {
+        try {
+          btn.dataset.rtstBannerCloseClicked = '1';
+          btn.style.setProperty('pointer-events', 'auto', 'important');
+          btn.click();
+        } catch (e) {}
+      }
+
+      markPlayerAdHidden(btn);
+    });
+
+    const bannerParts = source.querySelectorAll('[class*="communication-banner-module__" i], [class*="banner-picture-module__" i]');
+    bannerParts.forEach((el) => {
+      if (!el || isRtstUiElement(el) || isProtectedHeader(el)) return;
+      if (!isInsidePlayer(el)) return;
+
+      const banner = findCommunicationBannerRoot(el);
+      if (banner && !isRtstUiElement(banner)) {
+        markPlayerAdHidden(banner);
+      } else {
+        markPlayerAdHidden(el);
+      }
+    });
+  }
+
+  function findCommunicationBannerRoot(el) {
+    if (!el || !el.closest) return null;
+
+    const exact = el.closest(
+      '[class*="communication-banner-module__" i], ' +
+      '[data-testid*="communication" i], ' +
+      '[data-testid*="banner" i]'
+    );
+    if (exact && isInsidePlayer(exact)) return exact;
+
+    let node = el.parentElement;
+    let best = null;
+    let steps = 0;
+
+    while (node && steps < 6 && !isRtstUiElement(node)) {
+      const text = normalize([node.className, node.id, node.getAttribute && node.getAttribute('aria-label')].join(' '));
+      if (text.includes('communication-banner') || text.includes('banner')) best = node;
+      if (node.querySelector && node.querySelector('button[aria-label*="Закрыть баннер" i], [class*="banner-picture-module__" i]')) {
+        best = node;
+      }
+      if (isInsidePlayer(node) && best === node) return node;
+      node = node.parentElement;
+      steps += 1;
+    }
+
+    return best && isInsidePlayer(best) ? best : null;
+  }
+
+  function hideLikelyCornerAdOverlays(scope) {
+    const playerRoots = findPlayerRoots(scope);
+    playerRoots.forEach((player) => {
+      if (!player || !player.querySelectorAll || isRtstUiElement(player)) return;
+      const candidates = player.querySelectorAll([
+        '[class*="banner" i]',
+        '[class*="promo" i]',
+        '[class*="advert" i]',
+        '[class*="adfox" i]',
+        '[id*="advert" i]',
+        '[id*="adfox" i]',
+        '[aria-label*="реклам" i]',
+        'a[href*="adfox" i]',
+        'a[href*="utm_medium=banner" i]',
+        'a[href*="utm_campaign" i]'
+      ].join(','));
+
+      candidates.forEach((el) => {
+        if (!el || isRtstUiElement(el) || isProtectedPlayerControl(el) || isProtectedHeader(el)) return;
+        if (looksLikeCornerOverlayAd(el, player)) markPlayerAdHidden(el);
+      });
+    });
+  }
+
+  function findPlayerRoots(scope = document) {
+    const roots = new Set();
+    const source = scope && scope.querySelectorAll ? scope : document;
+    if (isRtstUiElement(source)) return [];
+    if (source !== document && containsVideoPlayer(source) && !isRtstUiElement(source)) roots.add(source);
+    source.querySelectorAll('video, [class*="wdp-player"], [class*="video-player"], [class*="VideoPlayer"], [id*="player"], [data-testid*="player" i]').forEach((el) => {
+      if (isRtstUiElement(el)) return;
+      const root = el.closest('[class*="wdp-player"], [class*="video-player"], [class*="VideoPlayer"], [id*="player"], [data-testid*="player" i]') || el.parentElement;
+      if (root && !isRtstUiElement(root)) roots.add(root);
+    });
+    return [...roots];
+  }
+
+  function looksLikeCornerOverlayAd(el, player) {
+    const label = normalize([el.className, el.id, el.getAttribute && el.getAttribute('aria-label'), el.textContent].join(' '));
+    const href = normalize(el.href || (el.getAttribute && el.getAttribute('href')) || '');
+    const adWords = ['реклам', 'advert', 'adfox', 'promo', 'banner', 'sponsor', 'utm medium banner', 'utm campaign'];
+    if (!adWords.some((word) => label.includes(word) || href.includes(word.replace(/ /g, '_')) || href.includes(word))) return false;
+
+    try {
+      const pr = player.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
+      if (!pr.width || !pr.height || !r.width || !r.height) return true;
+      const inside = r.left >= pr.left - 6 && r.right <= pr.right + 6 && r.top >= pr.top - 6 && r.bottom <= pr.bottom + 6;
+      if (!inside) return false;
+      const smallEnough = r.width <= pr.width * 0.75 && r.height <= pr.height * 0.75;
+      const inCorner = (r.left <= pr.left + pr.width * 0.38 || r.right >= pr.right - pr.width * 0.38) &&
+        (r.top <= pr.top + pr.height * 0.38 || r.bottom >= pr.bottom - pr.height * 0.38);
+      return smallEnough && inCorner;
+    } catch (e) {
+      return true;
+    }
+  }
+
+  function isProtectedPlayerControl(el) {
+    if (!el) return false;
+    if (
+      el.matches && (
+        el.matches('button[aria-label*="Закрыть баннер" i], [role="button"][aria-label*="Закрыть баннер" i]') ||
+        el.matches('[class*="communication-banner-module__" i], [class*="banner-picture-module__" i]')
+      )
+    ) return false;
+    if (el.closest && el.closest('[class*="communication-banner-module__" i], [class*="banner-picture-module__" i]')) return false;
+    return Boolean(el.closest('[class*="control" i], [class*="controls" i], [class*="progress" i], [class*="timeline" i], [class*="volume" i], [class*="fullscreen" i], [aria-label*="пауза" i], [aria-label*="воспроиз" i], [aria-label*="звук" i], [aria-label*="громк" i]'));
+  }
+
+  function markPlayerAdHidden(el) {
+    if (!el || el.dataset.rtstPlayerAdHidden === '1') return;
+    el.dataset.rtstPlayerAdHidden = '1';
+    el.classList.add('rtst-player-ad-hidden');
+    hiddenCount += 1;
+  }
+
+  function clickRutubeSkipButtons(root = document) {
+    const scope = root && root.querySelectorAll ? root : document;
+    const candidates = scope.querySelectorAll('button, [role="button"], a, [class*="activities-module__buttonSkip"]');
+
+    for (const el of candidates) {
+      if (!el || isRtstUiElement(el) || el.dataset.rtstSkipClicked === '1') continue;
+
+      const text = normalize(el.textContent || '');
+      const className = String(el.className || '');
+
+      if (text === 'пропустить' || className.includes('activities-module__buttonSkip')) {
+        try {
+          el.dataset.rtstSkipClicked = '1';
+          el.style.setProperty('pointer-events', 'auto', 'important');
+          el.click();
+          hiddenCount += 1;
+        } catch (e) {}
+      }
+    }
+  }
+
   function scanPage() {
     if (!document.body) return;
     if (Date.now() < suspendScanUntil) { scheduleScan(); return; }
@@ -1611,6 +2212,7 @@
 
     syncRootFlags();
     createPanel();
+    protectRtstUiFromCleanup(document);
     syncRutubePopupCloseProxy();
     if (isEmbeddedRutubePlayer()) return;
     refreshLegacyControls();
@@ -1621,6 +2223,7 @@
     addHomeButtonNearSubscribe();
 
     hiddenCount = removedCount;
+    scanPlayerAds(document);
 
     if (isMyPage()) {
       if (settings.hideSideMenuPolitics || settings.cleanRutubeChrome) {
@@ -1653,6 +2256,7 @@
     }
     hideShortsBlocks(); 
     if (settings.cleanWatchPage) cleanWatchPage();
+    if (settings.hideVideoInfo && isVideoPage()) hideVideoInfo();
     if (settings.hideComments && isVideoPage()) hideComments();
     if (settings.disableAutoplay) scanAutoplayVideos();
     
@@ -1674,12 +2278,13 @@
   }
 
   function containsVideoPlayer(el) {
-    if (!el || !el.querySelector) return false;
+    if (!el || !el.querySelector || isRtstUiElement(el)) return false;
     return Boolean(el.querySelector('video, iframe, [class*="wdp-player"], [class*="video-player"], [class*="VideoPlayer"]'));
   }
 
   function isInsidePlayer(el) { 
-    return Boolean(el && el.closest('video, iframe, [class*="wdp-player"], [class*="video-player"], [class*="VideoPlayer"], [id*="player"], [data-testid*="player" i]')); 
+    if (!el || isRtstUiElement(el)) return false;
+    return Boolean(el.closest('video, iframe, [class*="wdp-player"], [class*="video-player"], [class*="VideoPlayer"], [id*="player"], [data-testid*="player" i]')); 
   }
 
   function isVideoPage() { return /^\/video\//.test(location.pathname); }
@@ -1715,7 +2320,7 @@
       '.video-page-layout-module__right', '.video-page-layout-module__side'
     ];
     document.querySelectorAll(selectors.join(',')).forEach((el) => {
-      if (!el || el.closest('#rtst-panel') || isInsidePlayer(el) || containsVideoPlayer(el) || isProtectedHeader(el)) return;
+      if (!el || isRtstUiElement(el) || isInsidePlayer(el) || containsVideoPlayer(el) || isProtectedHeader(el)) return;
       if (el.closest('section[aria-label="блок действий" i], section[aria-label="информация о видео" i], section[aria-label="описание видео" i]')) return;
       const target = el.closest('.wdp-see-also-module__wrapper') || el.closest('.video-page-layout-module__right') || el;
       if (!target || target.closest('#rtst-panel') || (target.querySelector && target.querySelector('#rtst-home-link'))) return;
@@ -1769,7 +2374,7 @@
   function hideRutubeSelfPromo() {
     const promoWords = ['отключить рекламу', 'смотреть без рекламы', 'подписка', '99 ₽', '99 рублей', 'rutube premium', 'premium'];
     document.querySelectorAll('div,section,aside,article').forEach((el) => {
-      if (el.closest('#rtst-panel') || isInsidePlayer(el) || containsVideoPlayer(el)) return;
+      if (isRtstUiElement(el) || isInsidePlayer(el) || containsVideoPlayer(el)) return;
       const text = normalize(el.textContent || '');
       if (!text || text.length > 900) return;
       const match = containsBlocked(text, promoWords);
@@ -1779,31 +2384,103 @@
     });
   }
 
+  function isVideoInfoElement(el) {
+    if (!el || !el.closest) return false;
+    return Boolean(el.closest(
+      '.video-pageinfo-container-module__pageInfoContainer, ' +
+      '[class*="video-pageinfo-container-module__"], ' +
+      '[class*="wdp-videopage-description-module__"], ' +
+      '[class*="wdp-video-meta-row-module__"], ' +
+      '[class*="wdp-video-options-row-module__"]'
+    ));
+  }
+
+  function hideVideoInfo() {
+    if (!isVideoPage()) return;
+    const selectors = [
+      '.video-pageinfo-container-module__pageInfoContainer',
+      '[class*="video-pageinfo-container-module__pageInfoContainer"]',
+      '[class*="video-pageinfo-container-module__pageHeaderRow"]',
+      '[class*="video-pageinfo-container-module__pageInfoContainerWrapperDescription"]',
+      'section[aria-label="название" i]',
+      'section[aria-label="описание видео" i]',
+      'section[aria-label="информация о видео" i]',
+      'section[aria-label="блок действий" i]'
+    ];
+
+    document.querySelectorAll(selectors.join(',')).forEach((el) => {
+      if (isRtstUiElement(el) || isInsidePlayer(el) || containsVideoPlayer(el)) return;
+      const target = el.closest('.video-pageinfo-container-module__pageInfoContainer, [class*="video-pageinfo-container-module__pageInfoContainer"]') || el;
+      softHideViewElement(target, 'информация о видео');
+    });
+  }
+
   function hideComments() {
     if (!isVideoPage()) return;
-    const directSelectors = ['section[aria-label="комментарии" i]', '[aria-label="комментарии" i]', '[class*="comments-module" i]', '[class*="Comments" i]', '[class*="comments" i]'];
-    document.querySelectorAll(directSelectors.join(',')).forEach((el) => {
-      if (el.closest('#rtst-panel') || isInsidePlayer(el) || containsVideoPlayer(el)) return;
-      const text = normalize(el.textContent || el.getAttribute('aria-label') || '');
-      const className = String(el.className || '');
-      const isLikelyComments = text.includes('коммент') || normalize(el.getAttribute('aria-label') || '').includes('комментарии') || /comments/i.test(className);
-      if (!isLikelyComments) return;
-      softHideViewElement(el, 'комментарии');
-    });
 
-    const commentWords = ['комментарии', 'оставить комментарий', 'написать комментарий', 'войдите, чтобы оставить комментарий'];
-    document.querySelectorAll('section,article,div,h2,h3,h4').forEach((el) => {
-      if (el.closest('#rtst-panel') || isInsidePlayer(el) || containsVideoPlayer(el) || el.dataset.rtstViewHidden === '1') return;
-      const raw = String(el.textContent || el.getAttribute('aria-label') || '').trim();
-      if (!raw) return;
+    const selectors = [
+      'section[aria-label*="комментар" i]',
+      '[data-testid*="comment" i]',
+      '[class*="comments-module" i]',
+      '[class*="comment-module" i]',
+      '[class*="Comments" i]',
+      '[class*="comments" i]',
+      'textarea[placeholder*="комментар" i]',
+      'input[placeholder*="комментар" i]'
+    ];
+
+    document.querySelectorAll(selectors.join(',')).forEach((el) => {
+      if (isRtstUiElement(el) || isInsidePlayer(el) || containsVideoPlayer(el) || isVideoInfoElement(el)) return;
+
       const aria = normalize(el.getAttribute('aria-label') || '');
-      const text = normalize(raw.slice(0, 3000));
-      const hasCommentWord = aria.includes('комментарии') || commentWords.some((word) => text.includes(normalize(word)));
-      if (!hasCommentWord) return;
-      const hasCommentForm = Boolean(el.querySelector('textarea,input[placeholder*="коммент" i],button,[class*="comment" i],[class*="Comment" i]'));
-      const target = hasCommentForm || aria.includes('комментарии') ? findSmallViewTarget(el) : findWatchBlockTarget(el);
+      const text = normalize(String(el.textContent || '').slice(0, 800));
+      const className = String(el.className || '');
+      const placeholder = normalize(el.getAttribute('placeholder') || '');
+      const looksLikeComments = aria.includes('комментар') || text.includes('комментар') || placeholder.includes('комментар') || /comment/i.test(className);
+      if (!looksLikeComments) return;
+
+      const target = findCommentBlockTarget(el);
+      if (!target || isVideoInfoElement(target) || containsVideoPlayer(target)) return;
       softHideViewElement(target, 'комментарии');
     });
+  }
+
+  function findCommentBlockTarget(el) {
+    if (!el || !el.closest) return el;
+
+    const direct = el.closest(
+      'section[aria-label*="комментар" i], ' +
+      '[data-testid*="comment" i], ' +
+      '[class*="comments-module" i], ' +
+      '[class*="comment-module" i], ' +
+      '[class*="Comments" i], ' +
+      '[class*="comments" i]'
+    );
+
+    let target = direct || el;
+    if (isVideoInfoElement(target)) return null;
+
+    for (let i = 0; i < 4 && target && target.parentElement; i++) {
+      const parent = target.parentElement;
+      if (!parent || parent === document.body || parent === document.documentElement) break;
+      if (isRtstUiElement(parent) || isInsidePlayer(parent) || containsVideoPlayer(parent) || isVideoInfoElement(parent)) break;
+
+      const tag = parent.tagName ? parent.tagName.toLowerCase() : '';
+      if (['main', 'header', 'footer', 'nav'].includes(tag)) break;
+
+      const className = String(parent.className || '');
+      const aria = normalize(parent.getAttribute('aria-label') || '');
+      const text = String(parent.textContent || '').trim();
+      const looksLikeCommentBlock = /comment/i.test(className) || aria.includes('комментар');
+
+      if (looksLikeCommentBlock && text.length < 5000) {
+        target = parent;
+        continue;
+      }
+      break;
+    }
+
+    return target;
   }
 
   function findWatchBlockTarget(el) {
@@ -1811,7 +2488,7 @@
     for (let i = 0; i < 6 && target && target.parentElement; i++) {
       const parent = target.parentElement;
       if (!parent || parent === document.body || parent === document.documentElement) break;
-      if (parent.closest('#rtst-panel') || isInsidePlayer(parent) || containsVideoPlayer(parent)) break;
+      if (isRtstUiElement(parent) || isInsidePlayer(parent) || containsVideoPlayer(parent)) break;
       
       const tag = parent.tagName ? parent.tagName.toLowerCase() : '';
       if (['main', 'header', 'footer', 'nav'].includes(tag)) break;
@@ -1833,7 +2510,7 @@
     for (let i = 0; i < 5 && target && target.parentElement; i++) {
       const parent = target.parentElement;
       if (!parent || parent === document.body || parent === document.documentElement) break;
-      if (parent.closest('#rtst-panel') || isInsidePlayer(parent) || containsVideoPlayer(parent)) break;
+      if (isRtstUiElement(parent) || isInsidePlayer(parent) || containsVideoPlayer(parent)) break;
       
       const tag = parent.tagName ? parent.tagName.toLowerCase() : '';
       if (['main', 'header', 'footer', 'nav'].includes(tag)) break;
@@ -1847,14 +2524,14 @@
   }
 
   function softHideViewElement(el, reason) {
-    if (!el || el.closest('#rtst-panel') || isProtectedHeader(el) || el === document.body || el === document.documentElement) return;
+    if (!el || isRtstUiElement(el) || isProtectedHeader(el) || el === document.body || el === document.documentElement) return;
     const tag = el.tagName ? el.tagName.toLowerCase() : '';
     if (['main', 'header', 'footer', 'nav'].includes(tag) || isInsidePlayer(el) || containsVideoPlayer(el)) return;
     el.dataset.rtstViewHidden = '1'; el.dataset.rtstReason = `скрыто, ${reason}`; el.classList.add('rtst-view-hidden');
   }
 
   function scanNavigationLinks() {
-    const navWords = ['новости и сми', 'разговоры о важном', 'тв онлайн', 'rutube tv', 'rutube x premier', 'rutube x start', 'телеканалы', 'первый канал', 'россия 1', 'россия 24', 'рен тв', 'звезда', 'нтв', 'известия', 'царьград', 'соловьев live', 'соловьёв live', 'лдпр тв'];
+    const navWords = ['новости и сми', 'разговоры о важном', 'тв онлайн', 'rutube tv', 'rutube x premier', 'rutube x start', 'телеканалы', 'чм-2026', 'чм 2026', 'чемпионат мира', 'первый канал', 'россия 1', 'россия 24', 'рен тв', 'звезда', 'нтв', 'известия', 'царьград', 'соловьев live', 'соловьёв live', 'лдпр тв'];
     if (settings.hideShorts) navWords.push('shorts', 'шортсы');
     document.querySelectorAll('a[href]').forEach((a) => {
       if (a.closest('#rtst-panel')) return;
@@ -1872,11 +2549,11 @@
     });
 
     document.querySelectorAll('.wdp-onboardings-inventory-banner-module__wrapper-section, section[class*="onboardings-inventory-banner-module__wrapper-section"]').forEach((banner) => {
-      if (!banner.closest('#rtst-panel')) forceHideChromeElement(banner, 'баннер rutube');
+      if (!isRtstUiElement(banner)) forceHideChromeElement(banner, 'баннер rutube');
     });
 
     document.querySelectorAll('.wdp-video-carousel-module__outer').forEach((carousel) => {
-      if (carousel.closest('#rtst-panel')) return;
+      if (isRtstUiElement(carousel)) return;
       const hasPromo = Boolean(carousel.querySelector(
         'img[src*="/promoitem/"], [data-slide*="промобаннер" i], a[href*="utm_medium=banner"], a[href*="utm_campaign="], a[href^="https://www.afisha.ru/"]'
       ));
@@ -1885,6 +2562,10 @@
 
     document.querySelectorAll('a[href*="/feeds/start/"], a[href*="/feeds/premier/"]').forEach((a) => {
       if (!a.closest('#rtst-panel')) softHideChromeElement(findChromeItemTarget(a), 'пункт: rutube x start/premier');
+    });
+
+    document.querySelectorAll('a[href="/feeds/chempionat-mira-po-futbolu-2026/"], a[href*="/feeds/chempionat-mira-po-futbolu-2026/"]').forEach((a) => {
+      if (!a.closest('#rtst-panel')) softHideChromeElement(findChromeItemTarget(a), 'пункт: чм-2026');
     });
 
     document.querySelectorAll('section[aria-label*="качать приложения" i], section[aria-label*="скачать приложения" i], section[class*="menu-app-section" i]').forEach((section) => {
@@ -1898,14 +2579,14 @@
     });
 
     document.querySelectorAll('a[href], button, [role="link"], [role="button"]').forEach((el) => {
-      if (el.closest('#rtst-panel')) return;
+      if (isRtstUiElement(el)) return;
       const text = normalize(el.textContent || el.getAttribute('aria-label') || '');
       const match = text && exactItems.find((item) => text === normalize(item));
       if (match) softHideChromeElement(findChromeItemTarget(el), `пункт: ${match}`);
     });
 
     document.querySelectorAll('h1,h2,h3,h4,h5,h6,p,span,div').forEach((el) => {
-      if (el.closest('#rtst-panel')) return;
+      if (isRtstUiElement(el)) return;
       const raw = String(el.textContent || '').trim();
       if (!raw || raw.length > 80) return;
       const text = normalize(raw);
@@ -1939,12 +2620,12 @@
   }
 
   function softHideChromeElement(el, reason) {
-    if (!el || el.closest('#rtst-panel') || isProtectedHeader(el) || containsCoreMenuText(normalize(el.textContent || ''))) return;
+    if (!el || isRtstUiElement(el) || isProtectedHeader(el) || containsCoreMenuText(normalize(el.textContent || ''))) return;
     el.dataset.rtstChromeHidden = '1'; el.dataset.rtstReason = `скрыто, ${reason}`; el.classList.add('rtst-chrome-hidden');
   }
 
   function forceHideChromeElement(el, reason) {
-    if (!el || el.closest('#rtst-panel') || isProtectedHeader(el)) return;
+    if (!el || isRtstUiElement(el) || isProtectedHeader(el)) return;
     el.dataset.rtstChromeHidden = '1';
     el.dataset.rtstReason = `скрыто, ${reason}`;
     el.classList.add('rtst-chrome-hidden');
@@ -1956,7 +2637,7 @@
     let target = el;
     for (let i = 0; i < 5 && target && target.parentElement; i++) {
       const parent = target.parentElement;
-      if (!parent || parent === document.body || parent === document.documentElement || parent.closest('#rtst-panel')) break;
+      if (!parent || parent === document.body || parent === document.documentElement || isRtstUiElement(parent)) break;
       const tag = parent.tagName ? parent.tagName.toLowerCase() : '';
       if (['main', 'header', 'footer', 'nav', 'aside', 'section'].includes(tag)) break;
       const targetText = String(target.textContent || '').trim();
@@ -1975,7 +2656,7 @@
     let target = el;
     for (let i = 0; i < 5 && target && target.parentElement; i++) {
       const parent = target.parentElement;
-      if (!parent || parent === document.body || parent === document.documentElement || parent.closest('#rtst-panel')) break;
+      if (!parent || parent === document.body || parent === document.documentElement || isRtstUiElement(parent)) break;
       const tag = parent.tagName ? parent.tagName.toLowerCase() : '';
       if (['main', 'header', 'footer', 'nav', 'aside', 'section'].includes(tag)) break;
       const text = String(parent.textContent || '').trim();
@@ -2010,7 +2691,7 @@
 
   function isUsableCard(el) {
     if (!el || el === document.body || el === document.documentElement) return false;
-    if (el.id === 'rtst-panel' || el.closest('#rtst-panel')) return false;
+    if (el.id === 'rtst-panel' || isRtstUiElement(el)) return false;
 
     const tag = el.tagName ? el.tagName.toLowerCase() : '';
     if (['main', 'header', 'footer', 'nav', 'aside'].includes(tag)) return false;
@@ -2064,7 +2745,7 @@
   }
 
   function hideElement(el, reason) {
-    if (!el || el.closest('#rtst-panel') || isProtectedHeader(el)) return;
+    if (!el || isRtstUiElement(el) || isProtectedHeader(el)) return;
     const target = findBestHideTarget(el);
     if (!target || target.closest('#rtst-panel') || isDangerousHideTarget(target)) return;
     if (target.dataset.rtstHidden !== '1') hiddenCount += 1;
@@ -2092,7 +2773,7 @@
     let node = el;
     for (let i = 0; i < 12 && node && node.parentElement; i++) {
       const parent = node.parentElement;
-      if (!parent || parent === document.body || parent === document.documentElement || parent.closest('#rtst-panel')) break;
+      if (!parent || parent === document.body || parent === document.documentElement || isRtstUiElement(parent)) break;
       const tag = parent.tagName ? parent.tagName.toLowerCase() : '';
       if (['main', 'header', 'footer', 'nav'].includes(tag)) break;
       if (isCollectionParent(parent)) return node;
@@ -2124,7 +2805,7 @@
     let target = el;
     for (let i = 0; i < 8 && target && target.parentElement; i++) {
       const parent = target.parentElement;
-      if (!parent || parent === document.body || parent === document.documentElement || parent.closest('#rtst-panel')) break;
+      if (!parent || parent === document.body || parent === document.documentElement || isRtstUiElement(parent)) break;
       const tag = parent.tagName ? parent.tagName.toLowerCase() : '';
       if (['main', 'header', 'footer', 'nav', 'section'].includes(tag)) break;
       const targetTextLen = (target.textContent || '').trim().length;
@@ -2182,7 +2863,7 @@
     ];
     for (const selector of selectors) {
       const link = document.querySelector(selector);
-      if (!link || link.closest('#rtst-panel') || isInsidePlayer(link)) continue;
+      if (!link || isRtstUiElement(link) || isInsidePlayer(link)) continue;
       const href = String(link.getAttribute('href') || '').trim();
       const text = String(link.textContent || '').trim();
       if (href && href !== location.pathname && (text || /\/channel\/|\/video\/person\//.test(href))) return href;
@@ -2310,11 +2991,13 @@
   }
 
   function boot() {
-    syncRootFlags(); setupAutoplayGuard(); addStyle(); bindEvents(); loadMovieDbFromLocalCache(); setTimeout(checkGithubAvailability, 1500); setTimeout(maybeUpdateMovieDbInBackground, 3500); scheduleScan();
+    installPlayOptionsAdvertStripper(); installRutubeContextMenuUnlocker(); syncRootFlags(); setupAutoplayGuard(); addStyle(); bindEvents(); loadMovieDbFromLocalCache(); setTimeout(checkGithubAvailability, 1500); setTimeout(maybeUpdateMovieDbInBackground, 3500); scheduleScan();
     window.addEventListener('popstate', () => setTimeout(rescanNow, 250));
     setInterval(() => { if (location.href !== lastUrl) { scheduleScan(); return; } if (settings.enabled) scheduleScan(); }, 2500);
   }
 
+  installPlayOptionsAdvertStripper();
+  installRutubeContextMenuUnlocker();
   setupAutoplayGuard();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
   else boot();
