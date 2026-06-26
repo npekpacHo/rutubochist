@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.2.31
+// @version      1.2.32
 // @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии и лишнее вокруг просмотра. Есть рекомендации что посмотреть, чистый плеер, анти-автозапуск, импорт/экспорт ЧС.
 // @author       elekt_riki
 // @license      MIT
@@ -19,7 +19,7 @@
   'use strict';
 
   const STORE_KEY = 'rtSansTvSettings:v1';
-  const UI_VERSION = '1.2.31';
+  const UI_VERSION = '1.2.32';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -1364,7 +1364,7 @@
           ? 'Проверяю доступ к GitHub...'
           : 'Доступ к GitHub ещё не проверялся.';
     const versionLine = `Версия ${UI_VERSION}`;
-    const detailLine = githubState.message ? `Ошибка: ${githubState.message}` : '';
+    const detailLine = githubState.message ? `💬: ${githubState.message}` : '';
     btn.title = [actionLine, statusLine, versionLine, detailLine].filter(Boolean).join('\n');
   }
 
