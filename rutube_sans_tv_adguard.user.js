@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.3.3
+// @version      1.3.4
 // @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии, лишнее вокруг просмотра и рекламные вставки в плеере, угловые баннеры включает системное меню по правой кнопке мыши и добавляет горизонтальную свайп-громкость видео. Есть рекомендации что посмотреть, анти-автозапуск, импорт/экспорт ЧС.
 // @author       elekt_riki
 // @license      MIT
@@ -19,7 +19,7 @@
   'use strict';
 
   const STORE_KEY = 'rtSansTvSettings:v1';
-  const UI_VERSION = '1.3.3';
+  const UI_VERSION = '1.3.4';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -423,7 +423,7 @@
 
 
   function installMobileVideoVolumeSwipe() {
-    const PATCHER_KEY = '__rtstMobileVideoVolumeSwipeV133';
+    const PATCHER_KEY = '__rtstMobileVideoVolumeSwipeV134';
     const VOLUME_STORE_KEY = 'rtstVideoVolume:v1';
     if (window[PATCHER_KEY]) return;
     window[PATCHER_KEY] = true;
@@ -434,6 +434,8 @@
       startX: 0,
       startY: 0,
       startVolume: 1,
+      startRate: 1,
+      startTime: 0,
       video: null,
       moved: false,
       source: 'none'
@@ -441,6 +443,16 @@
 
     let overlayTimer = null;
     let lastAppliedSavedVolume = null;
+    let rutubeGestureLockUntil = 0;
+    let lastGestureVideo = null;
+    let lastGestureRate = 1;
+    let clearGestureFlagTimer = null;
+
+    const rutubeGestureOverlaySelector = [
+      '[class*="info-layer-module__wrapper" i]',
+      '[class*="mobile-seek-handler-module__" i]',
+      '[class*="tap-rewind-animation-module__" i]'
+    ].join(',');
 
     function isSwipeVolumeEnabled() {
       try {
@@ -543,10 +555,8 @@
         const w = Math.max(1, window.innerWidth || document.documentElement.clientWidth || 1);
         const h = Math.max(1, window.innerHeight || document.documentElement.clientHeight || 1);
 
-        // Если видео почти полноэкранное, разрешаем жест по всему экрану.
         if (r.width >= w * 0.62 && r.height >= h * 0.42) return true;
 
-        // В обычном режиме жест действует в пределах видимого плеера.
         return point.x >= r.left - 10 && point.x <= r.right + 10 && point.y >= r.top - 10 && point.y <= r.bottom + 10;
       } catch (e) {
         return true;
@@ -575,6 +585,80 @@
       if (link && (!video || !link.closest(playerSelector()))) return true;
 
       return false;
+    }
+
+    function targetBelongsToActivePlayer(target) {
+      if (!target || !target.closest) return true;
+      if (!lastGestureVideo && !gesture.video) return false;
+      const video = gesture.video || lastGestureVideo;
+      const player = findPlayerRootForVideo(video);
+      return Boolean(
+        target === video ||
+        (player && (target === player || player.contains(target))) ||
+        target.closest(playerSelector())
+      );
+    }
+
+    function setVolumeGestureFlag(on) {
+      const root = document.documentElement;
+      if (!root) return;
+
+      if (on) {
+        root.dataset.rtstVolumeGesture = '1';
+        if (clearGestureFlagTimer) clearTimeout(clearGestureFlagTimer);
+      } else {
+        if (clearGestureFlagTimer) clearTimeout(clearGestureFlagTimer);
+        clearGestureFlagTimer = setTimeout(() => {
+          if (Date.now() >= rutubeGestureLockUntil) {
+            delete root.dataset.rtstVolumeGesture;
+          }
+        }, 80);
+      }
+    }
+
+    function lockRutubeGestures(ms = 950) {
+      rutubeGestureLockUntil = Math.max(rutubeGestureLockUntil, Date.now() + ms);
+      setVolumeGestureFlag(true);
+      hideRutubeGestureOverlays(document);
+
+      if (clearGestureFlagTimer) clearTimeout(clearGestureFlagTimer);
+      clearGestureFlagTimer = setTimeout(() => {
+        if (Date.now() >= rutubeGestureLockUntil) {
+          delete document.documentElement.dataset.rtstVolumeGesture;
+        }
+      }, ms + 80);
+    }
+
+    function isRutubeGestureLocked() {
+      return Date.now() < rutubeGestureLockUntil;
+    }
+
+    function blockEvent(event) {
+      if (!event) return;
+      try { event.preventDefault(); } catch (e) {}
+      try { event.stopPropagation(); } catch (e) {}
+      try { event.stopImmediatePropagation(); } catch (e) {}
+    }
+
+    function hideRutubeGestureOverlays(root = document) {
+      const scope = root && root.querySelectorAll ? root : document;
+      try {
+        scope.querySelectorAll(rutubeGestureOverlaySelector).forEach((el) => {
+          const text = normalize(el.textContent || '');
+          const cls = normalize(el.className || '');
+          if (
+            text.includes('x2') ||
+            text.includes('+10') ||
+            text.includes('-10') ||
+            text.includes('секунд') ||
+            cls.includes('info layer') ||
+            cls.includes('mobile seek handler') ||
+            cls.includes('tap rewind animation')
+          ) {
+            el.classList.add('rtst-player-ad-hidden');
+          }
+        });
+      } catch (e) {}
     }
 
     function getOverlayHost(video) {
@@ -607,7 +691,6 @@
 
       overlay.dataset.rtstHost = host.type;
 
-      // Если оверлей положили внутрь плеера, ему нужен позиционированный родитель.
       if (host.type === 'player') {
         try {
           const pos = getComputedStyle(host.el).position;
@@ -626,7 +709,6 @@
       overlay.textContent = `${icon} ${percent}%`;
       overlay.dataset.visible = '1';
 
-      // Inline-страховка для мобильных браузеров, которые иногда игнорируют наш CSS во fullscreen-слоях.
       try {
         overlay.style.display = 'block';
         overlay.style.opacity = '1';
@@ -709,6 +791,8 @@
       gesture.startX = point.x;
       gesture.startY = point.y;
       gesture.startVolume = clampVolume(video.muted ? 0 : video.volume);
+      gesture.startRate = Number(video.playbackRate) || 1;
+      gesture.startTime = Number(video.currentTime) || 0;
       gesture.video = video;
       gesture.moved = false;
       gesture.source = source;
@@ -730,13 +814,15 @@
 
       if (!gesture.moved && dxAbs < 10) return;
 
-      // Всё ещё не ломаем явный вертикальный свайп Rutube.
       if (!gesture.moved && dyAbs > dxAbs * 1.8 && dyAbs > 24) {
-        stopGesture();
+        stopGesture(event);
         return;
       }
 
       gesture.moved = true;
+      lastGestureVideo = gesture.video;
+      lastGestureRate = gesture.startRate || 1;
+      lockRutubeGestures(1100);
 
       const width = Math.max(320, window.innerWidth || document.documentElement.clientWidth || 480);
       const delta = dx / (width * 0.62);
@@ -748,12 +834,27 @@
         fromGesture: true
       });
 
-      event.preventDefault();
-      event.stopPropagation();
-      if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+      hideRutubeGestureOverlays(document);
+      blockEvent(event);
     }
 
-    function stopGesture() {
+    function stopGesture(event) {
+      const shouldBlock = Boolean(gesture.moved && gesture.video);
+
+      if (shouldBlock) {
+        lastGestureVideo = gesture.video;
+        lastGestureRate = gesture.startRate || 1;
+        lockRutubeGestures(1200);
+
+        try {
+          if (Math.abs((gesture.video.playbackRate || 1) - (gesture.startRate || 1)) > 0.01) {
+            gesture.video.playbackRate = gesture.startRate || 1;
+          }
+        } catch (e) {}
+
+        blockEvent(event);
+      }
+
       gesture.active = false;
       gesture.pointerId = null;
       gesture.video = null;
@@ -761,15 +862,54 @@
       gesture.source = 'none';
     }
 
+    function blockRutubeAfterVolumeGesture(event) {
+      if (!isRutubeGestureLocked()) return;
+      if (!targetBelongsToActivePlayer(event.target)) return;
+
+      hideRutubeGestureOverlays(document);
+      blockEvent(event);
+    }
+
     document.addEventListener('pointerdown', (event) => startGesture(event, 'pointer'), true);
     document.addEventListener('pointermove', (event) => moveGesture(event, 'pointer'), { capture: true, passive: false });
-    document.addEventListener('pointerup', stopGesture, true);
-    document.addEventListener('pointercancel', stopGesture, true);
+    document.addEventListener('pointerup', (event) => stopGesture(event), true);
+    document.addEventListener('pointercancel', (event) => stopGesture(event), true);
 
     document.addEventListener('touchstart', (event) => startGesture(event, 'touch'), { capture: true, passive: true });
     document.addEventListener('touchmove', (event) => moveGesture(event, 'touch'), { capture: true, passive: false });
-    document.addEventListener('touchend', stopGesture, true);
-    document.addEventListener('touchcancel', stopGesture, true);
+    document.addEventListener('touchend', (event) => stopGesture(event), { capture: true, passive: false });
+    document.addEventListener('touchcancel', (event) => stopGesture(event), { capture: true, passive: false });
+
+    ['click', 'dblclick', 'contextmenu'].forEach((type) => {
+      document.addEventListener(type, blockRutubeAfterVolumeGesture, true);
+    });
+
+    document.addEventListener('ratechange', (event) => {
+      const video = event && event.target;
+      if (!video || !(video instanceof HTMLMediaElement)) return;
+      if (!isRutubeGestureLocked() && video !== lastGestureVideo) return;
+
+      const desiredRate = Number(lastGestureRate) || 1;
+      const currentRate = Number(video.playbackRate) || desiredRate;
+
+      if (Math.abs(currentRate - desiredRate) > 0.01 && currentRate >= 1.5) {
+        try { video.playbackRate = desiredRate; } catch (e) {}
+        hideRutubeGestureOverlays(document);
+      }
+    }, true);
+
+    const overlayObserver = new MutationObserver((mutations) => {
+      if (!isRutubeGestureLocked()) return;
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (node instanceof HTMLElement) hideRutubeGestureOverlays(node);
+        }
+      }
+    });
+
+    try {
+      overlayObserver.observe(document.documentElement, { childList: true, subtree: true });
+    } catch (e) {}
 
     document.addEventListener('play', (event) => {
       const target = event && event.target;
@@ -1047,6 +1187,14 @@
       .rtst-volume-overlay[data-rtst-host="video"] {
         position: fixed !important;
         top: 14px !important;
+      }
+      html[data-rtst-volume-gesture="1"] [class*="info-layer-module__wrapper" i],
+      html[data-rtst-volume-gesture="1"] [class*="mobile-seek-handler-module__" i],
+      html[data-rtst-volume-gesture="1"] [class*="tap-rewind-animation-module__" i] {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
       }
 /* --- MOBILE OVERRIDES --- */
       @media (max-width: 680px) {
