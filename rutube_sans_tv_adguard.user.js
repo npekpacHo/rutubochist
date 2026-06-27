@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.3.4
-// @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии, лишнее вокруг просмотра и рекламные вставки в плеере, угловые баннеры включает системное меню по правой кнопке мыши и добавляет горизонтальную свайп-громкость видео. Есть рекомендации что посмотреть, анти-автозапуск, импорт/экспорт ЧС.
+// @version      1.3.6
+// @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии, лишнее вокруг просмотра и рекламные вставки в плеере, угловые баннеры включает системное меню по правой кнопке мыши и добавляет горизонтальную свайп-громкость видео с подавлением мешающего x2-оверлея. Есть рекомендации что посмотреть, анти-автозапуск, импорт/экспорт ЧС.
 // @author       elekt_riki
 // @license      MIT
 // @homepageURL  https://npekpacho.github.io/rutubochist/
@@ -19,7 +19,7 @@
   'use strict';
 
   const STORE_KEY = 'rtSansTvSettings:v1';
-  const UI_VERSION = '1.3.4';
+  const UI_VERSION = '1.3.6';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -926,6 +926,170 @@
   }
 
 
+
+  function installRutubeX2Suppressor() {
+    const PATCHER_KEY = '__rtstRutubeX2SuppressorV135';
+    if (window[PATCHER_KEY]) return;
+    window[PATCHER_KEY] = true;
+
+    let lastAllowedRate = 1;
+    let suppressUntil = 0;
+    let restoreTimer = null;
+
+    const x2OverlaySelector = [
+      '[class*="info-layer-module__wrapper" i]',
+      '[class*="info-layer-module__label" i]',
+      '[role="alert"]'
+    ].join(',');
+
+    function isX2SuppressionEnabled() {
+      try {
+        return Boolean(settings && settings.enabled && settings.swipeVideoVolume !== false);
+      } catch (e) {
+        return true;
+      }
+    }
+
+    function isX2Rate(rate) {
+      const value = Number(rate);
+      return Number.isFinite(value) && value >= 1.75 && value <= 2.25;
+    }
+
+    function isLikelyRutubeX2Overlay(el) {
+      if (!el) return false;
+      const text = normalize(el.textContent || '');
+      const cls = normalize(el.className || '');
+      return (
+        text === 'x2' ||
+        text.includes('x2') ||
+        text.includes('2x') ||
+        text.includes('2×') ||
+        (cls.includes('info layer') && /(^|\s)x?2(x|\s|$)/i.test(text))
+      );
+    }
+
+    function markX2OverlayHidden(el) {
+      if (!el || isRtstUiElement(el)) return;
+      const wrapper = el.closest && el.closest('[class*="info-layer-module__wrapper" i]');
+      const target = wrapper || el;
+      if (!target || isRtstUiElement(target)) return;
+      target.classList.add('rtst-x2-hidden');
+      target.dataset.rtstX2Hidden = '1';
+    }
+
+    function hideRutubeX2Overlays(root = document) {
+      if (!isX2SuppressionEnabled()) return;
+      const scope = root && root.querySelectorAll ? root : document;
+
+      try {
+        if (scope instanceof HTMLElement && isLikelyRutubeX2Overlay(scope)) markX2OverlayHidden(scope);
+
+        scope.querySelectorAll(x2OverlaySelector).forEach((el) => {
+          if (isLikelyRutubeX2Overlay(el)) markX2OverlayHidden(el);
+        });
+      } catch (e) {}
+    }
+
+    function restoreRate(video, forcedRate) {
+      if (!video || !isX2SuppressionEnabled()) return;
+
+      const desired = Number(forcedRate != null ? forcedRate : lastAllowedRate) || 1;
+      const safeDesired = isX2Rate(desired) ? 1 : desired;
+
+      try {
+        if (isX2Rate(video.playbackRate)) video.playbackRate = safeDesired;
+      } catch (e) {}
+
+      hideRutubeX2Overlays(document);
+    }
+
+    function scheduleRestore(video) {
+      suppressUntil = Math.max(suppressUntil, Date.now() + 900);
+
+      if (restoreTimer) clearTimeout(restoreTimer);
+      restoreTimer = setTimeout(() => restoreRate(video), 60);
+
+      setTimeout(() => restoreRate(video), 180);
+      setTimeout(() => restoreRate(video), 520);
+      setTimeout(() => hideRutubeX2Overlays(document), 900);
+    }
+
+    function handleRateChange(event) {
+      const video = event && event.target;
+      if (!video || !(video instanceof HTMLMediaElement)) return;
+      if (!isX2SuppressionEnabled()) return;
+
+      const rate = Number(video.playbackRate) || 1;
+
+      if (isX2Rate(rate)) {
+        scheduleRestore(video);
+        return;
+      }
+
+      if (rate > 0 && !isX2Rate(rate)) {
+        lastAllowedRate = rate;
+      }
+    }
+
+    function handleGestureEvent(event) {
+      if (!isX2SuppressionEnabled()) return;
+
+      const target = event && event.target;
+      if (!target || !target.closest) return;
+
+      const player = target.closest('video, [class*="wdp-player"], [class*="video-player"], [class*="VideoPlayer"], [id*="player"], [data-testid*="player" i]');
+      if (!player) return;
+
+      // Не трогаем обычные события. Только если x2 уже засветился или недавно был подавлен.
+      if (Date.now() > suppressUntil) return;
+
+      try { event.preventDefault(); } catch (e) {}
+      try { event.stopPropagation(); } catch (e) {}
+      try { event.stopImmediatePropagation(); } catch (e) {}
+    }
+
+    document.addEventListener('ratechange', handleRateChange, true);
+
+    ['dblclick', 'contextmenu'].forEach((type) => {
+      document.addEventListener(type, handleGestureEvent, true);
+    });
+
+    const observer = new MutationObserver((mutations) => {
+      if (!isX2SuppressionEnabled()) return;
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (node instanceof HTMLElement) hideRutubeX2Overlays(node);
+        }
+        if (mutation.type === 'attributes' && mutation.target instanceof HTMLElement) {
+          hideRutubeX2Overlays(mutation.target);
+        }
+      }
+    });
+
+    try {
+      observer.observe(document.documentElement, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['class', 'style', 'aria-label', 'data-testid']
+      });
+    } catch (e) {}
+
+    const run = () => {
+      hideRutubeX2Overlays(document);
+      document.querySelectorAll('video').forEach((video) => {
+        if (isX2Rate(video.playbackRate)) restoreRate(video, 1);
+        else if (video.playbackRate > 0 && !isX2Rate(video.playbackRate)) lastAllowedRate = video.playbackRate;
+      });
+    };
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run, { once: true });
+    else run();
+
+    setInterval(run, 1200);
+  }
+
+
   function allBlockedChannels() {
     return unique([...settings.blockedChannels, ...settings.userChannels]);
   }
@@ -1190,7 +1354,8 @@
       }
       html[data-rtst-volume-gesture="1"] [class*="info-layer-module__wrapper" i],
       html[data-rtst-volume-gesture="1"] [class*="mobile-seek-handler-module__" i],
-      html[data-rtst-volume-gesture="1"] [class*="tap-rewind-animation-module__" i] {
+      html[data-rtst-volume-gesture="1"] [class*="tap-rewind-animation-module__" i],
+      html[data-rtst-swipe-video-volume="1"] .rtst-x2-hidden {
         display: none !important;
         visibility: hidden !important;
         opacity: 0 !important;
@@ -1828,7 +1993,7 @@
             <div class="rtst-section-title">Плеер</div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-strip-player-ads"> пытаться убирать рекламу</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-unlock-context-menu"> включить системное меню по правой кнопке</label></div>
-            <div class="rtst-row"><label><input type="checkbox" id="rtst-swipe-video-volume"> управлять громкостью видео горизонтальным свайпом по экрану</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-swipe-video-volume"> управлять громкостью видео горизонтальным свайпом по экрану и подавлять x2</label></div>
           </div>
 
           <div class="rtst-section">
@@ -3477,7 +3642,7 @@
   }
 
   function boot() {
-    installPlayOptionsAdvertStripper(); installRutubeContextMenuUnlocker(); installMobileVideoVolumeSwipe(); syncRootFlags(); setupAutoplayGuard(); addStyle(); bindEvents(); loadMovieDbFromLocalCache(); setTimeout(checkGithubAvailability, 1500); setTimeout(maybeUpdateMovieDbInBackground, 3500); scheduleScan();
+    installPlayOptionsAdvertStripper(); installRutubeContextMenuUnlocker(); installMobileVideoVolumeSwipe(); installRutubeX2Suppressor(); syncRootFlags(); setupAutoplayGuard(); addStyle(); bindEvents(); loadMovieDbFromLocalCache(); setTimeout(checkGithubAvailability, 1500); setTimeout(maybeUpdateMovieDbInBackground, 3500); scheduleScan();
     window.addEventListener('popstate', () => setTimeout(rescanNow, 250));
     setInterval(() => { if (location.href !== lastUrl) { scheduleScan(); return; } if (settings.enabled) scheduleScan(); }, 2500);
   }
@@ -3485,6 +3650,7 @@
   installPlayOptionsAdvertStripper();
   installRutubeContextMenuUnlocker();
   installMobileVideoVolumeSwipe();
+  installRutubeX2Suppressor();
   setupAutoplayGuard();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
   else boot();
