@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.2.42
-// @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии, лишнее вокруг просмотра и рекламные вставки в плеере, угловые баннеры и включает системное меню по правой кнопке мыши. Есть рекомендации что посмотреть, анти-автозапуск, импорт/экспорт ЧС.
+// @version      1.3.1
+// @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии, лишнее вокруг просмотра и рекламные вставки в плеере, угловые баннеры включает системное меню по правой кнопке мыши и добавляет горизонтальную свайп-громкость видео. Есть рекомендации что посмотреть, анти-автозапуск, импорт/экспорт ЧС.
 // @author       elekt_riki
 // @license      MIT
 // @homepageURL  https://npekpacho.github.io/rutubochist/
@@ -19,7 +19,7 @@
   'use strict';
 
   const STORE_KEY = 'rtSansTvSettings:v1';
-  const UI_VERSION = '1.2.42';
+  const UI_VERSION = '1.3.1';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -76,7 +76,7 @@
   const SETTINGS_DEFAULTS = {
     enabled: true, showHidden: false, hideSideMenuPolitics: true, hideShorts: true, hardRemove: false,
     cleanRutubeChrome: true, cleanWatchPage: true, disableAutoplay: true, hideComments: false, hideVideoInfo: false,
-    stripPlayerAds: true, unlockContextMenu: true,
+    stripPlayerAds: true, unlockContextMenu: true, swipeVideoVolume: true,
     safeRouterPatch060: true, safeDelayedScan070: true,
     blockedChannels: DEFAULT_BLOCKED_CHANNELS, blockedWords: DEFAULT_BLOCKED_WORDS, userChannels: [], userWords: []
   };
@@ -421,6 +421,273 @@
     setInterval(run, 3000);
   }
 
+
+  function installMobileVideoVolumeSwipe() {
+    const PATCHER_KEY = '__rtstMobileVideoVolumeSwipeV131';
+    const VOLUME_STORE_KEY = 'rtstVideoVolume:v1';
+    if (window[PATCHER_KEY]) return;
+    window[PATCHER_KEY] = true;
+
+    const gesture = {
+      active: false,
+      pointerId: null,
+      startX: 0,
+      startY: 0,
+      startVolume: 1,
+      video: null,
+      moved: false
+    };
+
+    let overlayTimer = null;
+    let lastAppliedSavedVolume = null;
+
+    function isSwipeVolumeEnabled() {
+      try {
+        return Boolean(settings && settings.enabled && settings.swipeVideoVolume !== false);
+      } catch (e) {
+        return true;
+      }
+    }
+
+    function clampVolume(value) {
+      return Math.max(0, Math.min(1, Number(value) || 0));
+    }
+
+    function readSavedVolume() {
+      try {
+        const raw = localStorage.getItem(VOLUME_STORE_KEY);
+        if (raw == null || raw === '') return null;
+        const value = Number(raw);
+        if (!Number.isFinite(value)) return null;
+        return clampVolume(value);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function saveVolume(value) {
+      try {
+        localStorage.setItem(VOLUME_STORE_KEY, String(clampVolume(value)));
+      } catch (e) {}
+    }
+
+    function isTouchLike(event) {
+      return event && (
+        event.pointerType === 'touch' ||
+        (event.pointerType === '' && window.matchMedia && window.matchMedia('(hover: none)').matches)
+      );
+    }
+
+    function isTopGestureZone(event) {
+      const height = Math.max(1, window.innerHeight || document.documentElement.clientHeight || 1);
+      const topZoneHeight = Math.max(54, Math.min(128, height * 0.24));
+      return event.clientY <= topZoneHeight;
+    }
+
+    function isLandscapeOrFullscreen(video) {
+      if (document.fullscreenElement || document.webkitFullscreenElement) return true;
+      if (window.matchMedia && window.matchMedia('(orientation: landscape)').matches) return true;
+
+      try {
+        const r = video.getBoundingClientRect();
+        const vw = Math.max(1, window.innerWidth || document.documentElement.clientWidth || 1);
+        const vh = Math.max(1, window.innerHeight || document.documentElement.clientHeight || 1);
+        return r.width >= vw * 0.72 && r.height >= vh * 0.42;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function isInteractiveTarget(target) {
+      return Boolean(target && target.closest && target.closest(
+        '#rtst-panel, .rtst-modal-backdrop, input, textarea, select, a[href], ' +
+        'button:not([aria-label*="Закрыть баннер" i]), ' +
+        '[role="button"]:not([aria-label*="Закрыть баннер" i])'
+      ));
+    }
+
+    function findVideoForGesture(target) {
+      if (!target) return null;
+
+      const player = target.closest && target.closest(
+        'video, [class*="wdp-player"], [class*="video-player"], [class*="VideoPlayer"], [id*="player"], [data-testid*="player" i]'
+      );
+
+      if (player) {
+        if (player.tagName && player.tagName.toLowerCase() === 'video') return player;
+        const localVideo = player.querySelector && player.querySelector('video');
+        if (localVideo) return localVideo;
+      }
+
+      const videos = [...document.querySelectorAll('video')].filter((video) => {
+        try {
+          const r = video.getBoundingClientRect();
+          return r.width > 80 && r.height > 60 && r.bottom >= 0 && r.right >= 0 && r.top <= window.innerHeight && r.left <= window.innerWidth;
+        } catch (e) {
+          return false;
+        }
+      });
+
+      if (!videos.length) return null;
+
+      videos.sort((a, b) => {
+        const ar = a.getBoundingClientRect();
+        const br = b.getBoundingClientRect();
+        return (br.width * br.height) - (ar.width * ar.height);
+      });
+
+      return videos[0];
+    }
+
+    function showVideoVolumeOverlay(volume, muted) {
+      let overlay = document.getElementById('rtst-volume-overlay');
+      if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'rtst-volume-overlay';
+        overlay.className = 'rtst-volume-overlay';
+        document.documentElement.appendChild(overlay);
+      }
+
+      const percent = Math.round(clampVolume(volume) * 100);
+      const icon = muted || percent <= 0 ? '🔇' : (percent < 50 ? '🔉' : '🔊');
+      overlay.textContent = `${icon} ${percent}%`;
+      overlay.dataset.visible = '1';
+
+      if (overlayTimer) clearTimeout(overlayTimer);
+      overlayTimer = setTimeout(() => {
+        const current = document.getElementById('rtst-volume-overlay');
+        if (current) current.dataset.visible = '0';
+      }, 850);
+    }
+
+    function applyVideoVolume(video, volume, options = {}) {
+      if (!video) return;
+
+      const nextVolume = clampVolume(volume);
+
+      try {
+        video.volume = nextVolume;
+      } catch (e) {}
+
+      // При реальном жесте можно разлочить звук обратно. При тихом восстановлении из localStorage
+      // не лезем в muted, чтобы не мешать автоплею и личным решениям пользователя.
+      if (options.fromGesture) {
+        try {
+          video.muted = nextVolume <= 0.001;
+        } catch (e) {}
+      } else if (nextVolume <= 0.001) {
+        try {
+          video.muted = true;
+        } catch (e) {}
+      }
+
+      if (options.persist) saveVolume(nextVolume);
+      if (options.showOverlay) showVideoVolumeOverlay(nextVolume, video.muted);
+    }
+
+    function applySavedVolumeToVideo(video) {
+      if (!isSwipeVolumeEnabled() || !video) return;
+      const saved = readSavedVolume();
+      if (saved == null) return;
+
+      try {
+        const marker = Number(video.dataset.rtstSavedVolumeApplied || '-1');
+        if (Math.abs(marker - saved) < 0.001 && lastAppliedSavedVolume === saved) return;
+        video.dataset.rtstSavedVolumeApplied = String(saved);
+        lastAppliedSavedVolume = saved;
+      } catch (e) {}
+
+      applyVideoVolume(video, saved, { persist: false, showOverlay: false, fromGesture: false });
+    }
+
+    function applySavedVolumeToVideos(root = document) {
+      if (!isSwipeVolumeEnabled()) return;
+      const scope = root && root.querySelectorAll ? root : document;
+      try {
+        scope.querySelectorAll('video').forEach(applySavedVolumeToVideo);
+      } catch (e) {}
+    }
+
+    function startGesture(event) {
+      if (!isSwipeVolumeEnabled() || !isTouchLike(event) || !isTopGestureZone(event)) return;
+      if (isRtstUiElement(event.target) || isInteractiveTarget(event.target)) return;
+
+      const video = findVideoForGesture(event.target);
+      if (!video || !isLandscapeOrFullscreen(video)) return;
+
+      applySavedVolumeToVideo(video);
+
+      gesture.active = true;
+      gesture.pointerId = event.pointerId;
+      gesture.startX = event.clientX;
+      gesture.startY = event.clientY;
+      gesture.startVolume = clampVolume(video.muted ? 0 : video.volume);
+      gesture.video = video;
+      gesture.moved = false;
+
+      try {
+        if (event.target && event.target.setPointerCapture) event.target.setPointerCapture(event.pointerId);
+      } catch (e) {}
+    }
+
+    function moveGesture(event) {
+      if (!gesture.active || event.pointerId !== gesture.pointerId || !gesture.video) return;
+
+      const dx = event.clientX - gesture.startX;
+      const dyAbs = Math.abs(event.clientY - gesture.startY);
+      const dxAbs = Math.abs(dx);
+
+      if (!gesture.moved && dxAbs < 12) return;
+
+      // Если человек явно ведёт вертикально, отдаём жест Rutube, пусть он там сам с собой разбирается.
+      if (!gesture.moved && dyAbs > dxAbs * 1.25) {
+        stopGesture();
+        return;
+      }
+
+      gesture.moved = true;
+
+      const width = Math.max(320, window.innerWidth || document.documentElement.clientWidth || 480);
+      const delta = dx / (width * 0.68);
+      const nextVolume = gesture.startVolume + delta;
+
+      applyVideoVolume(gesture.video, nextVolume, {
+        persist: true,
+        showOverlay: true,
+        fromGesture: true
+      });
+
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    function stopGesture() {
+      gesture.active = false;
+      gesture.pointerId = null;
+      gesture.video = null;
+      gesture.moved = false;
+    }
+
+    document.addEventListener('pointerdown', startGesture, true);
+    document.addEventListener('pointermove', moveGesture, { capture: true, passive: false });
+    document.addEventListener('pointerup', stopGesture, true);
+    document.addEventListener('pointercancel', stopGesture, true);
+
+    document.addEventListener('play', (event) => {
+      const target = event && event.target;
+      if (target && target.tagName && target.tagName.toLowerCase() === 'video') {
+        applySavedVolumeToVideo(target);
+      }
+    }, true);
+
+    const run = () => applySavedVolumeToVideos(document);
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run, { once: true });
+    else run();
+
+    setInterval(run, 2500);
+  }
+
+
   function allBlockedChannels() {
     return unique([...settings.blockedChannels, ...settings.userChannels]);
   }
@@ -654,6 +921,25 @@
       .rtst-movie-loading, .rtst-movie-error, .rtst-movie-empty { padding: 10px !important; border: 1px solid rgba(255,255,255,.10) !important; border-radius: 8px !important; background: rgba(255,255,255,.055) !important; color: rgba(244,255,247,.82) !important; font: 12px/1.4 Arial, sans-serif !important; }
       .rtst-movie-error { color: #ffd6d2 !important; }
       .rtst-toast { position: fixed !important; right: 14px !important; bottom: 14px !important; z-index: 2147483647 !important; max-width: calc(100vw - 28px) !important; padding: 8px 10px !important; border-radius: 8px !important; background: rgba(0,0,0,.86) !important; color: #fff !important; font: 12px/1.3 Arial, sans-serif !important; box-shadow: 0 8px 30px rgba(0,0,0,.3) !important; }
+      .rtst-volume-overlay {
+        position: fixed !important;
+        left: 50% !important;
+        top: calc(env(safe-area-inset-top, 0px) + 18px) !important;
+        transform: translateX(-50%) !important;
+        z-index: 2147483647 !important;
+        min-width: 86px !important;
+        padding: 10px 12px !important;
+        border-radius: 14px !important;
+        background: rgba(0,0,0,.78) !important;
+        color: #fff !important;
+        font: 800 18px/1.2 Arial, sans-serif !important;
+        text-align: center !important;
+        box-shadow: 0 10px 30px rgba(0,0,0,.36) !important;
+        pointer-events: none !important;
+        opacity: 0 !important;
+        transition: opacity .12s ease !important;
+      }
+      .rtst-volume-overlay[data-visible="1"] { opacity: 1 !important; }
 /* --- MOBILE OVERRIDES --- */
       @media (max-width: 680px) {
         /* Свернутая кнопка: Наверху по центру (чтобы не мешать просмотру) */
@@ -720,6 +1006,7 @@
         
         /* Тосты */
         .rtst-toast { right: 16px !important; left: 16px !important; bottom: 32px !important; max-width: none !important; text-align: center !important; font-size: 14px !important; padding: 12px !important; }
+        .rtst-volume-overlay { top: calc(env(safe-area-inset-top, 0px) + 14px) !important; min-width: 82px !important; padding: 10px 12px !important; font-size: 18px !important; }
       }
 
       /* Мобильная альбомная ориентация часто шире 680px, поэтому базовый mobile-блок выше не срабатывает.
@@ -787,11 +1074,11 @@
         <div class="rtst-panel-main">
           <div class="rtst-panel-title">Рутубочист</div>
           <div class="rtst-panel-subtitle">фильтр интерфейса RUTUBE</div>
-          <div class="rtst-panel-counter" id="rtst-counter">скрыто: 0</div>
+          <div class="rtst-panel-counter" id="rtst-counter" hidden></div>
         </div>
         <div class="rtst-panel-compact" aria-hidden="true">
           <span class="rtst-panel-compact-icon">⊘</span>
-          <span class="rtst-panel-compact-count" id="rtst-compact-count">0</span>
+          <span class="rtst-panel-compact-count" id="rtst-compact-count" hidden></span>
         </div>
         <button type="button" class="rtst-head-gear" data-rtst-action="open-settings-modal" title="Настройки">⚙</button>
         <div class="rtst-panel-caret">▾</div>
@@ -855,6 +1142,7 @@
     root.dataset.rtstCleanWatch = (settings.enabled && settings.cleanWatchPage) ? '1' : '0';
     root.dataset.rtstStripPlayerAds = (settings.enabled && settings.stripPlayerAds !== false) ? '1' : '0';
     root.dataset.rtstUnlockContextMenu = (settings.enabled && settings.unlockContextMenu !== false) ? '1' : '0';
+    root.dataset.rtstSwipeVideoVolume = (settings.enabled && settings.swipeVideoVolume !== false) ? '1' : '0';
     root.dataset.rtstHideVideoInfo = (settings.enabled && settings.hideVideoInfo) ? '1' : '0';
     updateDynamicCleanupStyle(cleanChromeOn);
   }
@@ -1098,6 +1386,8 @@
     if (stripPlayerAdsToggle) stripPlayerAdsToggle.checked = Boolean(settings.stripPlayerAds !== false);
     const unlockContextMenuToggle = document.getElementById('rtst-unlock-context-menu');
     if (unlockContextMenuToggle) unlockContextMenuToggle.checked = Boolean(settings.unlockContextMenu !== false);
+    const swipeVideoVolumeToggle = document.getElementById('rtst-swipe-video-volume');
+    if (swipeVideoVolumeToggle) swipeVideoVolumeToggle.checked = Boolean(settings.swipeVideoVolume !== false);
     
     const channelCount = document.getElementById('rtst-channel-count');
     if (channelCount) channelCount.textContent = `(${settings.userChannels.length})`;
@@ -1140,6 +1430,7 @@
       if (target.id === 'rtst-hide-video-info') { settings.hideVideoInfo = target.checked; saveSettings(); syncRootFlags(); rescanNow(); }
       if (target.id === 'rtst-strip-player-ads') { settings.stripPlayerAds = target.checked; saveSettings(); syncRootFlags(); rescanNow(); }
       if (target.id === 'rtst-unlock-context-menu') { settings.unlockContextMenu = target.checked; saveSettings(); syncRootFlags(); installRutubeContextMenuUnlocker(); rescanNow(); }
+      if (target.id === 'rtst-swipe-video-volume') { settings.swipeVideoVolume = target.checked; saveSettings(); syncRootFlags(); installMobileVideoVolumeSwipe(); }
       if (target.id === 'rtst-import-file' && target.files && target.files[0]) { importSettingsFromFile(target.files[0]); target.value = ''; }
     }, true);
 
@@ -1280,7 +1571,8 @@
           <div class="rtst-section">
             <div class="rtst-section-title">Плеер</div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-strip-player-ads"> пытаться убирать рекламу</label></div>
-            <div class="rtst-row"><label><input type="checkbox" id="rtst-unlock-context-menu"> включить системное меню по по правой кнопке</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-unlock-context-menu"> включить системное меню по правой кнопке</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-swipe-video-volume"> управлять громкостью видео свайпом сверху</label></div>
           </div>
 
           <div class="rtst-section">
@@ -1776,7 +2068,7 @@
         enabled: settings.enabled, showHidden: settings.showHidden, hideSideMenuPolitics: settings.hideSideMenuPolitics,
         hideShorts: settings.hideShorts, hardRemove: settings.hardRemove, cleanRutubeChrome: settings.cleanRutubeChrome,
         cleanWatchPage: settings.cleanWatchPage, disableAutoplay: settings.disableAutoplay, hideComments: settings.hideComments,
-        hideVideoInfo: settings.hideVideoInfo, stripPlayerAds: settings.stripPlayerAds, unlockContextMenu: settings.unlockContextMenu,
+        hideVideoInfo: settings.hideVideoInfo, stripPlayerAds: settings.stripPlayerAds, unlockContextMenu: settings.unlockContextMenu, swipeVideoVolume: settings.swipeVideoVolume,
         blockedChannels: allBlockedChannels(), blockedWords: allBlockedWords(), userChannels: settings.userChannels, userWords: settings.userWords
       }
     };
@@ -1805,7 +2097,7 @@
     if (!src || typeof src !== 'object') throw new Error('bad settings json');
     const next = { ...settings };
     for (const key of ['blockedChannels', 'blockedWords', 'userChannels', 'userWords']) { if (Array.isArray(src[key])) next[key] = unique(src[key]); }
-    for (const key of ['enabled', 'showHidden', 'hideSideMenuPolitics', 'hideShorts', 'hardRemove', 'cleanRutubeChrome', 'cleanWatchPage', 'disableAutoplay', 'hideComments', 'hideVideoInfo', 'stripPlayerAds', 'unlockContextMenu']) {
+    for (const key of ['enabled', 'showHidden', 'hideSideMenuPolitics', 'hideShorts', 'hardRemove', 'cleanRutubeChrome', 'cleanWatchPage', 'disableAutoplay', 'hideComments', 'hideVideoInfo', 'stripPlayerAds', 'unlockContextMenu', 'swipeVideoVolume']) {
       if (typeof src[key] === 'boolean') next[key] = src[key];
     }
     if (typeof src.cleanRutubeChrome === 'boolean' && typeof src.hideSideMenuPolitics !== 'boolean') next.hideSideMenuPolitics = src.cleanRutubeChrome;
@@ -1825,8 +2117,28 @@
   function updateCounter() {
     const counter = document.getElementById('rtst-counter');
     const compactCounter = document.getElementById('rtst-compact-count');
-    if (counter) counter.textContent = `скрыто на странице: ${hiddenCount}`;
-    if (compactCounter) compactCounter.textContent = String(hiddenCount);
+    const count = Math.max(0, Number(hiddenCount) || 0);
+
+    if (counter) {
+      if (count > 0) {
+        counter.hidden = false;
+        counter.textContent = `скрыто на странице: ${count}`;
+      } else {
+        counter.hidden = true;
+        counter.textContent = '';
+      }
+    }
+
+    if (compactCounter) {
+      if (count > 0) {
+        compactCounter.hidden = false;
+        compactCounter.textContent = String(count);
+      } else {
+        compactCounter.hidden = true;
+        compactCounter.textContent = '';
+      }
+    }
+
     updatePanelRouteState();
   }
 
@@ -2909,13 +3221,14 @@
   }
 
   function boot() {
-    installPlayOptionsAdvertStripper(); installRutubeContextMenuUnlocker(); syncRootFlags(); setupAutoplayGuard(); addStyle(); bindEvents(); loadMovieDbFromLocalCache(); setTimeout(checkGithubAvailability, 1500); setTimeout(maybeUpdateMovieDbInBackground, 3500); scheduleScan();
+    installPlayOptionsAdvertStripper(); installRutubeContextMenuUnlocker(); installMobileVideoVolumeSwipe(); syncRootFlags(); setupAutoplayGuard(); addStyle(); bindEvents(); loadMovieDbFromLocalCache(); setTimeout(checkGithubAvailability, 1500); setTimeout(maybeUpdateMovieDbInBackground, 3500); scheduleScan();
     window.addEventListener('popstate', () => setTimeout(rescanNow, 250));
     setInterval(() => { if (location.href !== lastUrl) { scheduleScan(); return; } if (settings.enabled) scheduleScan(); }, 2500);
   }
 
   installPlayOptionsAdvertStripper();
   installRutubeContextMenuUnlocker();
+  installMobileVideoVolumeSwipe();
   setupAutoplayGuard();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
   else boot();
