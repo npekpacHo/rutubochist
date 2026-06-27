@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.2.41
+// @version      1.2.42
 // @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии, лишнее вокруг просмотра и рекламные вставки в плеере, угловые баннеры и включает системное меню по правой кнопке мыши. Есть рекомендации что посмотреть, анти-автозапуск, импорт/экспорт ЧС.
 // @author       elekt_riki
 // @license      MIT
@@ -19,7 +19,7 @@
   'use strict';
 
   const STORE_KEY = 'rtSansTvSettings:v1';
-  const UI_VERSION = '1.2.41';
+  const UI_VERSION = '1.2.42';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -161,7 +161,7 @@
   }
 
   function isRtstUiElement(el) {
-    return Boolean(el && el.closest && el.closest('#rtst-panel, .rtst-modal-backdrop, .rtst-toast, .rtst-popup-close-proxy'));
+    return Boolean(el && el.closest && el.closest('#rtst-panel, .rtst-modal-backdrop, .rtst-toast'));
   }
 
   function installPlayOptionsAdvertStripper() {
@@ -654,20 +654,7 @@
       .rtst-movie-loading, .rtst-movie-error, .rtst-movie-empty { padding: 10px !important; border: 1px solid rgba(255,255,255,.10) !important; border-radius: 8px !important; background: rgba(255,255,255,.055) !important; color: rgba(244,255,247,.82) !important; font: 12px/1.4 Arial, sans-serif !important; }
       .rtst-movie-error { color: #ffd6d2 !important; }
       .rtst-toast { position: fixed !important; right: 14px !important; bottom: 14px !important; z-index: 2147483647 !important; max-width: calc(100vw - 28px) !important; padding: 8px 10px !important; border-radius: 8px !important; background: rgba(0,0,0,.86) !important; color: #fff !important; font: 12px/1.3 Arial, sans-serif !important; box-shadow: 0 8px 30px rgba(0,0,0,.3) !important; }
-      .rtst-popup-close-proxy {
-        position: fixed !important; left: 50% !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 22px) !important;
-        transform: translateX(-50%) !important; z-index: 2147483646 !important;
-        min-width: 280px !important; min-height: 76px !important; padding: 18px 34px !important;
-        border: 1px solid rgba(255,255,255,.26) !important; border-radius: 999px !important;
-        background: rgba(18,18,18,.97) !important; color: #f4fff7 !important;
-        box-shadow: 0 14px 38px rgba(0,0,0,.52) !important; backdrop-filter: blur(8px) !important;
-        cursor: pointer !important; font: 800 22px/1.2 Arial, sans-serif !important; text-align: center !important;
-      }
-      .rtst-popup-close-proxy:hover { background: rgba(40,40,40,.98) !important; }
-      .rtst-popup-close-proxy:active { transform: translateX(-50%) scale(.97) !important; }
-
-      
-      /* --- MOBILE OVERRIDES --- */
+/* --- MOBILE OVERRIDES --- */
       @media (max-width: 680px) {
         /* Свернутая кнопка: Наверху по центру (чтобы не мешать просмотру) */
         .rtst-panel[data-collapsed="1"] {
@@ -1042,68 +1029,9 @@
 
 
   function syncRutubePopupCloseProxy() {
-    const id = 'rtst-popup-close-proxy';
-    const old = document.getElementById(id);
-    const chromeOn = Boolean(settings.cleanRutubeChrome || settings.hideSideMenuPolitics);
-
-    const popupOverlay = document.querySelector(
-      '.wdp-popup-overlay-module__overlay[data-testid="overlay-popup"], ' +
-      '[data-testid="overlay-popup"][class*="wdp-popup-overlay"], ' +
-      '[data-testid="overlay-popup"]'
-    );
-
-    const closeBtn = popupOverlay ? popupOverlay.querySelector(
-      'button[aria-label="Закрыть попап"], ' +
-      'button[aria-label*="Закрыть" i], ' +
-      '[class*="onboardings-inventory-modal-module__closeIcon"], ' +
-      '[class*="closeIcon"], ' +
-      '[class*="close-icon"]'
-    ) : null;
-
-    // Если попапа уже нет, но наша большая кнопка осталась, убираем её.
-    // Иначе получается «Закрыть что-нибудь», прекрасный образ современного интерфейса.
-    if (isEmbeddedRutubePlayer() || !settings.enabled || !chromeOn || !popupOverlay || !closeBtn || !document.documentElement.contains(closeBtn)) {
-      if (old) old.remove();
-      return;
-    }
-
-    const proxy = old || document.createElement('button');
-    proxy.id = id;
-    proxy.type = 'button';
-    proxy.className = 'rtst-popup-close-proxy';
-    proxy.textContent = 'Закрыть';
-    proxy.title = 'Закрыть попап RUTUBE';
-    proxy.setAttribute('aria-label', 'Закрыть попап RUTUBE');
-    proxy.onclick = (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-
-      const currentOverlay = document.querySelector(
-        '.wdp-popup-overlay-module__overlay[data-testid="overlay-popup"], ' +
-        '[data-testid="overlay-popup"][class*="wdp-popup-overlay"], ' +
-        '[data-testid="overlay-popup"]'
-      );
-
-      const currentCloseBtn = currentOverlay ? currentOverlay.querySelector(
-        'button[aria-label="Закрыть попап"], ' +
-        'button[aria-label*="Закрыть" i], ' +
-        '[class*="onboardings-inventory-modal-module__closeIcon"], ' +
-        '[class*="closeIcon"], ' +
-        '[class*="close-icon"]'
-      ) : null;
-
-      if (currentCloseBtn && typeof currentCloseBtn.click === 'function') currentCloseBtn.click();
-
-      const currentProxy = document.getElementById(id);
-      if (currentProxy) currentProxy.remove();
-
-      // Rutube иногда удаляет оверлей не мгновенно, иногда наоборот удаляет только внутренности.
-      // Проверяем ещё раз после микропауз, чтобы прокси не остался висеть после родного крестика.
-      setTimeout(syncRutubePopupCloseProxy, 80);
-      setTimeout(syncRutubePopupCloseProxy, 350);
-    };
-
-    if (!old) document.documentElement.appendChild(proxy);
+    // Большую нижнюю кнопку «Закрыть» больше не создаём.
+    // Оставляем только уборку хвостов от старых версий, если такая кнопка уже успела появиться.
+    document.querySelectorAll('.rtst-popup-close-proxy').forEach((el) => el.remove());
   }
 
   function wakePanel(durationMs = 4800) {
@@ -1199,16 +1127,6 @@
   }
 
   function bindEvents() {
-    if (!window.__rtst_popup_proxy_global_click_guard) {
-      window.__rtst_popup_proxy_global_click_guard = true;
-      document.addEventListener('click', () => {
-        const proxy = document.getElementById('rtst-popup-close-proxy');
-        if (!proxy) return;
-        setTimeout(syncRutubePopupCloseProxy, 60);
-        setTimeout(syncRutubePopupCloseProxy, 300);
-      }, true);
-    }
-
     document.addEventListener('change', (event) => {
       const target = event.target;
       if (!target) return;
