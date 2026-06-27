@@ -1,0 +1,179 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.1",
+  "id": "2026-06-27-centralzd",
+  "title": "Что посмотреть от 27.06.2026",
+  "date": "2026-06-27",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_27062026_14099451",
+  "extractedAt": "2026-06-27T12:20:33.702Z",
+  "count": 6,
+  "items": [
+    {
+      "id": "mandalorec-i-grogu-the-mandalorian-grogu-2026",
+      "title": "Мандалорец и Грогу",
+      "originalTitle": "The Mandalorian & Grogu",
+      "year": 2026,
+      "query": "Мандалорец и Грогу The Mandalorian & Grogu 2026",
+      "genres": [
+        "фантастика",
+        "фэнтези",
+        "боевик",
+        "приключения",
+        "семейный"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.1,
+          "votes": 15731,
+          "percent": 71
+        },
+        "imdb": {
+          "value": 7,
+          "votes": 56797,
+          "percent": 70
+        },
+        "rottenTomatoes": {
+          "critics": 61,
+          "audience": 87
+        }
+      }
+    },
+    {
+      "id": "sledstvie-vedut-ovechki-the-sheep-detectives-2026",
+      "title": "Следствие ведут овечки",
+      "originalTitle": "The Sheep Detectives",
+      "year": 2026,
+      "query": "Следствие ведут овечки The Sheep Detectives 2026",
+      "genres": [
+        "детектив",
+        "комедия",
+        "фэнтези",
+        "ужасы"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 5.3,
+          "votes": 11137,
+          "percent": 53
+        },
+        "imdb": {
+          "value": 5.4,
+          "votes": 20545,
+          "percent": 54
+        },
+        "rottenTomatoes": {
+          "critics": 23,
+          "audience": 65
+        }
+      }
+    },
+    {
+      "id": "v-poiskah-emili-finding-emily-2026",
+      "title": "В поисках Эмили",
+      "originalTitle": "Finding Emily",
+      "year": 2026,
+      "query": "В поисках Эмили Finding Emily 2026",
+      "genres": [
+        "мелодрама",
+        "комедия"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.1,
+          "votes": 1100,
+          "percent": 71
+        },
+        "rottenTomatoes": {
+          "critics": 100
+        }
+      }
+    },
+    {
+      "id": "nastroyschik-tuner-2025",
+      "title": "Настройщик",
+      "originalTitle": "Tuner",
+      "year": 2025,
+      "query": "Настройщик Tuner 2025",
+      "genres": [
+        "триллер",
+        "драма",
+        "мелодрама",
+        "криминал",
+        "музыка"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.2,
+          "votes": 279,
+          "percent": 72
+        },
+        "imdb": {
+          "value": 7.3,
+          "votes": 238,
+          "percent": 73
+        },
+        "rottenTomatoes": {
+          "critics": 94,
+          "audience": 93
+        }
+      }
+    },
+    {
+      "id": "eto-hit-power-ballad-2026",
+      "title": "Это хит!",
+      "originalTitle": "Power Ballad",
+      "year": 2026,
+      "query": "Это хит! Power Ballad 2026",
+      "genres": [
+        "мюзикл",
+        "драма",
+        "комедия",
+        "музыка"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.3,
+          "votes": 75,
+          "percent": 73
+        },
+        "rottenTomatoes": {
+          "critics": 87,
+          "audience": 84
+        }
+      }
+    },
+    {
+      "id": "karolina-kerolayn-carolina-caroline-2025",
+      "title": "Каролина Кэролайн",
+      "originalTitle": "Carolina Caroline",
+      "year": 2025,
+      "query": "Каролина Кэролайн Carolina Caroline 2025",
+      "genres": [
+        "триллер",
+        "мелодрама",
+        "криминал",
+        "фэнтези",
+        "боевик",
+        "драма",
+        "комедия",
+        "приключения"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 8.5,
+          "votes": 306000,
+          "percent": 85
+        },
+        "rottenTomatoes": {
+          "critics": 97,
+          "audience": 71
+        },
+        "kinopoisk": {
+          "value": 7.7,
+          "votes": 42541,
+          "percent": 77
+        }
+      }
+    }
+  ]
+}
