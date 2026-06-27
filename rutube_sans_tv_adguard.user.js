@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.3.2
+// @version      1.3.3
 // @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии, лишнее вокруг просмотра и рекламные вставки в плеере, угловые баннеры включает системное меню по правой кнопке мыши и добавляет горизонтальную свайп-громкость видео. Есть рекомендации что посмотреть, анти-автозапуск, импорт/экспорт ЧС.
 // @author       elekt_riki
 // @license      MIT
@@ -19,7 +19,7 @@
   'use strict';
 
   const STORE_KEY = 'rtSansTvSettings:v1';
-  const UI_VERSION = '1.3.2';
+  const UI_VERSION = '1.3.3';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -423,7 +423,7 @@
 
 
   function installMobileVideoVolumeSwipe() {
-    const PATCHER_KEY = '__rtstMobileVideoVolumeSwipeV132';
+    const PATCHER_KEY = '__rtstMobileVideoVolumeSwipeV133';
     const VOLUME_STORE_KEY = 'rtstVideoVolume:v1';
     if (window[PATCHER_KEY]) return;
     window[PATCHER_KEY] = true;
@@ -494,12 +494,19 @@
       };
     }
 
+    function playerSelector() {
+      return 'video, [class*="wdp-player"], [class*="video-player"], [class*="VideoPlayer"], [id*="player"], [data-testid*="player" i]';
+    }
+
+    function findPlayerRootForVideo(video) {
+      if (!video || !video.closest) return null;
+      return video.closest('[class*="wdp-player"], [class*="video-player"], [class*="VideoPlayer"], [id*="player"], [data-testid*="player" i]') || video.parentElement;
+    }
+
     function findVideoForGesture(target) {
       if (!target) return null;
 
-      const player = target.closest && target.closest(
-        'video, [class*="wdp-player"], [class*="video-player"], [class*="VideoPlayer"], [id*="player"], [data-testid*="player" i]'
-      );
+      const player = target.closest && target.closest(playerSelector());
 
       if (player) {
         if (player.tagName && player.tagName.toLowerCase() === 'video') return player;
@@ -527,29 +534,23 @@
       return videos[0];
     }
 
-    function isGestureZone(point, video) {
-      const height = Math.max(1, window.innerHeight || document.documentElement.clientHeight || 1);
-      const width = Math.max(1, window.innerWidth || document.documentElement.clientWidth || 1);
-
-      // На смартфоне Rutube часто вешает свои слои поверх видео, поэтому зона должна быть щедрой.
-      // Берём верхнюю половину видимой области, но не ниже 56% экрана.
-      const screenTopZone = Math.max(140, Math.min(height * 0.56, height - 90));
-      let inScreenZone = point.y <= screenTopZone;
+    function isPointOnVisibleVideoOrPlayer(point, video) {
+      if (!video) return true;
 
       try {
-        if (video) {
-          const r = video.getBoundingClientRect();
-          const insideVideoX = point.x >= r.left - 8 && point.x <= r.right + 8;
-          const insideVideoY = point.y >= r.top - 8 && point.y <= r.bottom + 8;
-          const videoTopZone = r.top + Math.max(90, r.height * 0.58);
-          const inVideoTopZone = insideVideoX && insideVideoY && point.y <= videoTopZone;
+        const player = findPlayerRootForVideo(video) || video;
+        const r = player.getBoundingClientRect();
+        const w = Math.max(1, window.innerWidth || document.documentElement.clientWidth || 1);
+        const h = Math.max(1, window.innerHeight || document.documentElement.clientHeight || 1);
 
-          // Если видео действительно занимает экран, ориентируемся по нему.
-          if (r.width >= width * 0.55 && r.height >= height * 0.28) return inVideoTopZone || inScreenZone;
-        }
-      } catch (e) {}
+        // Если видео почти полноэкранное, разрешаем жест по всему экрану.
+        if (r.width >= w * 0.62 && r.height >= h * 0.42) return true;
 
-      return inScreenZone;
+        // В обычном режиме жест действует в пределах видимого плеера.
+        return point.x >= r.left - 10 && point.x <= r.right + 10 && point.y >= r.top - 10 && point.y <= r.bottom + 10;
+      } catch (e) {
+        return true;
+      }
     }
 
     function isLandscapeOrFullscreen(video) {
@@ -560,7 +561,7 @@
         const r = video.getBoundingClientRect();
         const vw = Math.max(1, window.innerWidth || document.documentElement.clientWidth || 1);
         const vh = Math.max(1, window.innerHeight || document.documentElement.clientHeight || 1);
-        return r.width >= vw * 0.68 && r.height >= vh * 0.34;
+        return r.width >= vw * 0.62 && r.height >= vh * 0.32;
       } catch (e) {
         return false;
       }
@@ -570,33 +571,77 @@
       if (!target || !target.closest) return false;
       if (target.closest('#rtst-panel, .rtst-modal-backdrop, input, textarea, select')) return true;
 
-      // Ссылки всё ещё лучше не перехватывать, а вот кнопки/role=button внутри плеера Rutube
-      // часто являются невидимыми слоями. Их больше не считаем запретом для жеста.
       const link = target.closest('a[href]');
-      if (link && (!video || !link.closest('video, [class*="wdp-player"], [class*="video-player"], [class*="VideoPlayer"], [id*="player"], [data-testid*="player" i]'))) return true;
+      if (link && (!video || !link.closest(playerSelector()))) return true;
 
       return false;
     }
 
-    function showVideoVolumeOverlay(volume, muted) {
+    function getOverlayHost(video) {
+      const fullscreen = document.fullscreenElement || document.webkitFullscreenElement;
+      if (fullscreen && fullscreen.appendChild && !(fullscreen.tagName && fullscreen.tagName.toLowerCase() === 'video')) {
+        return { el: fullscreen, type: 'player' };
+      }
+
+      const player = findPlayerRootForVideo(video);
+      if (player && player.appendChild && !(player.tagName && player.tagName.toLowerCase() === 'video')) {
+        return { el: player, type: 'player' };
+      }
+
+      return { el: document.documentElement, type: fullscreen ? 'video' : 'document' };
+    }
+
+    function ensureVolumeOverlay(video) {
+      const host = getOverlayHost(video);
       let overlay = document.getElementById('rtst-volume-overlay');
+
       if (!overlay) {
         overlay = document.createElement('div');
         overlay.id = 'rtst-volume-overlay';
         overlay.className = 'rtst-volume-overlay';
-        document.documentElement.appendChild(overlay);
       }
 
+      if (overlay.parentElement !== host.el) {
+        try { host.el.appendChild(overlay); } catch (e) { document.documentElement.appendChild(overlay); }
+      }
+
+      overlay.dataset.rtstHost = host.type;
+
+      // Если оверлей положили внутрь плеера, ему нужен позиционированный родитель.
+      if (host.type === 'player') {
+        try {
+          const pos = getComputedStyle(host.el).position;
+          if (!pos || pos === 'static') host.el.style.position = 'relative';
+        } catch (e) {}
+      }
+
+      return overlay;
+    }
+
+    function showVideoVolumeOverlay(volume, muted, video) {
+      const overlay = ensureVolumeOverlay(video);
       const percent = Math.round(clampVolume(volume) * 100);
       const icon = muted || percent <= 0 ? '🔇' : (percent < 50 ? '🔉' : '🔊');
+
       overlay.textContent = `${icon} ${percent}%`;
       overlay.dataset.visible = '1';
+
+      // Inline-страховка для мобильных браузеров, которые иногда игнорируют наш CSS во fullscreen-слоях.
+      try {
+        overlay.style.display = 'block';
+        overlay.style.opacity = '1';
+        overlay.style.zIndex = '2147483647';
+        overlay.style.pointerEvents = 'none';
+      } catch (e) {}
 
       if (overlayTimer) clearTimeout(overlayTimer);
       overlayTimer = setTimeout(() => {
         const current = document.getElementById('rtst-volume-overlay');
-        if (current) current.dataset.visible = '0';
-      }, 850);
+        if (current) {
+          current.dataset.visible = '0';
+          try { current.style.opacity = '0'; } catch (e) {}
+        }
+      }, 950);
     }
 
     function applyVideoVolume(video, volume, options = {}) {
@@ -619,7 +664,7 @@
       }
 
       if (options.persist) saveVolume(nextVolume);
-      if (options.showOverlay) showVideoVolumeOverlay(nextVolume, video.muted);
+      if (options.showOverlay) showVideoVolumeOverlay(nextVolume, video.muted, video);
     }
 
     function applySavedVolumeToVideo(video) {
@@ -654,7 +699,7 @@
 
       const video = findVideoForGesture(target);
       if (!video || !isLandscapeOrFullscreen(video)) return;
-      if (!isGestureZone(point, video)) return;
+      if (!isPointOnVisibleVideoOrPlayer(point, video)) return;
       if (isInteractiveTarget(target, video)) return;
 
       applySavedVolumeToVideo(video);
@@ -685,8 +730,8 @@
 
       if (!gesture.moved && dxAbs < 10) return;
 
-      // Вертикаль отдаём Rutube, но порог теперь мягче: маленькое дрожание пальца не отменяет жест.
-      if (!gesture.moved && dyAbs > dxAbs * 1.65 && dyAbs > 18) {
+      // Всё ещё не ломаем явный вертикальный свайп Rutube.
+      if (!gesture.moved && dyAbs > dxAbs * 1.8 && dyAbs > 24) {
         stopGesture();
         return;
       }
@@ -721,7 +766,6 @@
     document.addEventListener('pointerup', stopGesture, true);
     document.addEventListener('pointercancel', stopGesture, true);
 
-    // Fallback для мобильных браузеров/обёрток, где Pointer Events на видео работают через пень-колоду.
     document.addEventListener('touchstart', (event) => startGesture(event, 'touch'), { capture: true, passive: true });
     document.addEventListener('touchmove', (event) => moveGesture(event, 'touch'), { capture: true, passive: false });
     document.addEventListener('touchend', stopGesture, true);
@@ -981,19 +1025,29 @@
         top: calc(env(safe-area-inset-top, 0px) + 18px) !important;
         transform: translateX(-50%) !important;
         z-index: 2147483647 !important;
-        min-width: 86px !important;
-        padding: 10px 12px !important;
-        border-radius: 14px !important;
-        background: rgba(0,0,0,.78) !important;
+        min-width: 92px !important;
+        padding: 11px 14px !important;
+        border-radius: 15px !important;
+        background: rgba(0,0,0,.82) !important;
         color: #fff !important;
-        font: 800 18px/1.2 Arial, sans-serif !important;
+        font: 800 20px/1.2 Arial, sans-serif !important;
         text-align: center !important;
-        box-shadow: 0 10px 30px rgba(0,0,0,.36) !important;
+        box-shadow: 0 10px 30px rgba(0,0,0,.42) !important;
         pointer-events: none !important;
         opacity: 0 !important;
         transition: opacity .12s ease !important;
+        -webkit-user-select: none !important;
+        user-select: none !important;
       }
       .rtst-volume-overlay[data-visible="1"] { opacity: 1 !important; }
+      .rtst-volume-overlay[data-rtst-host="player"] {
+        position: absolute !important;
+        top: max(14px, env(safe-area-inset-top, 0px)) !important;
+      }
+      .rtst-volume-overlay[data-rtst-host="video"] {
+        position: fixed !important;
+        top: 14px !important;
+      }
 /* --- MOBILE OVERRIDES --- */
       @media (max-width: 680px) {
         /* Свернутая кнопка: Наверху по центру (чтобы не мешать просмотру) */
@@ -1060,7 +1114,7 @@
         
         /* Тосты */
         .rtst-toast { right: 16px !important; left: 16px !important; bottom: 32px !important; max-width: none !important; text-align: center !important; font-size: 14px !important; padding: 12px !important; }
-        .rtst-volume-overlay { top: calc(env(safe-area-inset-top, 0px) + 14px) !important; min-width: 82px !important; padding: 10px 12px !important; font-size: 18px !important; }
+        .rtst-volume-overlay { top: calc(env(safe-area-inset-top, 0px) + 14px) !important; min-width: 92px !important; padding: 11px 14px !important; font-size: 20px !important; }
       }
 
       /* Мобильная альбомная ориентация часто шире 680px, поэтому базовый mobile-блок выше не срабатывает.
@@ -1626,7 +1680,7 @@
             <div class="rtst-section-title">Плеер</div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-strip-player-ads"> пытаться убирать рекламу</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-unlock-context-menu"> включить системное меню по правой кнопке</label></div>
-            <div class="rtst-row"><label><input type="checkbox" id="rtst-swipe-video-volume"> управлять громкостью видео горизонтальным свайпом сверху</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-swipe-video-volume"> управлять громкостью видео горизонтальным свайпом по экрану</label></div>
           </div>
 
           <div class="rtst-section">
