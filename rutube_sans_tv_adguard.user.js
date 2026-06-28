@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.3.16
+// @version      1.3.17
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki
 // @license      MIT
@@ -24,7 +24,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.3.16';
+  const UI_VERSION = '1.3.17';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -81,7 +81,7 @@
   const SETTINGS_DEFAULTS = {
     enabled: true, showHidden: false, hideSideMenuPolitics: true, hideShorts: true, hardRemove: false,
     cleanRutubeChrome: true, cleanWatchPage: true, disableAutoplay: true, hideComments: false, hideVideoInfo: false,
-    stripPlayerAds: true, unlockContextMenu: true, swipeVideoVolume: true, markWatchedVideos: true,
+    stripPlayerAds: true, unlockContextMenu: true, swipeVideoVolume: true, autoFullscreenOnRotate: false, markWatchedVideos: true,
     safeRouterPatch060: true, safeDelayedScan070: true,
     blockedChannels: DEFAULT_BLOCKED_CHANNELS, blockedWords: DEFAULT_BLOCKED_WORDS, userChannels: [], userWords: []
   };
@@ -532,6 +532,7 @@
           enabled: Boolean(settings && settings.enabled),
           stripPlayerAds: Boolean(settings && settings.stripPlayerAds !== false),
           swipeVideoVolume: Boolean(settings && settings.swipeVideoVolume !== false),
+          autoFullscreenOnRotate: Boolean(settings && settings.autoFullscreenOnRotate),
           markWatchedVideos: Boolean(settings && settings.markWatchedVideos !== false),
           cleanWatchPage: Boolean(settings && settings.cleanWatchPage),
           disableAutoplay: Boolean(settings && settings.disableAutoplay)
@@ -773,6 +774,206 @@
     else run();
 
     setInterval(run, 3000);
+  }
+
+
+  function installAutoFullscreenOnRotate() {
+    const PATCHER_KEY = '__rtstAutoFullscreenOnRotateV1317';
+    if (window[PATCHER_KEY]) return;
+    window[PATCHER_KEY] = true;
+
+    let autoFullscreenLockUntil = 0;
+    let openedByRtst = false;
+    let lastAttemptAt = 0;
+    let lastToastAt = 0;
+
+    function isAutoFullscreenEnabled() {
+      try {
+        return Boolean(settings && settings.enabled && settings.autoFullscreenOnRotate);
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function isLandscapeViewport() {
+      try {
+        if (screen && screen.orientation && typeof screen.orientation.type === 'string') {
+          if (screen.orientation.type.includes('landscape')) return true;
+          if (screen.orientation.type.includes('portrait')) return false;
+        }
+      } catch (e) {}
+
+      const w = window.innerWidth || document.documentElement.clientWidth || 0;
+      const h = window.innerHeight || document.documentElement.clientHeight || 0;
+      return w > h && w >= 520;
+    }
+
+    function fullscreenElement() {
+      return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement || null;
+    }
+
+    function findFullscreenVideo() {
+      const videos = [...document.querySelectorAll('video')].filter((video) => {
+        try {
+          const r = video.getBoundingClientRect();
+          const duration = Number(video.duration) || 0;
+          return r.width > 120 && r.height > 80 && r.bottom > 0 && r.right > 0 && r.top < window.innerHeight && r.left < window.innerWidth && duration > 0;
+        } catch (e) {
+          return false;
+        }
+      });
+
+      if (!videos.length) return null;
+
+      videos.sort((a, b) => {
+        try {
+          const ar = a.getBoundingClientRect();
+          const br = b.getBoundingClientRect();
+          const aScore = (ar.width * ar.height) + (a.paused ? 0 : 1000000);
+          const bScore = (br.width * br.height) + (b.paused ? 0 : 1000000);
+          return bScore - aScore;
+        } catch (e) {
+          return 0;
+        }
+      });
+
+      return videos[0];
+    }
+
+    function getFullscreenTarget(video) {
+      if (!video) return null;
+
+      const root = findPlayerRootForVideo(video);
+      if (root && root.requestFullscreen) return root;
+      if (video.requestFullscreen) return video;
+      if (root && root.webkitRequestFullscreen) return root;
+      if (video.webkitRequestFullscreen) return video;
+
+      return root || video;
+    }
+
+    function canTryFullscreen() {
+      if (fullscreenElement()) return false;
+      if (Date.now() < autoFullscreenLockUntil) return false;
+
+      try {
+        if (document.fullscreenEnabled === false && !document.webkitFullscreenEnabled) return false;
+      } catch (e) {}
+
+      try {
+        if (navigator.userActivation && navigator.userActivation.isActive === false && Date.now() - lastUserGestureAt > 1800) {
+          return false;
+        }
+      } catch (e) {
+        if (Date.now() - lastUserGestureAt > 2200) return false;
+      }
+
+      return true;
+    }
+
+    async function requestRtstFullscreen(target) {
+      if (!target) return false;
+
+      try {
+        if (target.requestFullscreen) {
+          await target.requestFullscreen({ navigationUI: 'hide' });
+          openedByRtst = true;
+          return true;
+        }
+      } catch (e) {}
+
+      try {
+        if (target.webkitRequestFullscreen) {
+          target.webkitRequestFullscreen();
+          openedByRtst = true;
+          return true;
+        }
+      } catch (e) {}
+
+      return false;
+    }
+
+    function maybeToastAutoFullscreenBlocked() {
+      const now = Date.now();
+      if (now - lastToastAt < 10000) return;
+      lastToastAt = now;
+      toast('Авто-fullscreen сработает после касания плеера.');
+    }
+
+    async function maybeEnterFullscreen(reason = 'unknown') {
+      if (!isAutoFullscreenEnabled() || !isLandscapeViewport() || isEmbeddedRutubePlayer()) return;
+
+      const now = Date.now();
+      if (now - lastAttemptAt < 850) return;
+      lastAttemptAt = now;
+
+      const video = findFullscreenVideo();
+      if (!video) return;
+
+      if (!canTryFullscreen()) {
+        maybeToastAutoFullscreenBlocked();
+        return;
+      }
+
+      const target = getFullscreenTarget(video);
+      const ok = await requestRtstFullscreen(target);
+
+      if (!ok) {
+        autoFullscreenLockUntil = Date.now() + 2500;
+        maybeToastAutoFullscreenBlocked();
+      }
+    }
+
+    function maybeExitFullscreen() {
+      if (!openedByRtst || isLandscapeViewport()) return;
+      const fs = fullscreenElement();
+      if (!fs) {
+        openedByRtst = false;
+        return;
+      }
+
+      try {
+        if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      } catch (e) {}
+
+      openedByRtst = false;
+    }
+
+    function checkRotation(reason = 'unknown') {
+      if (!isAutoFullscreenEnabled()) return;
+      if (isLandscapeViewport()) {
+        setTimeout(() => maybeEnterFullscreen(reason), 160);
+      } else {
+        setTimeout(maybeExitFullscreen, 160);
+      }
+    }
+
+    window.__rtstMaybeAutoFullscreenOnRotate = checkRotation;
+
+    window.addEventListener('orientationchange', () => checkRotation('orientationchange'), true);
+    window.addEventListener('resize', () => checkRotation('resize'), true);
+
+    document.addEventListener('fullscreenchange', () => {
+      if (!fullscreenElement()) openedByRtst = false;
+    }, true);
+    document.addEventListener('webkitfullscreenchange', () => {
+      if (!fullscreenElement()) openedByRtst = false;
+    }, true);
+
+    document.addEventListener('pointerup', () => checkRotation('pointerup'), true);
+    document.addEventListener('touchend', () => checkRotation('touchend'), true);
+    document.addEventListener('play', () => checkRotation('play'), true);
+
+    setTimeout(() => checkRotation('boot'), 1200);
+  }
+
+  function maybeAutoFullscreenOnRotate(reason = 'manual') {
+    try {
+      if (typeof window.__rtstMaybeAutoFullscreenOnRotate === 'function') {
+        window.__rtstMaybeAutoFullscreenOnRotate(reason);
+      }
+    } catch (e) {}
   }
 
 
@@ -1943,6 +2144,7 @@
     root.dataset.rtstStripPlayerAds = (settings.enabled && settings.stripPlayerAds !== false) ? '1' : '0';
     root.dataset.rtstUnlockContextMenu = (settings.enabled && settings.unlockContextMenu !== false) ? '1' : '0';
     root.dataset.rtstSwipeVideoVolume = (settings.enabled && settings.swipeVideoVolume !== false) ? '1' : '0';
+    root.dataset.rtstAutoFullscreen = (settings.enabled && settings.autoFullscreenOnRotate) ? '1' : '0';
     root.dataset.rtstHideVideoInfo = (settings.enabled && settings.hideVideoInfo) ? '1' : '0';
     root.dataset.rtstMarkWatched = (settings.enabled && settings.markWatchedVideos !== false) ? '1' : '0';
     updateDynamicCleanupStyle(cleanChromeOn);
@@ -2191,6 +2393,8 @@
     if (unlockContextMenuToggle) unlockContextMenuToggle.checked = Boolean(settings.unlockContextMenu !== false);
     const swipeVideoVolumeToggle = document.getElementById('rtst-swipe-video-volume');
     if (swipeVideoVolumeToggle) swipeVideoVolumeToggle.checked = Boolean(settings.swipeVideoVolume !== false);
+    const autoFullscreenToggle = document.getElementById('rtst-auto-fullscreen-rotate');
+    if (autoFullscreenToggle) autoFullscreenToggle.checked = Boolean(settings.autoFullscreenOnRotate);
     
     const channelCount = document.getElementById('rtst-channel-count');
     if (channelCount) channelCount.textContent = `(${settings.userChannels.length})`;
@@ -2235,6 +2439,7 @@
       if (target.id === 'rtst-strip-player-ads') { settings.stripPlayerAds = target.checked; saveSettings(); syncRootFlags(); rescanNow(); }
       if (target.id === 'rtst-unlock-context-menu') { settings.unlockContextMenu = target.checked; saveSettings(); syncRootFlags(); installRutubeContextMenuUnlocker(); rescanNow(); }
       if (target.id === 'rtst-swipe-video-volume') { settings.swipeVideoVolume = target.checked; saveSettings(); syncRootFlags(); installMobileVideoVolumeSwipe(); }
+      if (target.id === 'rtst-auto-fullscreen-rotate') { settings.autoFullscreenOnRotate = target.checked; saveSettings(); syncRootFlags(); installAutoFullscreenOnRotate(); if (target.checked) maybeAutoFullscreenOnRotate('settings'); }
       if (target.id === 'rtst-import-file' && target.files && target.files[0]) { importSettingsFromFile(target.files[0]); target.value = ''; }
     }, true);
 
@@ -2380,6 +2585,7 @@
             <div class="rtst-row"><label><input type="checkbox" id="rtst-strip-player-ads"> пытаться убирать рекламу</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-unlock-context-menu"> включить системное меню по правой кнопке</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-swipe-video-volume"> управлять громкостью горизонтальным свайпом по экрану</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-auto-fullscreen-rotate"> открывать видео на весь экран при повороте устройства</label></div>
           </div>
 
           <div class="rtst-section">
@@ -3190,7 +3396,7 @@
         enabled: settings.enabled, showHidden: settings.showHidden, hideSideMenuPolitics: settings.hideSideMenuPolitics,
         hideShorts: settings.hideShorts, hardRemove: settings.hardRemove, cleanRutubeChrome: settings.cleanRutubeChrome,
         cleanWatchPage: settings.cleanWatchPage, disableAutoplay: settings.disableAutoplay, hideComments: settings.hideComments,
-        hideVideoInfo: settings.hideVideoInfo, stripPlayerAds: settings.stripPlayerAds, unlockContextMenu: settings.unlockContextMenu, swipeVideoVolume: settings.swipeVideoVolume, markWatchedVideos: settings.markWatchedVideos,
+        hideVideoInfo: settings.hideVideoInfo, stripPlayerAds: settings.stripPlayerAds, unlockContextMenu: settings.unlockContextMenu, swipeVideoVolume: settings.swipeVideoVolume, autoFullscreenOnRotate: settings.autoFullscreenOnRotate, markWatchedVideos: settings.markWatchedVideos,
         blockedChannels: allBlockedChannels(), blockedWords: allBlockedWords(), userChannels: settings.userChannels, userWords: settings.userWords
       }
     };
@@ -3219,7 +3425,7 @@
     if (!src || typeof src !== 'object') throw new Error('bad settings json');
     const next = { ...settings };
     for (const key of ['blockedChannels', 'blockedWords', 'userChannels', 'userWords']) { if (Array.isArray(src[key])) next[key] = unique(src[key]); }
-    for (const key of ['enabled', 'showHidden', 'hideSideMenuPolitics', 'hideShorts', 'hardRemove', 'cleanRutubeChrome', 'cleanWatchPage', 'disableAutoplay', 'hideComments', 'hideVideoInfo', 'stripPlayerAds', 'unlockContextMenu', 'swipeVideoVolume', 'markWatchedVideos']) {
+    for (const key of ['enabled', 'showHidden', 'hideSideMenuPolitics', 'hideShorts', 'hardRemove', 'cleanRutubeChrome', 'cleanWatchPage', 'disableAutoplay', 'hideComments', 'hideVideoInfo', 'stripPlayerAds', 'unlockContextMenu', 'swipeVideoVolume', 'autoFullscreenOnRotate', 'markWatchedVideos']) {
       if (typeof src[key] === 'boolean') next[key] = src[key];
     }
     if (typeof src.cleanRutubeChrome === 'boolean' && typeof src.hideSideMenuPolitics !== 'boolean') next.hideSideMenuPolitics = src.cleanRutubeChrome;
@@ -4513,7 +4719,7 @@
   }
 
   function boot() {
-    installPlayOptionsAdvertStripper(); installRutubeContextMenuUnlocker(); installMobileVideoVolumeSwipe(); installViewProgressTracker(); syncRootFlags(); setupAutoplayGuard(); addStyle(); bindEvents(); loadMovieDbFromLocalCache(); setTimeout(checkGithubAvailability, 1500); setTimeout(maybeUpdateMovieDbInBackground, 3500); scheduleScan();
+    installPlayOptionsAdvertStripper(); installRutubeContextMenuUnlocker(); installMobileVideoVolumeSwipe(); installAutoFullscreenOnRotate(); installViewProgressTracker(); syncRootFlags(); setupAutoplayGuard(); addStyle(); bindEvents(); loadMovieDbFromLocalCache(); setTimeout(checkGithubAvailability, 1500); setTimeout(maybeUpdateMovieDbInBackground, 3500); scheduleScan();
     window.addEventListener('popstate', () => setTimeout(rescanNow, 250));
     setInterval(() => { if (location.href !== lastUrl) { scheduleScan(); return; } if (settings.enabled) scheduleScan(); }, 2500);
   }
@@ -4521,6 +4727,7 @@
   installPlayOptionsAdvertStripper();
   installRutubeContextMenuUnlocker();
   installMobileVideoVolumeSwipe();
+  installAutoFullscreenOnRotate();
   installViewProgressTracker();
   setupAutoplayGuard();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
