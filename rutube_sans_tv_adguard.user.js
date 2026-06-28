@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.3.17
+// @version      1.3.23
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki
 // @license      MIT
@@ -24,7 +24,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.3.17';
+  const UI_VERSION = '1.3.23';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -524,6 +524,10 @@
         lastPlayOptions: window.__rtstLastPlayOptionsSummary || null,
         playOptionsHistory: Array.isArray(window.__rtstPlayOptionsHistory) ? window.__rtstPlayOptionsHistory.slice(0, 8) : [],
         video: getCurrentHtmlVideoSummary(),
+        backgroundModePopup: {
+          present: Boolean(document.querySelector('[class*="background-view-popup-module__" i], a[href*="/promo/turnoffad/" i], a[href*="turnoffad" i]')),
+          hidden: Boolean(document.querySelector('[data-rtst-background-mode-hidden="1"]'))
+        },
         viewHistory: {
           count: Object.keys(loadViewHistory()).length,
           key: VIEW_HISTORY_KEY
@@ -536,7 +540,8 @@
           markWatchedVideos: Boolean(settings && settings.markWatchedVideos !== false),
           cleanWatchPage: Boolean(settings && settings.cleanWatchPage),
           disableAutoplay: Boolean(settings && settings.disableAutoplay)
-        }
+        },
+        fullscreen: typeof window.__rtstFullscreenDebug === 'function' ? window.__rtstFullscreenDebug() : null
       };
     };
 
@@ -778,7 +783,7 @@
 
 
   function installAutoFullscreenOnRotate() {
-    const PATCHER_KEY = '__rtstAutoFullscreenOnRotateV1317';
+    const PATCHER_KEY = '__rtstAutoFullscreenOnRotateV1322';
     if (window[PATCHER_KEY]) return;
     window[PATCHER_KEY] = true;
 
@@ -786,6 +791,11 @@
     let openedByRtst = false;
     let lastAttemptAt = 0;
     let lastToastAt = 0;
+    let rotateClickLockUntil = 0;
+    let landscapeSessionId = 0;
+    let clickedInLandscapeSession = false;
+    let lastLandscapeState = false;
+    let lastDebug = { at: null, reason: 'never', candidates: [], exactButton: null, clicked: null, requestTarget: null, fullscreen: false };
 
     function isAutoFullscreenEnabled() {
       try {
@@ -810,6 +820,50 @@
 
     function fullscreenElement() {
       return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement || null;
+    }
+
+    function fullscreenPlayerSelector() {
+      return 'video, [class*="wdp-player"], [class*="video-player"], [class*="VideoPlayer"], [id*="player"], [data-testid*="player" i]';
+    }
+
+    function findFullscreenPlayerRootForVideo(video) {
+      if (!video || !video.closest) return null;
+
+      return video.closest(
+        '[class*="wdp-player"], ' +
+        '[class*="video-player"], ' +
+        '[class*="VideoPlayer"], ' +
+        '[id*="player"], ' +
+        '[data-testid*="player" i]'
+      ) || video.parentElement || null;
+    }
+
+    function nodeLabel(el) {
+      if (!el) return '';
+      try {
+        const tag = (el.tagName || '').toLowerCase();
+        const id = el.id ? `#${el.id}` : '';
+        const cls = String(el.className || '').trim().split(/\s+/).slice(0, 4).filter(Boolean).map((name) => `.${name}`).join('');
+        const aria = el.getAttribute && (el.getAttribute('aria-label') || el.getAttribute('title') || el.getAttribute('name') || '');
+        return `${tag}${id}${cls}${aria ? ` [${aria}]` : ''}`.slice(0, 220);
+      } catch (e) {
+        return String(el);
+      }
+    }
+
+    function isVisibleCandidate(el) {
+      if (!el || isRtstUiElement(el)) return false;
+
+      try {
+        if (el.disabled || el.getAttribute('aria-disabled') === 'true') return false;
+        const r = el.getBoundingClientRect();
+        if (r.width < 8 || r.height < 8) return false;
+        if (r.bottom < 0 || r.right < 0 || r.top > window.innerHeight || r.left > window.innerWidth) return false;
+        const style = getComputedStyle(el);
+        if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) return false;
+      } catch (e) {}
+
+      return true;
     }
 
     function findFullscreenVideo() {
@@ -843,13 +897,130 @@
     function getFullscreenTarget(video) {
       if (!video) return null;
 
-      const root = findPlayerRootForVideo(video);
+      const root = findFullscreenPlayerRootForVideo(video);
       if (root && root.requestFullscreen) return root;
       if (video.requestFullscreen) return video;
       if (root && root.webkitRequestFullscreen) return root;
       if (video.webkitRequestFullscreen) return video;
 
       return root || video;
+    }
+
+    function fullscreenCandidateScore(el) {
+      if (!el || !isVisibleCandidate(el)) return -999;
+
+      const raw = normalize([
+        el.getAttribute && el.getAttribute('aria-label'),
+        el.getAttribute && el.getAttribute('title'),
+        el.getAttribute && el.getAttribute('name'),
+        el.getAttribute && el.getAttribute('data-testid'),
+        el.id,
+        el.className,
+        el.textContent
+      ].join(' '));
+
+      let score = 0;
+
+      const testId = normalize(el.getAttribute && el.getAttribute('data-testid') || '');
+      const aria = normalize(el.getAttribute && el.getAttribute('aria-label') || '');
+      const icon = normalize(String(el.innerHTML || ''));
+
+      if (testId === 'ui-fullscreen') score += 10000;
+      if (aria.includes('перейти в полноэкранный режим')) score += 6000;
+      if (icon.includes('icondsplayerfullscreenmaximize')) score += 3000;
+
+      if (/(fullscreen|full-screen|full_screen|полный экран|полноэкран|развернуть|во весь экран|на весь экран|expand|maximize)/i.test(raw)) score += 100;
+      if (/(exit|выйти|свернуть|minimize|collapse)/i.test(raw) || icon.includes('icondsplayerfullscreenminimize')) score -= 9000;
+      if (/screen|экран/i.test(raw)) score += 20;
+      if (/button|control|icon|player|wdp/i.test(raw)) score += 10;
+
+      const tag = (el.tagName || '').toLowerCase();
+      if (tag === 'button') score += 18;
+      if (el.getAttribute && el.getAttribute('role') === 'button') score += 12;
+
+      try {
+        const r = el.getBoundingClientRect();
+        const vw = Math.max(1, window.innerWidth || document.documentElement.clientWidth || 1);
+        const vh = Math.max(1, window.innerHeight || document.documentElement.clientHeight || 1);
+
+        if (r.width >= 20 && r.width <= 96 && r.height >= 20 && r.height <= 96) score += 18;
+        if (r.right > vw * 0.55 && r.bottom > vh * 0.42) score += 12;
+      } catch (e) {}
+
+      return score;
+    }
+
+    function collectFullscreenButtonCandidates(video = findFullscreenVideo()) {
+      const exact = findExactRutubeFullscreenButton(video);
+      if (!exact) return [];
+
+      return [{
+        el: exact,
+        score: 10000,
+        label: nodeLabel(exact)
+      }];
+    }
+
+    function findRutubeFullscreenButton(video = findFullscreenVideo()) {
+      return findExactRutubeFullscreenButton(video);
+    }
+
+    function findExactRutubeFullscreenButton(video = findFullscreenVideo()) {
+      const root = (video && findFullscreenPlayerRootForVideo(video)) || document;
+      const selectors = [
+        'button[data-testid="ui-fullscreen"][aria-label*="Перейти" i]',
+        'button[data-testid="ui-fullscreen"]:not([aria-label*="Выйти" i]):not([aria-label*="Свернуть" i])'
+      ];
+
+      for (const selector of selectors) {
+        try {
+          const btn = root.querySelector(selector);
+          if (btn && isVisibleCandidate(btn)) return btn;
+        } catch (e) {}
+      }
+
+      // Последний безопасный запасной вариант: SVG maximize внутри кнопки,
+      // но только если рядом нет признаков кнопки "следующее"/"далее".
+      try {
+        const buttons = [...root.querySelectorAll('button')];
+        for (const btn of buttons) {
+          const raw = normalize([
+            btn.getAttribute('aria-label'),
+            btn.getAttribute('title'),
+            btn.getAttribute('data-testid'),
+            btn.className,
+            btn.innerHTML
+          ].join(' '));
+
+          if (!raw.includes('icondsplayerfullscreenmaximize')) continue;
+          if (/(след|далее|next|skip|forward|series|episode|playlist|право|right)/i.test(raw)) continue;
+          if (/(minimize|exit|выйти|свернуть)/i.test(raw)) continue;
+          if (isVisibleCandidate(btn)) return btn;
+        }
+      } catch (e) {}
+
+      return null;
+    }
+
+    function dispatchPointerMouseClick(el) {
+      if (!el || !isVisibleCandidate(el)) return false;
+
+      try {
+        el.dispatchEvent(new MouseEvent('click', {
+          bubbles: true,
+          cancelable: true,
+          composed: true,
+          view: window
+        }));
+        return true;
+      } catch (e) {}
+
+      try {
+        el.click();
+        return true;
+      } catch (e) {}
+
+      return false;
     }
 
     function canTryFullscreen() {
@@ -859,14 +1030,6 @@
       try {
         if (document.fullscreenEnabled === false && !document.webkitFullscreenEnabled) return false;
       } catch (e) {}
-
-      try {
-        if (navigator.userActivation && navigator.userActivation.isActive === false && Date.now() - lastUserGestureAt > 1800) {
-          return false;
-        }
-      } catch (e) {
-        if (Date.now() - lastUserGestureAt > 2200) return false;
-      }
 
       return true;
     }
@@ -897,18 +1060,57 @@
       const now = Date.now();
       if (now - lastToastAt < 10000) return;
       lastToastAt = now;
-      toast('Авто-fullscreen сработает после касания плеера.');
+      toast('Fullscreen при повороте сработает после касания плеера.');
+    }
+
+    async function tryRutubeFullscreenButton(video, reason = 'unknown') {
+      const exactBtn = findExactRutubeFullscreenButton(video);
+      const candidates = collectFullscreenButtonCandidates(video);
+      const btn = exactBtn;
+
+      lastDebug = {
+        at: new Date().toISOString(),
+        reason,
+        candidates: candidates.map((item) => ({ score: item.score, label: item.label })),
+        exactButton: exactBtn ? nodeLabel(exactBtn) : null,
+        clicked: btn ? nodeLabel(btn) : null,
+        requestTarget: null,
+        fullscreen: Boolean(fullscreenElement()),
+        safeMode: 'exact-ui-fullscreen-only',
+        landscapeSessionId
+      };
+
+      if (!btn) return false;
+      if (Date.now() < rotateClickLockUntil) return false;
+      if (clickedInLandscapeSession && reason !== 'settings' && reason !== 'manual') return false;
+
+      rotateClickLockUntil = Date.now() + 3500;
+      clickedInLandscapeSession = true;
+      dispatchPointerMouseClick(btn);
+
+      await new Promise((resolve) => setTimeout(resolve, 260));
+
+      if (fullscreenElement()) {
+        openedByRtst = true;
+        lastDebug.fullscreen = true;
+        return true;
+      }
+
+      return false;
     }
 
     async function maybeEnterFullscreen(reason = 'unknown') {
       if (!isAutoFullscreenEnabled() || !isLandscapeViewport() || isEmbeddedRutubePlayer()) return;
 
       const now = Date.now();
-      if (now - lastAttemptAt < 850) return;
+      if (now - lastAttemptAt < 1100) return;
       lastAttemptAt = now;
 
       const video = findFullscreenVideo();
       if (!video) return;
+
+      const clicked = await tryRutubeFullscreenButton(video, reason);
+      if (clicked) return;
 
       if (!canTryFullscreen()) {
         maybeToastAutoFullscreenBlocked();
@@ -916,6 +1118,8 @@
       }
 
       const target = getFullscreenTarget(video);
+      lastDebug.requestTarget = nodeLabel(target);
+
       const ok = await requestRtstFullscreen(target);
 
       if (!ok) {
@@ -942,23 +1146,66 @@
 
     function checkRotation(reason = 'unknown') {
       if (!isAutoFullscreenEnabled()) return;
-      if (isLandscapeViewport()) {
-        setTimeout(() => maybeEnterFullscreen(reason), 160);
+
+      const landscape = isLandscapeViewport();
+      if (landscape !== lastLandscapeState) {
+        lastLandscapeState = landscape;
+        if (landscape) {
+          landscapeSessionId += 1;
+          clickedInLandscapeSession = false;
+          rotateClickLockUntil = 0;
+        }
+      }
+
+      if (landscape) {
+        setTimeout(() => { try { maybeEnterFullscreen(reason).catch(() => {}); } catch (e) {} }, 160);
       } else {
+        clickedInLandscapeSession = false;
         setTimeout(maybeExitFullscreen, 160);
       }
     }
 
     window.__rtstMaybeAutoFullscreenOnRotate = checkRotation;
+    window.__rtstFullscreenDebug = function rtstFullscreenDebug() {
+      const video = findFullscreenVideo();
+      const candidates = collectFullscreenButtonCandidates(video).map((item) => ({ score: item.score, label: item.label }));
+      const debug = {
+        app: 'Рутубочист',
+        version: UI_VERSION,
+        enabled: isAutoFullscreenEnabled(),
+        landscape: isLandscapeViewport(),
+        fullscreen: Boolean(fullscreenElement()),
+        userActivation: (() => {
+          try {
+            return navigator.userActivation ? {
+              isActive: navigator.userActivation.isActive,
+              hasBeenActive: navigator.userActivation.hasBeenActive
+            } : null;
+          } catch (e) {
+            return null;
+          }
+        })(),
+        video: video ? nodeLabel(video) : null,
+        playerRoot: video ? nodeLabel(findFullscreenPlayerRootForVideo(video)) : null,
+        exactButton: video ? nodeLabel(findExactRutubeFullscreenButton(video)) : null,
+        lastDebug,
+        candidates
+      };
+
+      try { console.log('[Рутубочист] Fullscreen debug:', debug); } catch (e) {}
+      return debug;
+    };
 
     window.addEventListener('orientationchange', () => checkRotation('orientationchange'), true);
     window.addEventListener('resize', () => checkRotation('resize'), true);
 
     document.addEventListener('fullscreenchange', () => {
       if (!fullscreenElement()) openedByRtst = false;
+      try { console.log('[Рутубочист] fullscreenchange', window.__rtstFullscreenDebug && window.__rtstFullscreenDebug()); } catch (e) {}
     }, true);
     document.addEventListener('webkitfullscreenchange', () => {
       if (!fullscreenElement()) openedByRtst = false;
+      try { console.log('[Рутубочист] webkitfullscreenchange', window.__rtstFullscreenDebug && window.__rtstFullscreenDebug()); } catch (e) {}
     }, true);
 
     document.addEventListener('pointerup', () => checkRotation('pointerup'), true);
@@ -1646,6 +1893,9 @@
       html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] [class*="video-player" i] [class*="communication-banner-module__" i],
       html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] [class*="video-player" i] [class*="banner-picture-module__" i],
       html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] [class*="video-player" i] button[aria-label*="Закрыть баннер" i],
+      html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"]:has([class*="background-view-popup-module__" i]),
+      html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"]:has(a[href*="/promo/turnoffad/" i]),
+      html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] [class*="background-view-popup-module__" i],
       .rtst-player-ad-hidden {
         display: none !important;
         visibility: hidden !important;
@@ -2585,7 +2835,7 @@
             <div class="rtst-row"><label><input type="checkbox" id="rtst-strip-player-ads"> пытаться убирать рекламу</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-unlock-context-menu"> включить системное меню по правой кнопке</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-swipe-video-volume"> управлять громкостью горизонтальным свайпом по экрану</label></div>
-            <div class="rtst-row"><label><input type="checkbox" id="rtst-auto-fullscreen-rotate"> открывать видео на весь экран при повороте устройства</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-auto-fullscreen-rotate"> fullscreen при повороте после касания плеера</label></div>
           </div>
 
           <div class="rtst-section">
@@ -3484,7 +3734,7 @@
       el.classList.remove('rtst-hidden', 'rtst-dim', 'rtst-view-hidden', 'rtst-chrome-hidden', 'rtst-player-ad-hidden', 'rtst-showcase-banner-hidden');
       el.removeAttribute('data-rtst-hidden'); el.removeAttribute('data-rtst-hide-target');
       el.removeAttribute('data-rtst-reason'); el.removeAttribute('data-rtst-chrome-hidden'); el.removeAttribute('data-rtst-view-hidden');
-      el.removeAttribute('data-rtst-player-ad-hidden'); el.removeAttribute('data-rtst-showcase-banner-hidden'); el.removeAttribute('data-rtst-skip-clicked');
+      el.removeAttribute('data-rtst-player-ad-hidden'); el.removeAttribute('data-rtst-showcase-banner-hidden'); el.removeAttribute('data-rtst-background-mode-hidden'); el.removeAttribute('data-rtst-skip-clicked');
     });
     document.querySelectorAll('.rtst-watch-badge').forEach((el) => el.remove());
     document.querySelectorAll('[data-rtst-view-state],[data-rtst-processed]').forEach((el) => {
@@ -3717,6 +3967,64 @@
   }
 
 
+  function isBackgroundModeSubscriptionPopup(el) {
+    if (!el || isRtstUiElement(el)) return false;
+
+    try {
+      const node = el.closest && el.closest('.wdp-popup-overlay-module__overlay[data-testid="overlay-popup"], [data-testid="overlay-popup"], [data-testid="popup"]') || el;
+      const cls = String(node.className || '') + ' ' + String(el.className || '');
+      const text = compactText(node);
+      const hasBgClass = /background-view-popup-module__/i.test(cls) || Boolean(node.querySelector && node.querySelector('[class*="background-view-popup-module__" i]'));
+      const hasPromoLink = Boolean(node.querySelector && node.querySelector('a[href*="/promo/turnoffad/" i], a[href*="turnoffad" i]'));
+      const hasKnownText = text.includes('смотрите в фоновом режиме') || text.includes('фоновый режим') || text.includes('внутри видео без рекламы');
+
+      return Boolean(hasBgClass || hasPromoLink || hasKnownText);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function hideBackgroundModeSubscriptionPopup(root = document) {
+    const scope = root && root.querySelectorAll ? root : document;
+    const candidates = [];
+
+    try {
+      candidates.push(...scope.querySelectorAll(
+        '.wdp-popup-overlay-module__overlay[data-testid="overlay-popup"], ' +
+        '[data-testid="overlay-popup"], ' +
+        '[data-testid="popup"], ' +
+        '[class*="background-view-popup-module__" i], ' +
+        'a[href*="/promo/turnoffad/" i], ' +
+        'a[href*="turnoffad" i]'
+      ));
+    } catch (e) {}
+
+    for (const el of candidates) {
+      if (!isBackgroundModeSubscriptionPopup(el)) continue;
+
+      const popup = (el.closest && el.closest('.wdp-popup-overlay-module__overlay[data-testid="overlay-popup"], [data-testid="overlay-popup"]')) || el;
+      if (!popup || isRtstUiElement(popup)) continue;
+
+      try {
+        const closeBtn = popup.querySelector(
+          'button[aria-label*="Закрыть" i], ' +
+          'button[class*="close" i], ' +
+          '[class*="closeButton" i], ' +
+          '.wdp-background-view-popup-module__closeButton'
+        );
+        if (closeBtn && closeBtn.dataset.rtstClicked !== '1') {
+          closeBtn.dataset.rtstClicked = '1';
+          closeBtn.click();
+        }
+      } catch (e) {}
+
+      if (popup.dataset.rtstBackgroundModeHidden !== '1') hiddenCount += 1;
+      popup.dataset.rtstBackgroundModeHidden = '1';
+      popup.dataset.rtstReason = 'попап фонового режима RUTUBE';
+      popup.classList.add('rtst-player-ad-hidden');
+    }
+  }
+
   function scanPlayerAds(root = document) {
     if (!settings.enabled || settings.stripPlayerAds === false) return;
 
@@ -3936,6 +4244,7 @@
     createPanel();
     protectRtstUiFromCleanup(document);
     syncRutubePopupCloseProxy();
+    hideBackgroundModeSubscriptionPopup(document);
     if (isEmbeddedRutubePlayer()) return;
     refreshLegacyControls();
 
@@ -3946,6 +4255,7 @@
 
     hiddenCount = removedCount;
     scanPlayerAds(document);
+    hideBackgroundModeSubscriptionPopup(document);
     scanShowcaseBanners(document);
 
     if (isMyPage()) {
