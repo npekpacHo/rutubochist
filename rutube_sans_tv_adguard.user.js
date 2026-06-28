@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.3.10
-// @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии, лишнее вокруг просмотра и рекламные вставки в плеере, угловые баннеры включает системное меню по правой кнопке мыши и добавляет горизонтальную свайп-громкость видео. Есть диагностика play/options и рекламных запросов. Есть рекомендации что посмотреть, анти-автозапуск, импорт/экспорт ЧС.
+// @version      1.3.12
+// @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии, лишнее вокруг просмотра и рекламные вставки в плеере, угловые баннеры включает системное меню по правой кнопке мыши и добавляет горизонтальную свайп-громкость видео. Есть диагностика play/options и рекламных запросов, отметки просмотренного. Есть рекомендации что посмотреть, анти-автозапуск, импорт/экспорт ЧС.
 // @author       elekt_riki
 // @license      MIT
 // @homepageURL  https://npekpacho.github.io/rutubochist/
@@ -19,7 +19,12 @@
   'use strict';
 
   const STORE_KEY = 'rtSansTvSettings:v1';
-  const UI_VERSION = '1.3.10';
+  const VIEW_HISTORY_KEY = 'rtstViewHistory:v1';
+  const VIEW_PARTIAL_TTL_MS = 120 * 24 * 60 * 60 * 1000;
+  const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
+  const VIEW_MAX_PARTIAL = 700;
+  const VIEW_MAX_TOTAL = 2600;
+  const UI_VERSION = '1.3.12';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -76,7 +81,7 @@
   const SETTINGS_DEFAULTS = {
     enabled: true, showHidden: false, hideSideMenuPolitics: true, hideShorts: true, hardRemove: false,
     cleanRutubeChrome: true, cleanWatchPage: true, disableAutoplay: true, hideComments: false, hideVideoInfo: false,
-    stripPlayerAds: true, unlockContextMenu: true, swipeVideoVolume: true,
+    stripPlayerAds: true, unlockContextMenu: true, swipeVideoVolume: true, markWatchedVideos: true,
     safeRouterPatch060: true, safeDelayedScan070: true,
     blockedChannels: DEFAULT_BLOCKED_CHANNELS, blockedWords: DEFAULT_BLOCKED_WORDS, userChannels: [], userWords: []
   };
@@ -299,8 +304,8 @@
         const bannerType = String(u.searchParams.get('banner_type') || '').toLowerCase();
         const videoId = String(u.searchParams.get('video_id') || '');
 
-        if (host !== 'a.rutube.ru' || !path.includes('/api/v1/ad/banner')) return false;
-        if (bannerType === 'html' && !videoId) return true;
+        if (host === 'ac.rutube.ru' && path.includes('/api/v1/banner_rules')) return true;
+        if (host === 'a.rutube.ru' && path.includes('/api/v1/ad/banner') && bannerType === 'html' && !videoId) return true;
 
         return false;
       } catch (e) {
@@ -329,11 +334,32 @@
     }
 
     function emptyShowcaseBannerResponse(url) {
+      let body = '';
+      let contentType = 'text/html; charset=utf-8';
+
+      try {
+        const u = new URL(url, location.href);
+        const host = u.hostname.toLowerCase();
+        const path = u.pathname.toLowerCase();
+
+        if (host === 'ac.rutube.ru' && path.includes('/api/v1/banner_rules')) {
+          contentType = 'application/json; charset=utf-8';
+          body = JSON.stringify({
+            result: [],
+            results: [],
+            data: [],
+            rules: [],
+            banners: [],
+            items: []
+          });
+        }
+      } catch (e) {}
+
       const headers = new Headers();
-      headers.set('content-type', 'text/html; charset=utf-8');
+      headers.set('content-type', contentType);
       headers.set('cache-control', 'no-store');
 
-      const response = new Response('', {
+      const response = new Response(body, {
         status: 200,
         statusText: 'OK',
         headers
@@ -348,7 +374,7 @@
     }
 
     function installAdRequestDiagnosticsObserver() {
-      const KEY = '__rtstAdRequestDiagnosticsObserverV1310';
+      const KEY = '__rtstAdRequestDiagnosticsObserverV1312';
       if (window[KEY]) return;
       window[KEY] = true;
 
@@ -498,10 +524,15 @@
         lastPlayOptions: window.__rtstLastPlayOptionsSummary || null,
         playOptionsHistory: Array.isArray(window.__rtstPlayOptionsHistory) ? window.__rtstPlayOptionsHistory.slice(0, 8) : [],
         video: getCurrentHtmlVideoSummary(),
+        viewHistory: {
+          count: Object.keys(loadViewHistory()).length,
+          key: VIEW_HISTORY_KEY
+        },
         settings: {
           enabled: Boolean(settings && settings.enabled),
           stripPlayerAds: Boolean(settings && settings.stripPlayerAds !== false),
           swipeVideoVolume: Boolean(settings && settings.swipeVideoVolume !== false),
+          markWatchedVideos: Boolean(settings && settings.markWatchedVideos !== false),
           cleanWatchPage: Boolean(settings && settings.cleanWatchPage),
           disableAutoplay: Boolean(settings && settings.disableAutoplay)
         }
@@ -1353,6 +1384,30 @@
         border-radius: 9px; background: rgba(0,0,0,.78); color: #fff;
         font: 11px/1.25 Arial, sans-serif; pointer-events: none;
       }
+      .rtst-watch-badge {
+        position: absolute !important;
+        left: 8px !important;
+        top: 8px !important;
+        z-index: 2147483000 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 5px !important;
+        max-width: calc(100% - 16px) !important;
+        padding: 4px 7px !important;
+        border-radius: 999px !important;
+        border: 1px solid rgba(88,255,149,.55) !important;
+        background: rgba(5,24,13,.84) !important;
+        color: #dfffe8 !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,.24) !important;
+        font: 800 11px/1.15 Arial, sans-serif !important;
+        white-space: nowrap !important;
+        pointer-events: none !important;
+        text-shadow: 0 1px 2px rgba(0,0,0,.45) !important;
+      }
+      .rtst-watch-badge[data-state="partial"] { border-color: rgba(106,226,255,.58) !important; background: rgba(5,21,32,.84) !important; color: #dff8ff !important; }
+      [data-rtst-view-state="watched"], [data-rtst-view-state="complete"] { outline: 1px solid rgba(88,255,149,.34) !important; outline-offset: -1px !important; border-radius: 10px !important; }
+      [data-rtst-view-state="partial"] { outline: 1px solid rgba(106,226,255,.30) !important; outline-offset: -1px !important; border-radius: 10px !important; }
+
       .rtst-block-btn {
         display: inline-flex !important; align-items: center !important; justify-content: center !important;
         width: 24px !important; height: 24px !important; min-width: 24px !important; min-height: 24px !important;
@@ -1478,6 +1533,12 @@
       .rtst-enable-toggle { flex: 0 0 auto !important; min-width: 78px !important; min-height: 30px !important; padding: 4px 12px !important; border-radius: 999px !important; border: 1px solid rgba(186,242,198,.30) !important; background: rgba(83,255,124,.14) !important; color: #dfffe6 !important; box-shadow: none !important; font: 800 11px/1.2 Arial, sans-serif !important; }
       .rtst-enable-toggle[data-state="off"] { border-color: rgba(255,107,107,.36) !important; background: rgba(255,107,107,.13) !important; color: #ffd9d9 !important; }
       .rtst-enable-toggle:hover { filter: none !important; background: rgba(255,255,255,.15) !important; }
+      .rtst-modal .rtst-title-icon-btn,
+      .rtst-modal .rtst-mini-icon-btn { width: 30px !important; height: 30px !important; min-width: 30px !important; min-height: 30px !important; padding: 0 !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; border-radius: 8px !important; font: 14px/1 Arial, sans-serif !important; }
+      .rtst-modal .rtst-title-icon-btn { background: rgba(255,255,255,.08) !important; color: #f4fff7 !important; }
+      .rtst-modal .rtst-title-icon-btn:hover,
+      .rtst-modal .rtst-mini-icon-btn:hover { filter: none !important; background: rgba(255,255,255,.17) !important; }
+      .rtst-actions .rtst-mini-icon-btn { flex: 0 0 auto !important; }
       .rtst-modal-body { flex: 1 1 auto !important; min-height: 0 !important; overflow-y: auto !important; padding: 10px 14px 14px !important; }
       .rtst-modal-fixed { flex: 0 0 auto !important; padding: 10px 14px !important; border-bottom: 1px solid rgba(255,255,255,.10) !important; background: rgba(255,255,255,.025) !important; }
       .rtst-modal-note { margin-top: 2px !important; color: rgba(244,255,247,.68) !important; font: 11px/1.3 Arial, sans-serif !important; }
@@ -1745,6 +1806,7 @@
     root.dataset.rtstUnlockContextMenu = (settings.enabled && settings.unlockContextMenu !== false) ? '1' : '0';
     root.dataset.rtstSwipeVideoVolume = (settings.enabled && settings.swipeVideoVolume !== false) ? '1' : '0';
     root.dataset.rtstHideVideoInfo = (settings.enabled && settings.hideVideoInfo) ? '1' : '0';
+    root.dataset.rtstMarkWatched = (settings.enabled && settings.markWatchedVideos !== false) ? '1' : '0';
     updateDynamicCleanupStyle(cleanChromeOn);
   }
 
@@ -1975,6 +2037,8 @@
     if (hideMenu) hideMenu.checked = Boolean(settings.hideSideMenuPolitics || settings.cleanRutubeChrome);
     const hideShorts = document.getElementById('rtst-hide-shorts');
     if (hideShorts) hideShorts.checked = Boolean(settings.hideShorts);
+    const markWatchedToggle = document.getElementById('rtst-mark-watched');
+    if (markWatchedToggle) markWatchedToggle.checked = Boolean(settings.markWatchedVideos !== false);
     const cleanWatch = document.getElementById('rtst-clean-watch');
     if (cleanWatch) cleanWatch.checked = Boolean(settings.cleanWatchPage);
     const disableAutoplay = document.getElementById('rtst-disable-autoplay');
@@ -2025,6 +2089,7 @@
       if (target.id === 'rtst-show-hidden') { settings.showHidden = target.checked; saveSettings(); applyHiddenVisibility(); }
       if (target.id === 'rtst-hide-menu') { settings.hideSideMenuPolitics = target.checked; settings.cleanRutubeChrome = target.checked; saveSettings(); syncRootFlags(); rescanNow(); }
       if (target.id === 'rtst-hide-shorts') { settings.hideShorts = target.checked; saveSettings(); syncRootFlags(); rescanNow(); }
+      if (target.id === 'rtst-mark-watched') { settings.markWatchedVideos = target.checked; saveSettings(); syncRootFlags(); rescanNow(); }
       if (target.id === 'rtst-clean-watch') { settings.cleanWatchPage = target.checked; saveSettings(); syncRootFlags(); rescanNow(); }
       if (target.id === 'rtst-disable-autoplay') { settings.disableAutoplay = target.checked; saveSettings(); scanAutoplayVideos(); }
       if (target.id === 'rtst-hide-comments') { settings.hideComments = target.checked; saveSettings(); rescanNow(); }
@@ -2135,6 +2200,7 @@
         toast('Пользовательские списки очищены.'); rescanNow();
         return;
       }
+      if (action === 'reset-view-history') { clearViewHistory(); return; }
       if (action === 'export-settings') { exportSettings(); return; }
       if (action === 'copy-player-diagnostics') { copyPlayerDiagnostics(); return; }
       if (action === 'import-settings') { const input = document.getElementById('rtst-import-file'); if (input) input.click(); }
@@ -2151,6 +2217,7 @@
           <div class="rtst-modal-title-row">
             <div class="rtst-modal-title">Рутубочист</div>
             <button type="button" class="rtst-enable-toggle" id="rtst-enabled-toggle" data-rtst-action="toggle-enabled" data-state="on" aria-pressed="true">включён</button>
+            <button type="button" class="rtst-title-icon-btn" data-rtst-action="reset-view-history" title="Очистить историю просмотров Рутубочиста">🧹</button>
           </div>
           <button type="button" data-rtst-action="close-modal" title="Закрыть">×</button>
         </div>
@@ -2160,6 +2227,7 @@
             <div class="rtst-row"><label><input type="checkbox" id="rtst-show-hidden"> показывать скрытые карточки бледным</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-menu"> чистить боковое меню, шапку и промо-блоки</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-shorts"> скрывать Шортсы</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-mark-watched"> помечать просмотренные видео</label></div>
           </div>
 
           <div class="rtst-section">
@@ -2187,10 +2255,14 @@
           </div>
 
           <div class="rtst-section">
-            <div class="rtst-section-title">Черные списки</div>
+            <div class="rtst-section-title">Списки и резервная копия</div>
             <div class="rtst-actions">
-              <button type="button" class="rtst-mini-btn" data-rtst-action="open-list-modal" data-rtst-list="channels">Каналов: <span class="rtst-count" id="rtst-channel-count"></span></button>
-              <button type="button" class="rtst-mini-btn" data-rtst-action="open-list-modal" data-rtst-list="words">Фраз: <span class="rtst-count" id="rtst-word-count"></span></button>
+              <button type="button" class="rtst-mini-btn" data-rtst-action="open-list-modal" data-rtst-list="channels" title="Открыть список каналов">Каналы <span class="rtst-count" id="rtst-channel-count"></span></button>
+              <button type="button" class="rtst-mini-btn" data-rtst-action="open-list-modal" data-rtst-list="words" title="Открыть список фраз">Фразы <span class="rtst-count" id="rtst-word-count"></span></button>
+              <button type="button" class="rtst-mini-btn rtst-mini-icon-btn" data-rtst-action="export-settings" title="Экспортировать настройки и списки">💾</button>
+              <button type="button" class="rtst-mini-btn rtst-mini-icon-btn" data-rtst-action="import-settings" title="Импортировать настройки и списки">📂</button>
+              <button type="button" class="rtst-mini-btn rtst-mini-icon-btn rtst-danger" data-rtst-action="reset-user" title="Очистить пользовательские списки">🗑</button>
+              <input type="file" id="rtst-import-file" accept="application/json,.json">
             </div>
           </div>
 
@@ -2199,16 +2271,6 @@
             <div class="rtst-small" id="rtst-movie-cache-status">${escapeHtml(movieCacheStatusText())}</div>
             <div class="rtst-actions">
               <button type="button" class="rtst-mini-btn" data-rtst-action="update-movie-db">Обновить базу</button>
-            </div>
-          </div>
-
-          <div class="rtst-section">
-            <div class="rtst-section-title">Резервная копия ЧС</div>
-            <div class="rtst-actions">
-              <button type="button" class="rtst-mini-btn" data-rtst-action="export-settings">Экспорт</button>
-              <button type="button" class="rtst-mini-btn" data-rtst-action="import-settings">Импорт</button>
-              <button type="button" class="rtst-mini-btn rtst-danger" data-rtst-action="reset-user">Очистить Всё</button>
-              <input type="file" id="rtst-import-file" accept="application/json,.json">
             </div>
           </div>
         </div>
@@ -2663,6 +2725,291 @@
     saveSettings(); syncPanel(); toast(`Фраза добавлена: ${clean}`); rescanNow();
   }
 
+  function loadViewHistory() {
+    try {
+      const raw = localStorage.getItem(VIEW_HISTORY_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function saveViewHistory(history) {
+    try {
+      localStorage.setItem(VIEW_HISTORY_KEY, JSON.stringify(history || {}));
+    } catch (e) {}
+  }
+
+  function pruneViewHistory(history = loadViewHistory()) {
+    const now = Date.now();
+    const entries = Object.entries(history || {}).filter(([id, item]) => {
+      if (!id || !item || typeof item !== 'object') return false;
+      const updated = Date.parse(item.updatedAt || item.completedAt || '') || 0;
+      if (!updated) return false;
+      const status = String(item.status || '');
+      const ttl = status === 'complete' || status === 'watched' ? VIEW_COMPLETED_TTL_MS : VIEW_PARTIAL_TTL_MS;
+      return now - updated <= ttl;
+    });
+
+    entries.sort((a, b) => (Date.parse(b[1].updatedAt || '') || 0) - (Date.parse(a[1].updatedAt || '') || 0));
+
+    const completed = [];
+    const partial = [];
+
+    for (const entry of entries) {
+      const status = String(entry[1].status || '');
+      if (status === 'complete' || status === 'watched') completed.push(entry);
+      else partial.push(entry);
+    }
+
+    const limited = [...completed, ...partial.slice(0, VIEW_MAX_PARTIAL)]
+      .sort((a, b) => (Date.parse(b[1].updatedAt || '') || 0) - (Date.parse(a[1].updatedAt || '') || 0))
+      .slice(0, VIEW_MAX_TOTAL);
+
+    return Object.fromEntries(limited);
+  }
+
+  function clearViewHistory() {
+    try { localStorage.removeItem(VIEW_HISTORY_KEY); } catch (e) {}
+    document.querySelectorAll('.rtst-watch-badge').forEach((el) => el.remove());
+    document.querySelectorAll('[data-rtst-view-state]').forEach((el) => {
+      el.removeAttribute('data-rtst-view-state');
+      el.removeAttribute('data-rtst-view-percent');
+    });
+    toast('История просмотров очищена.');
+    rescanNow();
+  }
+
+  function extractRutubeVideoIdFromUrl(url) {
+    try {
+      const u = new URL(url, location.href);
+      const match = u.pathname.match(/\/video\/(?:private\/)?([a-z0-9_:-]+)/i);
+      return match ? match[1] : '';
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function getCurrentVideoId() {
+    const fromPage = extractRutubeVideoIdFromUrl(location.href);
+    if (fromPage) return fromPage;
+    try {
+      const last = window.__rtstLastPlayOptionsSummary;
+      if (last && last.apiVideoId) return String(last.apiVideoId);
+    } catch (e) {}
+    return '';
+  }
+
+  function getCurrentVideoTitle() {
+    try {
+      const last = window.__rtstLastPlayOptionsSummary;
+      if (last && last.title) return String(last.title).slice(0, 240);
+    } catch (e) {}
+
+    const h1 = document.querySelector('h1');
+    const title = h1 ? String(h1.textContent || '').trim() : '';
+    return (title || document.title || '').slice(0, 240);
+  }
+
+  function viewPieIcon(percent) {
+    const value = Math.max(0, Math.min(100, Number(percent) || 0));
+    if (value >= 95) return '●';
+    if (value >= 75) return '◕';
+    if (value > 25) return '◑';
+    return '◔';
+  }
+
+  function viewProgressState(percent) {
+    const value = Math.max(0, Math.min(100, Number(percent) || 0));
+    if (value >= 95) return 'complete';
+    if (value >= 80) return 'watched';
+    return 'partial';
+  }
+
+  function viewProgressLabel(percent) {
+    const value = Math.max(1, Math.min(100, Math.round(Number(percent) || 0)));
+    const state = viewProgressState(value);
+    return `${viewPieIcon(value)} просмотрено${state === 'complete' ? '' : ` ${value}%`}`;
+  }
+
+  function saveVideoProgress(video, force = false) {
+    if (!settings.enabled || settings.markWatchedVideos === false || !video) return;
+
+    let duration = Number(video.duration) || 0;
+    let currentTime = Number(video.currentTime) || 0;
+
+    if (!Number.isFinite(duration) || duration < 20 || !Number.isFinite(currentTime) || currentTime <= 0) return;
+
+    let percent = Math.round((currentTime / duration) * 100);
+    if (video.ended || percent >= 95) percent = 100;
+    percent = Math.max(1, Math.min(100, percent));
+
+    if (!force && currentTime < 30 && percent < 3) return;
+
+    const id = getCurrentVideoId();
+    if (!id) return;
+
+    const nowIso = new Date().toISOString();
+    const history = loadViewHistory();
+    const old = history[id] || {};
+    const oldPercent = Number(old.percent) || 0;
+    const nextPercent = Math.max(oldPercent, percent);
+    const state = viewProgressState(nextPercent);
+
+    history[id] = {
+      id,
+      title: getCurrentVideoTitle() || old.title || '',
+      duration: Math.round(duration),
+      currentTime: Math.round(Math.max(Number(old.currentTime) || 0, currentTime)),
+      percent: nextPercent,
+      status: state,
+      updatedAt: nowIso,
+      completedAt: state === 'complete' ? (old.completedAt || nowIso) : old.completedAt || null
+    };
+
+    saveViewHistory(pruneViewHistory(history));
+  }
+
+  function installViewProgressTracker() {
+    const KEY = '__rtstViewProgressTrackerV1312';
+    if (window[KEY]) return;
+    window[KEY] = true;
+
+    function maybeSave(event, force = false) {
+      const video = event && event.target instanceof HTMLMediaElement ? event.target : document.querySelector('video');
+      if (!video) return;
+
+      const now = Date.now();
+      const last = Number(video.dataset.rtstViewSavedAt || '0');
+      if (!force && now - last < 4500) return;
+
+      video.dataset.rtstViewSavedAt = String(now);
+      saveVideoProgress(video, force);
+    }
+
+    document.addEventListener('timeupdate', (event) => maybeSave(event, false), true);
+    document.addEventListener('pause', (event) => maybeSave(event, true), true);
+    document.addEventListener('ended', (event) => maybeSave(event, true), true);
+    window.addEventListener('beforeunload', () => maybeSave(null, true), true);
+
+    setInterval(() => maybeSave(null, false), 5000);
+    setTimeout(() => saveViewHistory(pruneViewHistory(loadViewHistory())), 2500);
+  }
+
+  function getLocalViewProgress(videoId) {
+    if (!videoId) return null;
+    const history = loadViewHistory();
+    const item = history[videoId];
+    if (!item || typeof item !== 'object') return null;
+    const percent = Math.max(0, Math.min(100, Math.round(Number(item.percent) || 0)));
+    if (!percent) return null;
+    return { ...item, percent, status: viewProgressState(percent) };
+  }
+
+  function hasRutubeWatchedMarker(card) {
+    return Boolean(card && card.querySelector && card.querySelector('[class*="progress-bar__watched" i], [class*="watched" i][class*="progress" i]'));
+  }
+
+  function isVideoPageInfoElement(el) {
+    if (!el || !el.closest) return false;
+
+    return Boolean(el.closest(
+      'h1, h2, h3, ' +
+      '[class*="video-pageinfo" i], ' +
+      '[class*="pageInfo" i], ' +
+      '[class*="page-info" i], ' +
+      '[class*="video-title" i], ' +
+      '[class*="title-container" i], ' +
+      'section[aria-label*="информация о видео" i], ' +
+      'section[aria-label*="описание видео" i]'
+    ));
+  }
+
+  function isLikelyCardForWatchBadge(card, link) {
+    if (!card || !link || !card.querySelector || isRtstUiElement(card) || isProtectedHeader(card)) return false;
+    if (isVideoPageInfoElement(card) || isVideoPageInfoElement(link)) return false;
+
+    const videoId = extractRutubeVideoIdFromUrl(link.href || link.getAttribute('href') || '');
+    const currentId = isVideoPage() ? getCurrentVideoId() : '';
+
+    // На странице просмотра не ставим бейдж на заголовок/ссылку текущего видео.
+    // Карточки рекомендаций и серий остаются: у них обычно есть превью или прогресс-бар.
+    if (currentId && videoId && currentId === videoId && !hasCardVisualMarker(card)) return false;
+
+    return hasCardVisualMarker(card) || hasRutubeWatchedMarker(card);
+  }
+
+  function hasCardVisualMarker(card) {
+    if (!card || !card.querySelector) return false;
+
+    return Boolean(card.querySelector(
+      'img, picture, video, canvas, ' +
+      '[class*="thumbnail" i], ' +
+      '[class*="preview" i], ' +
+      '[class*="poster" i], ' +
+      '[class*="cover" i], ' +
+      '[class*="image" i], ' +
+      '[class*="progress-bar" i], ' +
+      '[data-testid*="thumbnail" i], ' +
+      '[data-testid*="preview" i]'
+    ));
+  }
+
+  function applyWatchProgressBadge(card, link) {
+    if (!card || !link || !card.querySelector || isRtstUiElement(card)) return;
+
+    const oldBadges = Array.from(card.querySelectorAll(':scope > .rtst-watch-badge'));
+    const oldBadge = oldBadges[0] || null;
+    oldBadges.slice(1).forEach((badge) => badge.remove());
+
+    if (!settings.enabled || settings.markWatchedVideos === false || !isLikelyCardForWatchBadge(card, link)) {
+      oldBadges.forEach((badge) => badge.remove());
+      card.removeAttribute('data-rtst-view-state');
+      card.removeAttribute('data-rtst-view-percent');
+      return;
+    }
+
+    const videoId = extractRutubeVideoIdFromUrl(link.href || link.getAttribute('href') || '');
+    if (!videoId) {
+      if (oldBadge) oldBadge.remove();
+      return;
+    }
+
+    let progress = getLocalViewProgress(videoId);
+
+    if (!progress && hasRutubeWatchedMarker(card)) {
+      progress = { id: videoId, percent: 100, status: 'complete' };
+    }
+
+    if (!progress) {
+      if (oldBadge) oldBadge.remove();
+      card.removeAttribute('data-rtst-view-state');
+      card.removeAttribute('data-rtst-view-percent');
+      return;
+    }
+
+    const percent = Math.max(1, Math.min(100, Math.round(Number(progress.percent) || 0)));
+    const state = viewProgressState(percent);
+    const text = viewProgressLabel(percent);
+
+    card.dataset.rtstViewState = state;
+    card.dataset.rtstViewPercent = String(percent);
+
+    try {
+      const pos = getComputedStyle(card).position;
+      if (!pos || pos === 'static') card.style.position = 'relative';
+    } catch (e) {}
+
+    const badge = oldBadge || document.createElement('div');
+    badge.className = 'rtst-watch-badge';
+    badge.dataset.state = state === 'partial' ? 'partial' : 'watched';
+    badge.textContent = text;
+    badge.title = text;
+
+    if (!oldBadge) card.appendChild(badge);
+  }
+
   function copyPlayerDiagnostics() {
     const fallback = {
       app: 'Рутубочист',
@@ -2703,7 +3050,7 @@
         enabled: settings.enabled, showHidden: settings.showHidden, hideSideMenuPolitics: settings.hideSideMenuPolitics,
         hideShorts: settings.hideShorts, hardRemove: settings.hardRemove, cleanRutubeChrome: settings.cleanRutubeChrome,
         cleanWatchPage: settings.cleanWatchPage, disableAutoplay: settings.disableAutoplay, hideComments: settings.hideComments,
-        hideVideoInfo: settings.hideVideoInfo, stripPlayerAds: settings.stripPlayerAds, unlockContextMenu: settings.unlockContextMenu, swipeVideoVolume: settings.swipeVideoVolume,
+        hideVideoInfo: settings.hideVideoInfo, stripPlayerAds: settings.stripPlayerAds, unlockContextMenu: settings.unlockContextMenu, swipeVideoVolume: settings.swipeVideoVolume, markWatchedVideos: settings.markWatchedVideos,
         blockedChannels: allBlockedChannels(), blockedWords: allBlockedWords(), userChannels: settings.userChannels, userWords: settings.userWords
       }
     };
@@ -2732,7 +3079,7 @@
     if (!src || typeof src !== 'object') throw new Error('bad settings json');
     const next = { ...settings };
     for (const key of ['blockedChannels', 'blockedWords', 'userChannels', 'userWords']) { if (Array.isArray(src[key])) next[key] = unique(src[key]); }
-    for (const key of ['enabled', 'showHidden', 'hideSideMenuPolitics', 'hideShorts', 'hardRemove', 'cleanRutubeChrome', 'cleanWatchPage', 'disableAutoplay', 'hideComments', 'hideVideoInfo', 'stripPlayerAds', 'unlockContextMenu', 'swipeVideoVolume']) {
+    for (const key of ['enabled', 'showHidden', 'hideSideMenuPolitics', 'hideShorts', 'hardRemove', 'cleanRutubeChrome', 'cleanWatchPage', 'disableAutoplay', 'hideComments', 'hideVideoInfo', 'stripPlayerAds', 'unlockContextMenu', 'swipeVideoVolume', 'markWatchedVideos']) {
       if (typeof src[key] === 'boolean') next[key] = src[key];
     }
     if (typeof src.cleanRutubeChrome === 'boolean' && typeof src.hideSideMenuPolitics !== 'boolean') next.hideSideMenuPolitics = src.cleanRutubeChrome;
@@ -2793,8 +3140,10 @@
       el.removeAttribute('data-rtst-reason'); el.removeAttribute('data-rtst-chrome-hidden'); el.removeAttribute('data-rtst-view-hidden');
       el.removeAttribute('data-rtst-player-ad-hidden'); el.removeAttribute('data-rtst-showcase-banner-hidden'); el.removeAttribute('data-rtst-skip-clicked');
     });
-    document.querySelectorAll('[data-rtst-processed]').forEach((el) => {
+    document.querySelectorAll('.rtst-watch-badge').forEach((el) => el.remove());
+    document.querySelectorAll('[data-rtst-view-state],[data-rtst-processed]').forEach((el) => {
       el.removeAttribute('data-rtst-processed'); el.removeAttribute('data-rtst-card'); el.removeAttribute('data-rtst-hidden-child');
+      el.removeAttribute('data-rtst-view-state'); el.removeAttribute('data-rtst-view-percent');
     });
     updateCounter();
   }
@@ -2885,6 +3234,16 @@
       'a[href*="/ads/" i]'
     ];
 
+    if (hasRecentShowcaseBannerActivity()) {
+      selectors.push(
+        'main > div',
+        'main section > div',
+        '[role="main"] > div',
+        '[class*="layout" i] > div',
+        '[class*="content" i] > div'
+      );
+    }
+
     try {
       scope.querySelectorAll(selectors.join(',')).forEach((el) => {
         if (shouldHideShowcaseBannerElement(el)) {
@@ -2893,6 +3252,24 @@
         }
       });
     } catch (e) {}
+  }
+
+  function hasRecentShowcaseBannerActivity(maxAgeMs = 12000) {
+    try {
+      const stats = window.__rtstAdRequestStats;
+      if (!stats || !stats.lastSeenAt) return false;
+      const age = Date.now() - Date.parse(stats.lastSeenAt);
+      if (!Number.isFinite(age) || age > maxAgeMs) return false;
+
+      return Boolean(
+        Number(stats.banner || 0) ||
+        Number(stats.bannerRules || 0) ||
+        Number(stats.goyaBanner || 0) ||
+        Number(stats.blockedBanner || 0)
+      );
+    } catch (e) {
+      return false;
+    }
   }
 
   function shouldHideShowcaseBannerElement(el) {
@@ -2906,6 +3283,7 @@
     try { rect = el.getBoundingClientRect(); } catch (e) { return false; }
 
     const vw = Math.max(1, window.innerWidth || document.documentElement.clientWidth || 1);
+    const vh = Math.max(1, window.innerHeight || document.documentElement.clientHeight || 1);
     const width = Number(rect.width) || 0;
     const height = Number(rect.height) || 0;
 
@@ -2928,16 +3306,20 @@
     const suspectText = /(реклама|рекламный|спонсор|промо|партн[её]рский|advert|sponsor)/i.test(text);
     const suspectHref = /(adfox|a\.rutube\.ru\/api\/v1\/ad\/banner|goya\.rutube\.ru\/v2\/banner|\/ads\/|banner|advert)/i.test(hrefs);
 
-    if (!(suspectName || suspectText || suspectHref)) return false;
-
     const linkCount = el.querySelectorAll ? el.querySelectorAll('a[href]').length : 0;
     const videoLinkCount = el.querySelectorAll ? el.querySelectorAll('a[href*="/video/"], a[href*="/shorts/"], a[href*="/plst/"]').length : 0;
     const textLen = (el.textContent || '').trim().length;
+    const mediaCount = el.querySelectorAll ? el.querySelectorAll('img, picture, iframe, video, canvas, svg').length : 0;
 
     if (videoLinkCount > 2 || linkCount > 8 || textLen > 1800) return false;
 
     const looksLikeWideShowcaseBanner = width >= vw * 0.45 && height >= 80 && height <= 360;
-    return looksLikeWideShowcaseBanner || suspectHref || suspectText;
+    const isInTopShowcaseArea = rect.top >= 40 && rect.top <= Math.max(900, vh * 1.25);
+    const recentBannerActivity = hasRecentShowcaseBannerActivity();
+    const looksLikeEmptyBannerSlot = recentBannerActivity && looksLikeWideShowcaseBanner && isInTopShowcaseArea && videoLinkCount === 0 && linkCount <= 3 && textLen <= 700;
+    const looksLikeBannerContent = looksLikeWideShowcaseBanner && (suspectName || suspectText || suspectHref);
+
+    return looksLikeBannerContent || looksLikeEmptyBannerSlot || (suspectHref && mediaCount <= 4);
   }
 
   function findShowcaseBannerRoot(el) {
@@ -2983,6 +3365,7 @@
     if (isDangerousHideTarget(el)) return;
 
     el.dataset.rtstShowcaseBannerHidden = '1';
+    el.dataset.rtstReason = 'витринный баннер';
     el.classList.add('rtst-showcase-banner-hidden');
     hiddenCount += 1;
   }
@@ -3265,7 +3648,9 @@
     const links = Array.from(document.querySelectorAll('a[href]')).filter((a) => isVideoLikeLink(a) || isChannelLikeLink(a));
     for (const link of links) {
       const card = findCard(link);
-      if (!card || card.dataset.rtstProcessed === '1' || card.closest('#rtst-panel')) continue;
+      if (!card || card.closest('#rtst-panel')) continue;
+      applyWatchProgressBadge(card, link);
+      if (card.dataset.rtstProcessed === '1') continue;
       card.dataset.rtstProcessed = '1'; card.dataset.rtstCard = '1';
       const info = readCardInfo(card, link);
       addBlockChannelButton(card, info.channel);
@@ -3988,7 +4373,7 @@
   }
 
   function boot() {
-    installPlayOptionsAdvertStripper(); installRutubeContextMenuUnlocker(); installMobileVideoVolumeSwipe(); syncRootFlags(); setupAutoplayGuard(); addStyle(); bindEvents(); loadMovieDbFromLocalCache(); setTimeout(checkGithubAvailability, 1500); setTimeout(maybeUpdateMovieDbInBackground, 3500); scheduleScan();
+    installPlayOptionsAdvertStripper(); installRutubeContextMenuUnlocker(); installMobileVideoVolumeSwipe(); installViewProgressTracker(); syncRootFlags(); setupAutoplayGuard(); addStyle(); bindEvents(); loadMovieDbFromLocalCache(); setTimeout(checkGithubAvailability, 1500); setTimeout(maybeUpdateMovieDbInBackground, 3500); scheduleScan();
     window.addEventListener('popstate', () => setTimeout(rescanNow, 250));
     setInterval(() => { if (location.href !== lastUrl) { scheduleScan(); return; } if (settings.enabled) scheduleScan(); }, 2500);
   }
@@ -3996,6 +4381,7 @@
   installPlayOptionsAdvertStripper();
   installRutubeContextMenuUnlocker();
   installMobileVideoVolumeSwipe();
+  installViewProgressTracker();
   setupAutoplayGuard();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
   else boot();
