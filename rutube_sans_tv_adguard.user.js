@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.3.12
+// @version      1.3.13
 // @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии, лишнее вокруг просмотра и рекламные вставки в плеере, угловые баннеры включает системное меню по правой кнопке мыши и добавляет горизонтальную свайп-громкость видео. Есть диагностика play/options и рекламных запросов, отметки просмотренного. Есть рекомендации что посмотреть, анти-автозапуск, импорт/экспорт ЧС.
 // @author       elekt_riki
 // @license      MIT
@@ -24,7 +24,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.3.12';
+  const UI_VERSION = '1.3.13';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -1539,6 +1539,14 @@
       .rtst-modal .rtst-title-icon-btn:hover,
       .rtst-modal .rtst-mini-icon-btn:hover { filter: none !important; background: rgba(255,255,255,.17) !important; }
       .rtst-actions .rtst-mini-icon-btn { flex: 0 0 auto !important; }
+      .rtst-actions.rtst-backup-actions .rtst-icon-actions {
+        display: inline-flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        gap: 6px !important;
+        flex: 0 0 auto !important;
+      }
       .rtst-modal-body { flex: 1 1 auto !important; min-height: 0 !important; overflow-y: auto !important; padding: 10px 14px 14px !important; }
       .rtst-modal-fixed { flex: 0 0 auto !important; padding: 10px 14px !important; border-bottom: 1px solid rgba(255,255,255,.10) !important; background: rgba(255,255,255,.025) !important; }
       .rtst-modal-note { margin-top: 2px !important; color: rgba(244,255,247,.68) !important; font: 11px/1.3 Arial, sans-serif !important; }
@@ -1646,6 +1654,24 @@
         .rtst-actions, .rtst-modal-actions { flex-direction: column !important; gap: 8px !important; }
         .rtst-actions button, .rtst-modal-actions button, .rtst-modal-actions > div { width: 100% !important; }
         .rtst-modal-actions > div { display: flex !important; flex-direction: column !important; gap: 8px !important; }
+        .rtst-actions.rtst-backup-actions .rtst-icon-actions {
+          display: flex !important;
+          flex-direction: row !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 8px !important;
+          width: 100% !important;
+        }
+        .rtst-actions.rtst-backup-actions .rtst-icon-actions .rtst-mini-icon-btn {
+          flex: 0 0 44px !important;
+          width: 44px !important;
+          min-width: 44px !important;
+          max-width: 44px !important;
+          height: 44px !important;
+          min-height: 44px !important;
+          max-height: 44px !important;
+          padding: 0 !important;
+        }
         
         /* Модальные окна на весь экран */
         .rtst-modal-backdrop { padding: 0 !important; }
@@ -2217,7 +2243,7 @@
           <div class="rtst-modal-title-row">
             <div class="rtst-modal-title">Рутубочист</div>
             <button type="button" class="rtst-enable-toggle" id="rtst-enabled-toggle" data-rtst-action="toggle-enabled" data-state="on" aria-pressed="true">включён</button>
-            <button type="button" class="rtst-title-icon-btn" data-rtst-action="reset-view-history" title="Очистить историю просмотров Рутубочиста">🧹</button>
+            <button type="button" class="rtst-title-icon-btn" data-rtst-action="reset-view-history" title="Очистить историю просмотров">👁️‍🗨️</button>
           </div>
           <button type="button" data-rtst-action="close-modal" title="Закрыть">×</button>
         </div>
@@ -2242,7 +2268,7 @@
             <div class="rtst-section-title">Плеер</div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-strip-player-ads"> пытаться убирать рекламу</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-unlock-context-menu"> включить системное меню по правой кнопке</label></div>
-            <div class="rtst-row"><label><input type="checkbox" id="rtst-swipe-video-volume"> управлять громкостью видео горизонтальным свайпом по экрану и подавлять x2</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-swipe-video-volume"> управлять громкостью горизонтальным свайпом по экрану</label></div>
           </div>
 
           <div class="rtst-section">
@@ -2256,12 +2282,14 @@
 
           <div class="rtst-section">
             <div class="rtst-section-title">Списки и резервная копия</div>
-            <div class="rtst-actions">
+            <div class="rtst-actions rtst-backup-actions">
               <button type="button" class="rtst-mini-btn" data-rtst-action="open-list-modal" data-rtst-list="channels" title="Открыть список каналов">Каналы <span class="rtst-count" id="rtst-channel-count"></span></button>
               <button type="button" class="rtst-mini-btn" data-rtst-action="open-list-modal" data-rtst-list="words" title="Открыть список фраз">Фразы <span class="rtst-count" id="rtst-word-count"></span></button>
-              <button type="button" class="rtst-mini-btn rtst-mini-icon-btn" data-rtst-action="export-settings" title="Экспортировать настройки и списки">💾</button>
-              <button type="button" class="rtst-mini-btn rtst-mini-icon-btn" data-rtst-action="import-settings" title="Импортировать настройки и списки">📂</button>
-              <button type="button" class="rtst-mini-btn rtst-mini-icon-btn rtst-danger" data-rtst-action="reset-user" title="Очистить пользовательские списки">🗑</button>
+              <div class="rtst-icon-actions" aria-label="Импорт, экспорт и очистка списков">
+                <button type="button" class="rtst-mini-btn rtst-mini-icon-btn" data-rtst-action="export-settings" title="Экспортировать настройки и списки">💾</button>
+                <button type="button" class="rtst-mini-btn rtst-mini-icon-btn" data-rtst-action="import-settings" title="Импортировать настройки и списки">📂</button>
+                <button type="button" class="rtst-mini-btn rtst-mini-icon-btn rtst-danger" data-rtst-action="reset-user" title="Очистить пользовательские списки">🗑</button>
+              </div>
               <input type="file" id="rtst-import-file" accept="application/json,.json">
             </div>
           </div>
@@ -2814,7 +2842,7 @@
 
   function viewPieIcon(percent) {
     const value = Math.max(0, Math.min(100, Number(percent) || 0));
-    if (value >= 95) return '●';
+    if (value >= 95) return '◉';
     if (value >= 75) return '◕';
     if (value > 25) return '◑';
     return '◔';
