@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.3.14
+// @version      1.3.16
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki
 // @license      MIT
@@ -24,7 +24,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.3.14';
+  const UI_VERSION = '1.3.16';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -777,7 +777,7 @@
 
 
   function installMobileVideoVolumeSwipe() {
-    const PATCHER_KEY = '__rtstMobileVideoVolumeSwipeV134';
+    const PATCHER_KEY = '__rtstMobileVideoVolumeSwipeV136';
     const VOLUME_STORE_KEY = 'rtstVideoVolume:v1';
     if (window[PATCHER_KEY]) return;
     window[PATCHER_KEY] = true;
@@ -791,8 +791,10 @@
       startRate: 1,
       startTime: 0,
       video: null,
+      target: null,
       moved: false,
-      source: 'none'
+      source: 'none',
+      rutubeCancelSent: false
     };
 
     let overlayTimer = null;
@@ -801,6 +803,8 @@
     let lastGestureVideo = null;
     let lastGestureRate = 1;
     let clearGestureFlagTimer = null;
+    let clearTouchFlagTimer = null;
+    let syntheticCancelUntil = 0;
 
     const rutubeGestureOverlaySelector = [
       '[class*="info-layer-module__wrapper" i]',
@@ -953,6 +957,24 @@
       );
     }
 
+    function setVolumeTouchFlag(on) {
+      const root = document.documentElement;
+      if (!root) return;
+
+      if (clearTouchFlagTimer) clearTimeout(clearTouchFlagTimer);
+
+      if (on) {
+        root.dataset.rtstVolumeTouch = '1';
+        return;
+      }
+
+      clearTouchFlagTimer = setTimeout(() => {
+        if (!gesture.active && !isRutubeGestureLocked()) {
+          delete root.dataset.rtstVolumeTouch;
+        }
+      }, 180);
+    }
+
     function setVolumeGestureFlag(on) {
       const root = document.documentElement;
       if (!root) return;
@@ -985,6 +1007,73 @@
 
     function isRutubeGestureLocked() {
       return Date.now() < rutubeGestureLockUntil;
+    }
+
+    function markSyntheticCancelEvent(event) {
+      try {
+        Object.defineProperty(event, '__rtstSyntheticVolumeCancel', {
+          value: true,
+          configurable: true
+        });
+      } catch (e) {
+        try { event.__rtstSyntheticVolumeCancel = true; } catch (e2) {}
+      }
+
+      return event;
+    }
+
+    function isRtstSyntheticCancel(event) {
+      return Boolean(
+        event &&
+        event.__rtstSyntheticVolumeCancel &&
+        Date.now() < syntheticCancelUntil
+      );
+    }
+
+    function createSyntheticCancelEvent(type, point) {
+      const options = {
+        bubbles: true,
+        cancelable: true,
+        composed: true
+      };
+
+      if (type === 'pointercancel') {
+        try {
+          return markSyntheticCancelEvent(new PointerEvent('pointercancel', {
+            ...options,
+            pointerId: gesture.pointerId || (point && point.id) || 1,
+            pointerType: 'touch',
+            isPrimary: true,
+            clientX: point ? point.x : gesture.startX,
+            clientY: point ? point.y : gesture.startY
+          }));
+        } catch (e) {
+          return markSyntheticCancelEvent(new Event('pointercancel', options));
+        }
+      }
+
+      try {
+        return markSyntheticCancelEvent(new TouchEvent('touchcancel', options));
+      } catch (e) {
+        return markSyntheticCancelEvent(new Event('touchcancel', options));
+      }
+    }
+
+    function dispatchSyntheticRutubeCancel(source, point) {
+      if (gesture.rutubeCancelSent || !gesture.target) return;
+      gesture.rutubeCancelSent = true;
+      syntheticCancelUntil = Date.now() + 140;
+
+      try {
+        const type = source === 'touch' ? 'touchcancel' : 'pointercancel';
+        const cancelEvent = createSyntheticCancelEvent(type, point);
+        gesture.target.dispatchEvent(cancelEvent);
+      } catch (e) {}
+    }
+
+    function stopGestureFromCancel(event) {
+      if (isRtstSyntheticCancel(event)) return;
+      stopGesture(event);
     }
 
     function blockEvent(event) {
@@ -1139,6 +1228,8 @@
       if (isInteractiveTarget(target, video)) return;
 
       applySavedVolumeToVideo(video);
+      setVolumeTouchFlag(true);
+      hideRutubeGestureOverlays(document);
 
       gesture.active = true;
       gesture.pointerId = point.id;
@@ -1148,8 +1239,10 @@
       gesture.startRate = Number(video.playbackRate) || 1;
       gesture.startTime = Number(video.currentTime) || 0;
       gesture.video = video;
+      gesture.target = target;
       gesture.moved = false;
       gesture.source = source;
+      gesture.rutubeCancelSent = false;
 
       try {
         if (source === 'pointer' && event.target && event.target.setPointerCapture) event.target.setPointerCapture(event.pointerId);
@@ -1166,14 +1259,18 @@
       const dyAbs = Math.abs(point.y - gesture.startY);
       const dxAbs = Math.abs(dx);
 
-      if (!gesture.moved && dxAbs < 10) return;
+      if (!gesture.moved) {
+        if (dxAbs < 10) return;
 
-      if (!gesture.moved && dyAbs > dxAbs * 1.8 && dyAbs > 24) {
-        stopGesture(event);
-        return;
+        if (dyAbs > dxAbs * 1.8 && dyAbs > 24) {
+          stopGesture(event);
+          return;
+        }
+
+        gesture.moved = true;
+        dispatchSyntheticRutubeCancel(source, point);
       }
 
-      gesture.moved = true;
       lastGestureVideo = gesture.video;
       lastGestureRate = gesture.startRate || 1;
       lockRutubeGestures(1100);
@@ -1212,8 +1309,11 @@
       gesture.active = false;
       gesture.pointerId = null;
       gesture.video = null;
+      gesture.target = null;
       gesture.moved = false;
       gesture.source = 'none';
+      gesture.rutubeCancelSent = false;
+      setVolumeTouchFlag(false);
     }
 
     function blockRutubeAfterVolumeGesture(event) {
@@ -1227,12 +1327,12 @@
     document.addEventListener('pointerdown', (event) => startGesture(event, 'pointer'), true);
     document.addEventListener('pointermove', (event) => moveGesture(event, 'pointer'), { capture: true, passive: false });
     document.addEventListener('pointerup', (event) => stopGesture(event), true);
-    document.addEventListener('pointercancel', (event) => stopGesture(event), true);
+    document.addEventListener('pointercancel', stopGestureFromCancel, true);
 
     document.addEventListener('touchstart', (event) => startGesture(event, 'touch'), { capture: true, passive: true });
     document.addEventListener('touchmove', (event) => moveGesture(event, 'touch'), { capture: true, passive: false });
     document.addEventListener('touchend', (event) => stopGesture(event), { capture: true, passive: false });
-    document.addEventListener('touchcancel', (event) => stopGesture(event), { capture: true, passive: false });
+    document.addEventListener('touchcancel', stopGestureFromCancel, { capture: true, passive: false });
 
     ['click', 'dblclick', 'contextmenu'].forEach((type) => {
       document.addEventListener(type, blockRutubeAfterVolumeGesture, true);
@@ -1253,7 +1353,8 @@
     }, true);
 
     const overlayObserver = new MutationObserver((mutations) => {
-      if (!isRutubeGestureLocked()) return;
+      const touchActive = document.documentElement && document.documentElement.dataset.rtstVolumeTouch === '1';
+      if (!isRutubeGestureLocked() && !touchActive) return;
       for (const mutation of mutations) {
         for (const node of mutation.addedNodes) {
           if (node instanceof HTMLElement) hideRutubeGestureOverlays(node);
@@ -1601,9 +1702,20 @@
         position: fixed !important;
         top: 14px !important;
       }
+      html[data-rtst-volume-touch="1"] [class*="info-layer-module__wrapper" i],
+      html[data-rtst-volume-touch="1"] [class*="mobile-seek-handler-module__" i],
+      html[data-rtst-volume-touch="1"] [class*="tap-rewind-animation-module__" i],
+      html[data-rtst-volume-touch="1"] [class*="x2" i],
+      html[data-rtst-volume-touch="1"] [class*="double" i],
+      html[data-rtst-volume-touch="1"] [class*="speed" i],
+      html[data-rtst-volume-touch="1"] [class*="playback-rate" i],
       html[data-rtst-volume-gesture="1"] [class*="info-layer-module__wrapper" i],
       html[data-rtst-volume-gesture="1"] [class*="mobile-seek-handler-module__" i],
-      html[data-rtst-volume-gesture="1"] [class*="tap-rewind-animation-module__" i] {
+      html[data-rtst-volume-gesture="1"] [class*="tap-rewind-animation-module__" i],
+      html[data-rtst-volume-gesture="1"] [class*="x2" i],
+      html[data-rtst-volume-gesture="1"] [class*="double" i],
+      html[data-rtst-volume-gesture="1"] [class*="speed" i],
+      html[data-rtst-volume-gesture="1"] [class*="playback-rate" i] {
         display: none !important;
         visibility: hidden !important;
         opacity: 0 !important;
