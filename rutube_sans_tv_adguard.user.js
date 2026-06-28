@@ -2,7 +2,7 @@
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
 // @version      1.3.14
-// @description  Рутубочист: очищает интерфейс RUTUBE. Добавлят ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
+// @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki
 // @license      MIT
 // @homepageURL  https://npekpacho.github.io/rutubochist/
@@ -24,7 +24,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.3.13';
+  const UI_VERSION = '1.3.14';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
