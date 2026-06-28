@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.3.13
-// @description  Рутубочист: прячет на RUTUBE политоту, телевизионщину, Shorts, нежелательные каналы, комментарии, лишнее вокруг просмотра и рекламные вставки в плеере, угловые баннеры включает системное меню по правой кнопке мыши и добавляет горизонтальную свайп-громкость видео. Есть диагностика play/options и рекламных запросов, отметки просмотренного. Есть рекомендации что посмотреть, анти-автозапуск, импорт/экспорт ЧС.
+// @version      1.3.14
+// @description  Рутубочист: очищает интерфейс RUTUBE. Добавлят ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki
 // @license      MIT
 // @homepageURL  https://npekpacho.github.io/rutubochist/
@@ -2243,7 +2243,6 @@
           <div class="rtst-modal-title-row">
             <div class="rtst-modal-title">Рутубочист</div>
             <button type="button" class="rtst-enable-toggle" id="rtst-enabled-toggle" data-rtst-action="toggle-enabled" data-state="on" aria-pressed="true">включён</button>
-            <button type="button" class="rtst-title-icon-btn" data-rtst-action="reset-view-history" title="Очистить историю просмотров">👁️‍🗨️</button>
           </div>
           <button type="button" data-rtst-action="close-modal" title="Закрыть">×</button>
         </div>
@@ -2289,6 +2288,7 @@
                 <button type="button" class="rtst-mini-btn rtst-mini-icon-btn" data-rtst-action="export-settings" title="Экспортировать настройки и списки">💾</button>
                 <button type="button" class="rtst-mini-btn rtst-mini-icon-btn" data-rtst-action="import-settings" title="Импортировать настройки и списки">📂</button>
                 <button type="button" class="rtst-mini-btn rtst-mini-icon-btn rtst-danger" data-rtst-action="reset-user" title="Очистить пользовательские списки">🗑</button>
+				<button type="button" class="rtst-title-icon-btn" data-rtst-action="reset-view-history" title="Сбросить кэш просмотров">👁️‍🗨️</button>
               </div>
               <input type="file" id="rtst-import-file" accept="application/json,.json">
             </div>
@@ -2805,7 +2805,7 @@
       el.removeAttribute('data-rtst-view-state');
       el.removeAttribute('data-rtst-view-percent');
     });
-    toast('История просмотров очищена.');
+    toast('Локальный кэш просмотров очищен.');
     rescanNow();
   }
 
