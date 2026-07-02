@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.3.25
+// @version      1.3.26
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki
 // @license      MIT
@@ -24,7 +24,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.3.25';
+  const UI_VERSION = '1.3.26';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -192,6 +192,7 @@
       rutubeAdApi: 0,
       bannerRules: 0,
       goyaBanner: 0,
+      safeModeBanner: 0,
       otherAd: 0,
       blockedBanner: 0,
       lastSeenAt: null,
@@ -239,6 +240,7 @@
         if (host === 'a.rutube.ru' && path.includes('/api/v1/ad/banner')) return 'banner';
         if (host === 'ac.rutube.ru' && path.includes('/api/v1/banner_rules')) return 'bannerRules';
         if (host === 'goya.rutube.ru' && path.includes('/v2/banner')) return 'goyaBanner';
+        if (host === 'static.rtbcdn.ru' && path.includes('/static/img/safe-mode/')) return 'safeModeBanner';
         if (host === 'ssp.rutube.ru') return 'ssp';
         if ((host === 'yandex.ru' || host.endsWith('.yandex.ru')) && path.includes('/ads/system/adsdk')) return 'yandexAdsSdk';
         if (host.includes('adfox') || full.includes('adfox')) return 'adfox';
@@ -264,6 +266,7 @@
           rutubeAdApi: 0,
           bannerRules: 0,
           goyaBanner: 0,
+          safeModeBanner: 0,
           otherAd: 0,
           blockedBanner: 0,
           lastSeenAt: null,
@@ -1883,7 +1886,30 @@
     const css = `
       html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] .video-page-layout-module__right,
       html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] .wdp-see-also-module__wrapper,
-      html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] section[aria-label="Рекомендации" i] {
+      html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] section[aria-label="Рекомендации" i],
+      html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] section[class*="safe-mode-video-banner-module__banner"],
+      html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] [class*="safe-mode-video-banner-module__banner"],
+      html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] [class*="safe-mode-video-banner-module__desktop"],
+      html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] [class*="safe-mode-video-banner-module__mobile"],
+      html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] img[src*="/safe-mode/banner-"] {
+        display: none !important;
+      }
+      @supports selector(:has(*)) {
+        html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] section:has(img[src*="/safe-mode/banner-"]),
+        html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] section:has([class*="safe-mode-video-banner-module__text"]),
+        html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] section:has([class*="safe-mode-video-banner-module__button"]) {
+          display: none !important;
+        }
+      }
+
+      html[data-rtst-enabled="1"][data-rtst-hide-comments="1"] a[href="/my/comments/"],
+      html[data-rtst-enabled="1"][data-rtst-hide-comments="1"] a[href^="/my/comments/"],
+      html[data-rtst-enabled="1"][data-rtst-hide-comments="1"] a.menu-item-module__menu-item[href="/my/comments/"],
+      html[data-rtst-enabled="1"][data-rtst-hide-comments="1"] a.wdp-mobile-menu-module__mobile-menu-item[href="/my/comments/"],
+      html[data-rtst-enabled="1"][data-rtst-hide-comments="1"] button[role="tab"][id^="tab-comments-"],
+      html[data-rtst-enabled="1"][data-rtst-hide-comments="1"] button[role="tab"][aria-controls^="tabpanel-comments-"],
+      html[data-rtst-enabled="1"][data-rtst-hide-comments="1"] [role="tab"][id^="tab-comments-"],
+      html[data-rtst-enabled="1"][data-rtst-hide-comments="1"] [role="tab"][aria-controls^="tabpanel-comments-"] {
         display: none !important;
       }
 
@@ -2449,6 +2475,7 @@
     root.dataset.rtstAutoFullscreen = (settings.enabled && settings.autoFullscreenOnRotate) ? '1' : '0';
     root.dataset.rtstDimSearchTrash = (settings.enabled && settings.dimSearchTrash !== false) ? '1' : '0';
     root.dataset.rtstHideVideoInfo = (settings.enabled && settings.hideVideoInfo) ? '1' : '0';
+    root.dataset.rtstHideComments = (settings.enabled && settings.hideComments) ? '1' : '0';
     root.dataset.rtstMarkWatched = (settings.enabled && settings.markWatchedVideos !== false) ? '1' : '0';
     updateDynamicCleanupStyle(cleanChromeOn);
   }
@@ -2458,7 +2485,7 @@
     const old = document.getElementById(styleId);
     const chromeOn = Boolean(cleanChromeOn != null ? cleanChromeOn : (settings.cleanRutubeChrome || settings.hideSideMenuPolitics));
     
-    if (isEmbeddedRutubePlayer() || !settings.enabled || (!chromeOn && !settings.hideShorts && !settings.cleanWatchPage && !settings.hideVideoInfo)) {
+    if (isEmbeddedRutubePlayer() || !settings.enabled || (!chromeOn && !settings.hideShorts && !settings.cleanWatchPage && !settings.hideVideoInfo && !settings.hideComments)) {
       if (old) old.remove();
       return;
     }
@@ -2538,7 +2565,7 @@
         hr.menu-divider-module__divider,
         button.menu-collapse-module__collapse-trigger[name="По темам"],
         button[name="По темам"][aria-roledescription*="по темам" i],
-        section.menu-auth-section-module__container,
+        section.menu-auth-section-module__container:not(:has(a[href="/my/"])),
         button[aria-label*="уведом" i],
         button[aria-label*="безопасн" i],
         button[aria-label*="отключить рекламу" i],
@@ -2574,6 +2601,24 @@
             display: none !important;
           }
         }
+
+        /* Рутубочист: «Моё» оставляем живым. Иначе сериалы превращаются в квест для особо стойких. */
+        a[href="/my/"],
+        a.menu-item-module__menu-item[href="/my/"],
+        a.wdp-mobile-menu-module__mobile-menu-item[href="/my/"] {
+          display: flex !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+          height: auto !important;
+          min-height: 40px !important;
+          pointer-events: auto !important;
+        }
+        a[href="/my/"] *,
+        a.menu-item-module__menu-item[href="/my/"] *,
+        a.wdp-mobile-menu-module__mobile-menu-item[href="/my/"] * {
+          visibility: visible !important;
+          opacity: 1 !important;
+        }
       `);
     }
 
@@ -2599,7 +2644,34 @@
       parts.push(`
         body[data-page="video"] .video-page-layout-module__right,
         body[data-page="video"] .wdp-see-also-module__wrapper,
-        body[data-page="video"] section[aria-label="Рекомендации" i] {
+        body[data-page="video"] section[aria-label="Рекомендации" i],
+        body[data-page="video"] section[class*="safe-mode-video-banner-module__banner"],
+        body[data-page="video"] [class*="safe-mode-video-banner-module__banner"],
+        body[data-page="video"] [class*="safe-mode-video-banner-module__desktop"],
+        body[data-page="video"] [class*="safe-mode-video-banner-module__mobile"],
+        body[data-page="video"] img[src*="/safe-mode/banner-"] {
+          display: none !important;
+        }
+        @supports selector(:has(*)) {
+          body[data-page="video"] section:has(img[src*="/safe-mode/banner-"]),
+          body[data-page="video"] section:has([class*="safe-mode-video-banner-module__text"]),
+          body[data-page="video"] section:has([class*="safe-mode-video-banner-module__button"]) {
+            display: none !important;
+          }
+        }
+      `);
+    }
+
+    if (settings.hideComments) {
+      parts.push(`
+        a[href="/my/comments/"],
+        a[href^="/my/comments/"],
+        a.menu-item-module__menu-item[href="/my/comments/"],
+        a.wdp-mobile-menu-module__mobile-menu-item[href="/my/comments/"],
+        button[role="tab"][id^="tab-comments-"],
+        button[role="tab"][aria-controls^="tabpanel-comments-"],
+        [role="tab"][id^="tab-comments-"],
+        [role="tab"][aria-controls^="tabpanel-comments-"] {
           display: none !important;
         }
       `);
@@ -3926,6 +3998,7 @@
         Number(stats.banner || 0) ||
         Number(stats.bannerRules || 0) ||
         Number(stats.goyaBanner || 0) ||
+        Number(stats.safeModeBanner || 0) ||
         Number(stats.blockedBanner || 0)
       );
     } catch (e) {
@@ -4330,6 +4403,7 @@
         scanShowcaseBanners(document);
         reorderSidebar();
       }
+      if (settings.hideComments) hideComments();
       applyHiddenVisibility();
       updateCounter();
       return;
@@ -4361,7 +4435,7 @@
     hideShortsBlocks(); 
     if (settings.cleanWatchPage) cleanWatchPage();
     if (settings.hideVideoInfo && isVideoPage()) hideVideoInfo();
-    if (settings.hideComments && isVideoPage()) hideComments();
+    if (settings.hideComments) hideComments();
     if (settings.disableAutoplay) scanAutoplayVideos();
     
     applyHiddenVisibility();
@@ -4515,6 +4589,7 @@
     if (!isWatchPage()) return;
     addHomeButtonNearSubscribe();
     hideWatchRecommendationsBySelector();
+    hideSafeModeVideoBanner();
     hideRutubeSelfPromo();
   }
 
@@ -4540,6 +4615,25 @@
       
       if (!(hasRecLabel || hasGrid || hasVideoLinks || isKnownRecWrapper)) return;
       softHideViewElement(target, 'рекомендации под видео');
+    });
+  }
+
+  function hideSafeModeVideoBanner() {
+    if (!isWatchPage()) return;
+
+    const selectors = [
+      'section[class*="safe-mode-video-banner-module__banner"]',
+      '[class*="safe-mode-video-banner-module__banner"]',
+      '[class*="safe-mode-video-banner-module__desktop"]',
+      '[class*="safe-mode-video-banner-module__mobile"]',
+      'img[src*="/safe-mode/banner-"]'
+    ];
+
+    document.querySelectorAll(selectors.join(',')).forEach((el) => {
+      if (!el || isRtstUiElement(el) || isInsidePlayer(el) || containsVideoPlayer(el) || isProtectedHeader(el)) return;
+      const target = el.closest('section[class*="safe-mode-video-banner-module__banner"]') || findSmallViewTarget(el) || el;
+      if (!target || isInsidePlayer(target) || containsVideoPlayer(target)) return;
+      softHideViewElement(target, 'баннер безопасного режима');
     });
   }
 
@@ -4621,7 +4715,28 @@
     });
   }
 
+  function hideMyCommentsNavigation() {
+    if (!settings.hideComments) return;
+
+    document.querySelectorAll('a[href="/my/comments/"], a[href^="/my/comments/"]').forEach((a) => {
+      if (isRtstUiElement(a) || isProtectedHeader(a)) return;
+      const target = a.closest('li, [role="listitem"], a.menu-item-module__menu-item, a.wdp-mobile-menu-module__mobile-menu-item') || a;
+      forceHideChromeElement(target, 'пункт: комментарии в «Моё»');
+    });
+
+    document.querySelectorAll('button[role="tab"], [role="tab"]').forEach((tab) => {
+      if (isRtstUiElement(tab) || isProtectedHeader(tab)) return;
+      const text = normalize(tab.textContent || tab.getAttribute('aria-label') || '');
+      const id = normalize(tab.id || '');
+      const controls = normalize(tab.getAttribute('aria-controls') || '');
+      const looksLikeCommentsTab = text === 'комментарии' || id.includes('comments') || controls.includes('comments');
+      if (!looksLikeCommentsTab) return;
+      forceHideChromeElement(tab, 'вкладка: комментарии в «Моё»');
+    });
+  }
+
   function hideComments() {
+    hideMyCommentsNavigation();
     if (!isVideoPage()) return;
 
     const selectors = [
@@ -4749,10 +4864,6 @@
   function cleanRutubeChrome() {
     const exactItems = ['rutube для блогеров', 'rutube x premier', 'rutube x start', 'активировать промокод', 'по темам', 'вопросы и ответы', 'сообщить о проблеме', 'письмо в поддержку', 'поддержка в max', 'help@rutube.ru', 'о rutube', 'направления деятельности', 'пользовательское соглашение', 'конфиденциальность', 'правовая информация', 'рекомендательная система', 'фирменный стиль'];
     const blockHeadings = ['rutube всегда с вами', 'cкачать приложения', 'скачать приложения', 'больше от rutube', 'rutube в других соцсетях'];
-
-    document.querySelectorAll('section[aria-label="Моё" i], section[aria-label="Мое" i]').forEach((section) => {
-      if (!section.closest('#rtst-panel')) forceHideChromeElement(section, 'раздел: мое');
-    });
 
     document.querySelectorAll('.wdp-onboardings-inventory-banner-module__wrapper-section, section[class*="onboardings-inventory-banner-module__wrapper-section"]').forEach((banner) => {
       if (!isRtstUiElement(banner)) forceHideChromeElement(banner, 'баннер rutube');
