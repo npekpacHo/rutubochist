@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.3.29
+// @version      1.3.31
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki
 // @license      MIT
@@ -24,7 +24,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.3.29';
+  const UI_VERSION = '1.3.31';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -1281,8 +1281,10 @@
 
     const rutubeGestureOverlaySelector = [
       '[class*="info-layer-module__wrapper" i]',
-      '[class*="mobile-seek-handler-module__" i]',
-      '[class*="tap-rewind-animation-module__" i]'
+      '[class*="x2" i]',
+      '[class*="double-speed" i]',
+      '[class*="playback-rate" i]',
+      '[class*="speed" i]'
     ].join(',');
 
     function isSwipeVolumeEnabled() {
@@ -1403,6 +1405,60 @@
         const vw = Math.max(1, window.innerWidth || document.documentElement.clientWidth || 1);
         const vh = Math.max(1, window.innerHeight || document.documentElement.clientHeight || 1);
         return r.width >= vw * 0.62 && r.height >= vh * 0.32;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function isPointInsideRect(point, rect, pad = 0) {
+      if (!point || !rect) return false;
+      return (
+        point.x >= rect.left - pad &&
+        point.x <= rect.right + pad &&
+        point.y >= rect.top - pad &&
+        point.y <= rect.bottom + pad
+      );
+    }
+
+    function isPointInVolumeSwipeZone(point, video, target) {
+      if (!point || !video) return false;
+
+      const gradientSelector = '[class*="controls-gradient-module__gradient" i], [class*="controls-gradient" i]';
+      const player = findPlayerRootForVideo(video) || video;
+
+      // Основная зона для свайпа громкости: нижний градиент панели управления RUTUBE.
+      // Это нижняя треть горизонтального/fullscreen-плеера, где свайп меньше конфликтует
+      // со штатным двойным тапом по краям для перемотки ±10 секунд.
+      try {
+        if (target && target.closest && target.closest(gradientSelector)) return true;
+      } catch (e) {}
+
+      try {
+        const scope = player && player.querySelectorAll ? player : document;
+        const gradients = [...scope.querySelectorAll(gradientSelector)].filter((el) => {
+          if (!el || !el.getBoundingClientRect) return false;
+          const r = el.getBoundingClientRect();
+          if (r.width < 80 || r.height < 12) return false;
+          if (r.bottom < 0 || r.right < 0 || r.top > window.innerHeight || r.left > window.innerWidth) return false;
+          return isPointInsideRect(point, r, 18);
+        });
+        if (gradients.length) return true;
+      } catch (e) {}
+
+      try {
+        const r = (player && player.getBoundingClientRect ? player : video).getBoundingClientRect();
+        const visibleWidth = Math.max(1, Math.min(r.right, window.innerWidth || document.documentElement.clientWidth || r.right) - Math.max(r.left, 0));
+        const visibleHeight = Math.max(1, Math.min(r.bottom, window.innerHeight || document.documentElement.clientHeight || r.bottom) - Math.max(r.top, 0));
+        const looksLikePlayer = r.width > 120 && r.height > 80 && visibleWidth > 80 && visibleHeight > 60;
+        if (!looksLikePlayer) return false;
+
+        const zoneTop = r.top + r.height * 0.64;
+        return (
+          point.x >= r.left - 12 &&
+          point.x <= r.right + 12 &&
+          point.y >= zoneTop &&
+          point.y <= r.bottom + 18
+        );
       } catch (e) {
         return false;
       }
@@ -1560,17 +1616,23 @@
       const scope = root && root.querySelectorAll ? root : document;
       try {
         scope.querySelectorAll(rutubeGestureOverlaySelector).forEach((el) => {
-          const text = normalize(el.textContent || '');
+          const txt = normalize(el.textContent || '');
           const cls = normalize(el.className || '');
-          if (
-            text.includes('x2') ||
-            text.includes('+10') ||
-            text.includes('-10') ||
-            text.includes('секунд') ||
-            cls.includes('info layer') ||
-            cls.includes('mobile seek handler') ||
-            cls.includes('tap rewind animation')
-          ) {
+          const looksLikeFastPlayback = (
+            txt.includes('x2') ||
+            txt.includes('2x') ||
+            txt.includes('ускор') ||
+            cls.includes('x2') ||
+            cls.includes('double speed') ||
+            cls.includes('double-speed') ||
+            cls.includes('playback rate') ||
+            cls.includes('playback-rate') ||
+            cls.includes('speed')
+          );
+
+          // Важно: не трогаем mobile-seek-handler / tap-rewind.
+          // Это штатная мобильная перемотка двойным тапом ±10 секунд.
+          if (looksLikeFastPlayback) {
             el.classList.add('rtst-player-ad-hidden');
           }
         });
@@ -1698,10 +1760,10 @@
       const video = findVideoForGesture(target);
       if (!video || !isLandscapeOrFullscreen(video)) return;
       if (!isPointOnVisibleVideoOrPlayer(point, video)) return;
+      if (!isPointInVolumeSwipeZone(point, video, target)) return;
       if (isInteractiveTarget(target, video)) return;
 
       applySavedVolumeToVideo(video);
-      setVolumeTouchFlag(true);
       hideRutubeGestureOverlays(document);
 
       gesture.active = true;
@@ -1741,6 +1803,7 @@
         }
 
         gesture.moved = true;
+        setVolumeTouchFlag(true);
         dispatchSyntheticRutubeCancel(source, point);
       }
 
@@ -2221,19 +2284,11 @@
         position: fixed !important;
         top: 14px !important;
       }
-      html[data-rtst-volume-touch="1"] [class*="info-layer-module__wrapper" i],
-      html[data-rtst-volume-touch="1"] [class*="mobile-seek-handler-module__" i],
-      html[data-rtst-volume-touch="1"] [class*="tap-rewind-animation-module__" i],
       html[data-rtst-volume-touch="1"] [class*="x2" i],
-      html[data-rtst-volume-touch="1"] [class*="double" i],
-      html[data-rtst-volume-touch="1"] [class*="speed" i],
+      html[data-rtst-volume-touch="1"] [class*="double-speed" i],
       html[data-rtst-volume-touch="1"] [class*="playback-rate" i],
-      html[data-rtst-volume-gesture="1"] [class*="info-layer-module__wrapper" i],
-      html[data-rtst-volume-gesture="1"] [class*="mobile-seek-handler-module__" i],
-      html[data-rtst-volume-gesture="1"] [class*="tap-rewind-animation-module__" i],
       html[data-rtst-volume-gesture="1"] [class*="x2" i],
-      html[data-rtst-volume-gesture="1"] [class*="double" i],
-      html[data-rtst-volume-gesture="1"] [class*="speed" i],
+      html[data-rtst-volume-gesture="1"] [class*="double-speed" i],
       html[data-rtst-volume-gesture="1"] [class*="playback-rate" i] {
         display: none !important;
         visibility: hidden !important;
