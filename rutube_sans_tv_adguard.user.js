@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.3.27
+// @version      1.3.29
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki
 // @license      MIT
@@ -24,7 +24,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.3.27';
+  const UI_VERSION = '1.3.29';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -2566,11 +2566,14 @@
         a.menu-item-module__menu-item[href="/feeds/travel/"],
         a.menu-item-module__menu-item[href="/feeds/stream/"],
         a.menu-item-module__menu-item[href="/feeds/sport/"],
+        a.menu-item-module__menu-item[href="/feeds/kids/"],
         a.menu-item-module__menu-item[href="/feeds/chempionat-mira-po-futbolu-2026/"],
         a.wdp-mobile-menu-module__mobile-menu-item[href="/feeds/travel/"],
         a.wdp-mobile-menu-module__mobile-menu-item[href="/feeds/stream/"],
         a.wdp-mobile-menu-module__mobile-menu-item[href="/feeds/sport/"],
+        a.wdp-mobile-menu-module__mobile-menu-item[href="/feeds/kids/"],
         a.wdp-mobile-menu-module__mobile-menu-item[href="/feeds/chempionat-mira-po-futbolu-2026/"],
+        a[href="/feeds/kids/"],
         a[href="/feeds/chempionat-mira-po-futbolu-2026/"],
         section[aria-label="Галерея Выбор RUTUBE" i] {
           display: none !important;
@@ -2593,11 +2596,10 @@
           }
         }
 
-        /* Рутубочист: «Моё» оставляем живым. Иначе сериалы превращаются в квест для особо стойких. */
+        /* Рутубочист: «Моё» оставляем живым в мобильном меню, но на ПК убираем дубль-ссылку. */
         a[href="/my/"],
         a.menu-item-module__menu-item[href="/my/"],
         a.wdp-mobile-menu-module__mobile-menu-item[href="/my/"] {
-          display: flex !important;
           visibility: visible !important;
           opacity: 1 !important;
           height: auto !important;
@@ -2609,6 +2611,14 @@
         a.wdp-mobile-menu-module__mobile-menu-item[href="/my/"] * {
           visibility: visible !important;
           opacity: 1 !important;
+        }
+
+        @supports selector(body:has(section)) {
+          body:has(section[aria-label="Моё" i]) a.menu-item-module__menu-item[href="/my/"],
+          body:has(section[aria-label="Моё" i]) a.wdp-mobile-menu-module__mobile-menu-item[href="/my/"],
+          body:has(section[aria-label="Моё" i]) a[href="/my/"] {
+            display: none !important;
+          }
         }
       `);
     }
@@ -4836,8 +4846,33 @@
     });
   }
 
+
+  function hideDuplicateMyRootLink() {
+    const mySection = document.querySelector('section[aria-label="Моё" i]');
+    const links = document.querySelectorAll('a[href="/my/"], a[href^="/my/?"], a[href^="/my/#"]');
+
+    links.forEach((a) => {
+      if (!a || a.closest('#rtst-panel')) return;
+
+      const wasHiddenByRtst = a.dataset && a.dataset.rtstReason === 'скрыто, дубль: Моё';
+
+      if (!mySection) {
+        if (wasHiddenByRtst) {
+          a.classList.remove('rtst-chrome-hidden');
+          a.removeAttribute('data-rtst-chrome-hidden');
+          a.removeAttribute('data-rtst-reason');
+        }
+        return;
+      }
+
+      if (a.closest('section[aria-label="Моё" i]')) return;
+
+      forceHideChromeElement(a, 'дубль: Моё');
+    });
+  }
+
   function cleanRutubeChrome() {
-    const exactItems = ['rutube для блогеров', 'rutube x premier', 'rutube x start', 'активировать промокод', 'по темам', 'вопросы и ответы', 'сообщить о проблеме', 'письмо в поддержку', 'поддержка в max', 'help@rutube.ru', 'о rutube', 'направления деятельности', 'пользовательское соглашение', 'конфиденциальность', 'правовая информация', 'рекомендательная система', 'фирменный стиль'];
+    const exactItems = ['rutube для блогеров', 'rutube x premier', 'rutube x start', 'активировать промокод', 'по темам', 'детям', 'вопросы и ответы', 'сообщить о проблеме', 'письмо в поддержку', 'поддержка в max', 'help@rutube.ru', 'о rutube', 'направления деятельности', 'пользовательское соглашение', 'конфиденциальность', 'правовая информация', 'рекомендательная система', 'фирменный стиль'];
     const blockHeadings = ['rutube всегда с вами', 'cкачать приложения', 'скачать приложения', 'больше от rutube', 'rutube в других соцсетях'];
 
     document.querySelectorAll('.wdp-onboardings-inventory-banner-module__wrapper-section, section[class*="onboardings-inventory-banner-module__wrapper-section"]').forEach((banner) => {
@@ -4855,6 +4890,12 @@
     document.querySelectorAll('a[href*="/feeds/start/"], a[href*="/feeds/premier/"]').forEach((a) => {
       if (!a.closest('#rtst-panel')) softHideChromeElement(findChromeItemTarget(a), 'пункт: rutube x start/premier');
     });
+
+    document.querySelectorAll('a[href="/feeds/kids/"], a[href*="/feeds/kids/"]').forEach((a) => {
+      if (!a.closest('#rtst-panel')) softHideChromeElement(findChromeItemTarget(a), 'пункт: детям');
+    });
+
+    hideDuplicateMyRootLink();
 
     document.querySelectorAll('a[href="/feeds/chempionat-mira-po-futbolu-2026/"], a[href*="/feeds/chempionat-mira-po-futbolu-2026/"]').forEach((a) => {
       if (!a.closest('#rtst-panel')) softHideChromeElement(findChromeItemTarget(a), 'пункт: чм-2026');
