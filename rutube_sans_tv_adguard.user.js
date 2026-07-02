@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.3.26
+// @version      1.3.27
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki
 // @license      MIT
@@ -24,7 +24,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.3.26';
+  const UI_VERSION = '1.3.27';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -1886,20 +1886,11 @@
     const css = `
       html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] .video-page-layout-module__right,
       html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] .wdp-see-also-module__wrapper,
-      html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] section[aria-label="Рекомендации" i],
-      html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] section[class*="safe-mode-video-banner-module__banner"],
-      html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] [class*="safe-mode-video-banner-module__banner"],
-      html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] [class*="safe-mode-video-banner-module__desktop"],
-      html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] [class*="safe-mode-video-banner-module__mobile"],
-      html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] img[src*="/safe-mode/banner-"] {
+      html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] section[aria-label="Рекомендации" i] {
         display: none !important;
       }
-      @supports selector(:has(*)) {
-        html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] section:has(img[src*="/safe-mode/banner-"]),
-        html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] section:has([class*="safe-mode-video-banner-module__text"]),
-        html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] section:has([class*="safe-mode-video-banner-module__button"]) {
-          display: none !important;
-        }
+      html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] [class*="safe-mode-video-banner-module__banner"] {
+        display: none !important;
       }
 
       html[data-rtst-enabled="1"][data-rtst-hide-comments="1"] a[href="/my/comments/"],
@@ -2644,20 +2635,11 @@
       parts.push(`
         body[data-page="video"] .video-page-layout-module__right,
         body[data-page="video"] .wdp-see-also-module__wrapper,
-        body[data-page="video"] section[aria-label="Рекомендации" i],
-        body[data-page="video"] section[class*="safe-mode-video-banner-module__banner"],
-        body[data-page="video"] [class*="safe-mode-video-banner-module__banner"],
-        body[data-page="video"] [class*="safe-mode-video-banner-module__desktop"],
-        body[data-page="video"] [class*="safe-mode-video-banner-module__mobile"],
-        body[data-page="video"] img[src*="/safe-mode/banner-"] {
+        body[data-page="video"] section[aria-label="Рекомендации" i] {
           display: none !important;
         }
-        @supports selector(:has(*)) {
-          body[data-page="video"] section:has(img[src*="/safe-mode/banner-"]),
-          body[data-page="video"] section:has([class*="safe-mode-video-banner-module__text"]),
-          body[data-page="video"] section:has([class*="safe-mode-video-banner-module__button"]) {
-            display: none !important;
-          }
+        body[data-page="video"] [class*="safe-mode-video-banner-module__banner"] {
+          display: none !important;
         }
       `);
     }
@@ -4621,19 +4603,12 @@
   function hideSafeModeVideoBanner() {
     if (!isWatchPage()) return;
 
-    const selectors = [
-      'section[class*="safe-mode-video-banner-module__banner"]',
-      '[class*="safe-mode-video-banner-module__banner"]',
-      '[class*="safe-mode-video-banner-module__desktop"]',
-      '[class*="safe-mode-video-banner-module__mobile"]',
-      'img[src*="/safe-mode/banner-"]'
-    ];
-
-    document.querySelectorAll(selectors.join(',')).forEach((el) => {
+    // Важно: скрываем только сам баннер безопасного режима.
+    // Не ищем родителей через :has(img) и не используем findSmallViewTarget(),
+    // иначе можно зацепить контейнер страницы и получить пустой экран вместо видео.
+    document.querySelectorAll('[class*="safe-mode-video-banner-module__banner"]').forEach((el) => {
       if (!el || isRtstUiElement(el) || isInsidePlayer(el) || containsVideoPlayer(el) || isProtectedHeader(el)) return;
-      const target = el.closest('section[class*="safe-mode-video-banner-module__banner"]') || findSmallViewTarget(el) || el;
-      if (!target || isInsidePlayer(target) || containsVideoPlayer(target)) return;
-      softHideViewElement(target, 'баннер безопасного режима');
+      softHideViewElement(el, 'баннер безопасного режима');
     });
   }
 
