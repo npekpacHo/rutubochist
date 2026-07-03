@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.3.33
+// @version      1.3.36
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki
 // @license      MIT
@@ -24,7 +24,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.3.33';
+  const UI_VERSION = '1.3.36';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -58,6 +58,7 @@
     'уральские пельмени', 'звезды сошлись', 'секрет на миллион', 'ивлеева', 'бузова', 
     'даня милохин', 'моргенштерн', 'инстасамка', 'вдудь', 'собчак', 'шокирующая правда', 'скандал',
 
+
     // === ЯВНАЯ ПОЛИТИКА / НОВОСТИ ===
     'новости', 'срочные новости', 'экстренное', 'сенсация', 'политика', 'геополитика', 'госдума', 
     'совфед', 'кремль', 'правительство', 'минобороны', 'мид россии', 'песков', 'медведев', 'война',
@@ -76,6 +77,12 @@
     'итоги недели', 'вести недели', 'вести', 'события', 'прямой эфир', 'ток-шоу', 'воскресный вечер', 
     'антифейк', 'скабеева', 'шейнин', 'кузичев', 'мардан', 'киселев', 'кеосаян', 'симоньян', 'михеев', 
     'корчевников', 'норкин', 'куликов', 'понасенков'
+  ];
+
+  const GOOGLE_SEARCH_EXCLUDE_WORDS = [
+    'обзор', 'отзыв', 'трейлер', 'трейлеры', 'trailer', 'trailers', 'тизер', 'рецензия',
+    'разбор', 'пересказ', 'сюжет', 'нарезка', 'фрагмент',
+    'лучшие моменты', 'перезалив', 'перезалито'
   ];
 
   const SETTINGS_DEFAULTS = {
@@ -123,6 +130,13 @@
         userChannels: unique([...(saved.userChannels || [])]), userWords: unique([...(saved.userWords || [])])
       };
       merged.hardRemove = false;
+
+      // В 1.3.34 поисковые минус-слова ошибочно попали в общий список фильтрации.
+      // Держим их отдельно, чтобы Google-запрос не был простынёй, а лента не теряла
+      // нормальные ролики только потому, что кто-то написал «трейлер» в названии.
+      const googleExcludeSet = new Set(GOOGLE_SEARCH_EXCLUDE_WORDS.map((word) => normalize(word)));
+      merged.blockedWords = unique(merged.blockedWords || DEFAULT_BLOCKED_WORDS).filter((word) => !googleExcludeSet.has(normalize(word)));
+
       if (typeof saved.cleanRutubeChrome !== 'boolean' && typeof saved.hideSideMenuPolitics === 'boolean') {
         merged.cleanRutubeChrome = saved.hideSideMenuPolitics;
       }
@@ -3152,7 +3166,7 @@
     const metaHtml = genresHtml + ratingsHtml;
     const googleOk = isExternalSearchAvailable();
     const googleTitle = googleOk
-      ? `Искать через Google: ${query} · site:rutube.ru`
+      ? `Искать через Google: ${query} · site:rutube.ru · без обзоров/трейлеров`
       : 'Google-поиск доступен только когда GitHub/интернет доступен.';
     return `
       <div class="rtst-movie-row" data-rtst-query="${escapeAttribute(query)}">
@@ -3399,7 +3413,7 @@
       btn.dataset.state = ok ? 'ok' : 'bad';
       const query = btn.dataset.rtstQuery || '';
       btn.title = ok
-        ? `Искать через Google: ${query} · site:rutube.ru`
+        ? `Искать через Google: ${query} · site:rutube.ru · без обзоров/трейлеров`
         : 'Google-поиск доступен только когда GitHub/интернет доступен.';
     });
   }
@@ -3462,6 +3476,25 @@
     location.href = 'https://rutube.ru/search/?' + params.toString();
   }
 
+  function googleExcludeWordsForQuery(query) {
+    const cleanQuery = String(query || '').trim();
+    const normalizedQuery = normalize(cleanQuery);
+    const queryNeedle = normalizedQuery ? ` ${normalizedQuery} ` : '';
+
+    return unique(GOOGLE_SEARCH_EXCLUDE_WORDS).filter((word) => {
+      const cleanWord = String(word || '').trim();
+      const normalizedWord = normalize(cleanWord);
+      if (!normalizedWord || normalizedWord.length < 3) return false;
+
+      // Не исключаем слово, если оно само входит в название. Иначе Google честно
+      // выполнит взаимоисключающий запрос и покажет пустоту, как будто ему мало поводов.
+      if (queryNeedle && queryNeedle.includes(` ${normalizedWord} `)) return false;
+      if (normalizedQuery && normalizedWord.includes(normalizedQuery)) return false;
+
+      return true;
+    });
+  }
+
   function openGoogleMovieSearch(query) {
     const clean = String(query || '').trim();
     if (!clean) { toast('Поисковый запрос пуст.'); return; }
@@ -3469,11 +3502,16 @@
       toast('Google-поиск отключён: GitHub недоступен. Похоже, Чебурнет.');
       return;
     }
+    const visibleQuery = `${clean} site:rutube.ru`;
     const params = new URLSearchParams({
+      q: visibleQuery,
       as_q: clean,
       as_sitesearch: 'rutube.ru',
       newwindow: '1'
     });
+    const excludeWords = googleExcludeWordsForQuery(clean);
+    if (excludeWords.length) params.set('as_eq', excludeWords.join(' '));
+
     const opened = window.open('https://www.google.com/search?' + params.toString(), '_blank', 'noopener,noreferrer');
     if (!opened) toast('Браузер заблокировал новую вкладку.');
   }
