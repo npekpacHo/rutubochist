@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.3.32
+// @version      1.3.33
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki
 // @license      MIT
@@ -24,7 +24,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.3.31';
+  const UI_VERSION = '1.3.33';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -2252,6 +2252,12 @@
       .rtst-movie-title-line { display: block !important; color: #f4fff7 !important; font-weight: 800 !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
       .rtst-movie-meta-line { display: flex !important; flex-wrap: wrap !important; gap: 4px 12px !important; margin-top: 6px !important; color: rgba(244,255,247,.76) !important; font-size: 11px !important; }
       .rtst-movie-meta-line span { display: inline-flex !important; align-items: center !important; white-space: nowrap !important; }
+      .rtst-movie-search-line { display: flex !important; align-items: center !important; gap: 6px !important; flex-wrap: wrap !important; margin-top: 8px !important; color: rgba(244,255,247,.70) !important; font: 11px/1.3 Arial, sans-serif !important; }
+      .rtst-movie-search-label { flex: 0 0 auto !important; opacity: .84 !important; }
+      .rtst-modal .rtst-movie-search-btn { min-height: 28px !important; padding: 5px 10px !important; border-radius: 8px !important; background: rgba(255,255,255,.10) !important; color: #f4fff7 !important; border: 1px solid rgba(255,255,255,.14) !important; box-shadow: none !important; font: 800 11px/1.2 Arial, sans-serif !important; }
+      .rtst-modal .rtst-movie-search-btn:hover { filter: none !important; background: rgba(255,255,255,.17) !important; }
+      .rtst-modal .rtst-movie-google-btn[data-state="ok"] { border-color: rgba(83,255,124,.36) !important; background: rgba(83,255,124,.10) !important; }
+      .rtst-modal .rtst-movie-google-btn:disabled { opacity: .42 !important; cursor: not-allowed !important; filter: grayscale(1) !important; }
       .rtst-movie-loading, .rtst-movie-error, .rtst-movie-empty { padding: 10px !important; border: 1px solid rgba(255,255,255,.10) !important; border-radius: 8px !important; background: rgba(255,255,255,.055) !important; color: rgba(244,255,247,.82) !important; font: 12px/1.4 Arial, sans-serif !important; }
       .rtst-movie-error { color: #ffd6d2 !important; }
       .rtst-toast { position: fixed !important; right: 14px !important; bottom: 14px !important; z-index: 2147483647 !important; max-width: calc(100vw - 28px) !important; padding: 8px 10px !important; border-radius: 8px !important; background: rgba(0,0,0,.86) !important; color: #fff !important; font: 12px/1.3 Arial, sans-serif !important; box-shadow: 0 8px 30px rgba(0,0,0,.3) !important; }
@@ -2373,6 +2379,8 @@
         .rtst-modal.rtst-movie-modal { width: 100vw !important; max-width: 100vw !important; }
         .rtst-modal .rtst-movie-row { min-height: 60px !important; font-size: 14px !important; padding: 12px !important; margin-bottom: 8px !important; }
         .rtst-movie-meta-line { gap: 6px 10px !important; margin-top: 8px !important; font-size: 12px !important; }
+        .rtst-movie-search-line { margin-top: 10px !important; gap: 8px !important; }
+        .rtst-modal .rtst-movie-search-btn { flex: 1 1 120px !important; min-height: 42px !important; font-size: 13px !important; padding: 8px 10px !important; }
         .rtst-movie-toolbar { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; }
         .rtst-movie-nav { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 8px !important; }
         .rtst-movie-nav button { width: 100% !important; padding-left: 8px !important; padding-right: 8px !important; }
@@ -2945,6 +2953,7 @@
       if (action === 'movie-refresh') { refreshMovieNavigator(); return; }
       if (action === 'movie-random') { openRandomMovieSearch(); return; }
       if (action === 'movie-search') { event.preventDefault(); event.stopPropagation(); openRutubeMovieSearch(actionEl.dataset.rtstQuery || '', actionEl.dataset.rtstTrailer === '1'); return; }
+      if (action === 'movie-search-google') { event.preventDefault(); event.stopPropagation(); openGoogleMovieSearch(actionEl.dataset.rtstQuery || ''); return; }
       if (action === 'movie-source') { event.preventDefault(); event.stopPropagation(); openExternalMovieSource(actionEl.dataset.rtstUrl || ''); return; }
       if (action === 'update-movie-db') { event.preventDefault(); event.stopPropagation(); updateMovieDbFromSettings(actionEl); return; }
       if (action === 'open-list-modal') { openListModal(actionEl.dataset.rtstList || 'channels'); return; }
@@ -3141,11 +3150,20 @@
     const genresHtml = renderMovieGenres(movie && movie.genres);
     const ratingsHtml = renderMovieRatings(movie && movie.ratings);
     const metaHtml = genresHtml + ratingsHtml;
+    const googleOk = isExternalSearchAvailable();
+    const googleTitle = googleOk
+      ? `Искать через Google: ${query} · site:rutube.ru`
+      : 'Google-поиск доступен только когда GitHub/интернет доступен.';
     return `
-      <button type="button" class="rtst-movie-row" data-rtst-action="movie-search" data-rtst-query="${escapeAttribute(query)}" title="Искать на RUTUBE: ${escapeAttribute(query)}">
+      <div class="rtst-movie-row" data-rtst-query="${escapeAttribute(query)}">
         <span class="rtst-movie-title-line">${escapeHtml(title)}</span>
         <span class="rtst-movie-meta-line">${metaHtml || '<span>без жанров и рейтингов</span>'}</span>
-      </button>`;
+        <span class="rtst-movie-search-line">
+          <span class="rtst-movie-search-label">Искать в:</span>
+          <button type="button" class="rtst-movie-search-btn rtst-movie-rutube-btn" data-rtst-action="movie-search" data-rtst-query="${escapeAttribute(query)}" title="Искать на RUTUBE: ${escapeAttribute(query)}">▶ RUTUBE</button>
+          <button type="button" class="rtst-movie-search-btn rtst-movie-google-btn" data-rtst-action="movie-search-google" data-rtst-query="${escapeAttribute(query)}" data-state="${googleOk ? 'ok' : 'bad'}" title="${escapeAttribute(googleTitle)}" ${googleOk ? '' : 'disabled'}>🔎 Google</button>
+        </span>
+      </div>`;
   }
 
   function movieTitleLine(movie) {
@@ -3367,6 +3385,23 @@
   function setGithubState(state, message) {
     githubState = { state, checkedAt: Date.now(), message: message || '' };
     syncGithubBadge();
+    syncMovieExternalSearchButtons();
+  }
+
+  function isExternalSearchAvailable() {
+    return githubState && githubState.state === 'ok';
+  }
+
+  function syncMovieExternalSearchButtons() {
+    const ok = isExternalSearchAvailable();
+    document.querySelectorAll('.rtst-movie-google-btn').forEach((btn) => {
+      btn.disabled = !ok;
+      btn.dataset.state = ok ? 'ok' : 'bad';
+      const query = btn.dataset.rtstQuery || '';
+      btn.title = ok
+        ? `Искать через Google: ${query} · site:rutube.ru`
+        : 'Google-поиск доступен только когда GitHub/интернет доступен.';
+    });
   }
 
   function syncGithubBadge() {
@@ -3425,6 +3460,22 @@
     const finalQuery = trailer ? `${clean} трейлер` : clean;
     const params = new URLSearchParams({ query: finalQuery, content_type: 'video' });
     location.href = 'https://rutube.ru/search/?' + params.toString();
+  }
+
+  function openGoogleMovieSearch(query) {
+    const clean = String(query || '').trim();
+    if (!clean) { toast('Поисковый запрос пуст.'); return; }
+    if (!isExternalSearchAvailable()) {
+      toast('Google-поиск отключён: GitHub недоступен. Похоже, Чебурнет.');
+      return;
+    }
+    const params = new URLSearchParams({
+      as_q: clean,
+      as_sitesearch: 'rutube.ru',
+      newwindow: '1'
+    });
+    const opened = window.open('https://www.google.com/search?' + params.toString(), '_blank', 'noopener,noreferrer');
+    if (!opened) toast('Браузер заблокировал новую вкладку.');
   }
 
   function openExternalMovieSource(url) {
