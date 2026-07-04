@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.3.44
-// @description  Рутубочист: 1.3.44 очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
+// @version      1.3.45
+// @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki
 // @license      MIT
 // @homepageURL  https://npekpacho.github.io/rutubochist/
@@ -24,7 +24,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.3.44';
+  const UI_VERSION = '1.3.45';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -3071,7 +3071,7 @@
             <div class="rtst-small" id="rtst-movie-cache-status">${escapeHtml(movieCacheStatusText())}</div>
             <div class="rtst-small" id="rtst-movie-auto-status">${escapeHtml(movieAutoUpdateStatusText())}</div>
             <div class="rtst-actions">
-              <button type="button" class="rtst-mini-btn" data-rtst-action="update-movie-db">Обновить базу</button>
+              <button type="button" class="rtst-mini-btn" data-rtst-action="update-movie-db">Обновить вручную</button>
             </div>
           </div>
 
@@ -3080,7 +3080,7 @@
             <div class="rtst-row"><label><input type="checkbox" id="rtst-show-hidden"> показывать скрытые карточки бледным</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-menu"> чистить боковое меню, шапку и промо-блоки</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-shorts"> скрывать Шортсы</label></div>
-            <div class="rtst-row"><label><input type="checkbox" id="rtst-dim-search-trash"> приглушать мусор</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-dim-search-trash"> помечать мусор в поиске</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-mark-watched"> помечать просмотренные видео</label></div>
           </div>
 
@@ -3220,11 +3220,11 @@
     if (!clean) return '';
     const finalQuery = trailer ? `${clean} трейлер` : clean;
 
-    // Штатный поиск RUTUBE с мобильной строки уходит на /search/?query=...
-    // без content_type=video. Дополнительный content_type иногда оставляет
-    // реальный мобильный RUTUBE в чёрном экране, особенно при включённой
-    // зачистке интерфейса. Идём тем же маршрутом, что и родной поиск.
-    const params = new URLSearchParams({ query: finalQuery });
+    // После деликатного скрытия Shorts возвращаем video-фильтр. Он нужен,
+    // чтобы кнопка из «Что посмотреть» сразу вела в видеовыдачу, а не в общий
+    // зоопарк результатов RUTUBE. Чёрный экран ловился не здесь, а в зачистке
+    // мобильных Shorts-контейнеров, потому что интерфейс, конечно, хрупкий.
+    const params = new URLSearchParams({ query: finalQuery, content_type: 'video' });
     return '/search/?' + params.toString();
   }
 
@@ -3335,7 +3335,7 @@
     const entry = batches[safeIndex];
     const cacheKey = entry.id || entry.file || String(safeIndex);
     let batch = movieCache.batches.get(cacheKey);
-    if (!batch) throw new Error(`В локальном кэше нет подборки ${entry.title || cacheKey}. Нажми «Обновить базу» в настройках.`);
+    if (!batch) throw new Error(`В локальном кэше нет подборки ${entry.title || cacheKey}. Нажми «Обновить вручную» в настройках.`);
     movieCache.currentIndex = safeIndex;
     movieCache.currentBatch = batch;
     maybeUpdateMovieDbInBackground();
@@ -3491,28 +3491,27 @@
     if (button) { button.disabled = true; button.textContent = 'Обновляю...'; }
     await refreshMovieDbCache({ silent: false });
     updateMovieCacheStatusText();
-    if (button) { button.disabled = false; button.textContent = 'Обновить базу'; }
+    if (button) { button.disabled = false; button.textContent = 'Обновить вручную'; }
   }
 
   function movieCacheStatusText() {
     if (!movieCache.index) loadMovieDbFromLocalCache();
-    if (!movieCache.savedAt) return 'Локальная база ещё не загружена.';
-    const source = movieCache.source === 'github' ? 'GitHub' : 'локальный кэш';
+    if (!movieCache.savedAt) return '📂 база ещё не загружена';
     const count = movieCache.index && Array.isArray(movieCache.index.batches) ? movieCache.index.batches.length : 0;
-    return `Локальная база: ${count} подборок, источник: ${source}, обновлена ${formatDateTime(new Date(movieCache.savedAt))}.`;
+    return `📂 ${count} подборок · ⏱️ ${formatDateTime(new Date(movieCache.savedAt))}`;
   }
 
   function movieAutoUpdateStatusText() {
     const state = movieAutoCheckState();
-    const parts = ['Автообновление: раз в 3 дня и по субботам после 12:00.'];
-    if (state.lastAutoCheckAt) {
-      parts.push(`Последняя автопроверка: ${formatDateTime(new Date(state.lastAutoCheckAt))}${state.lastAutoCheckReason ? ` (${state.lastAutoCheckReason})` : ''}.`);
-    } else {
-      parts.push('Автопроверок ещё не было.');
-    }
     const decision = movieAutoUpdateDecision(Date.now());
-    parts.push(decision.due ? `Следующая проверка готова: ${decision.reason}.` : 'Следующая проверка пока не требуется.');
-    return parts.join(' ');
+    if (!state.lastAutoCheckAt) {
+      return decision.due
+        ? `🤖 автопроверка: ещё не было · статус: ${decision.reason}`
+        : '🤖 автопроверка: ещё не было';
+    }
+    const status = state.lastAutoCheckReason || 'плановая проверка';
+    const dueText = decision.due ? ` · готова: ${decision.reason}` : '';
+    return `🤖 автопроверка: ${formatDateTime(new Date(state.lastAutoCheckAt))} · статус: ${status}${dueText}`;
   }
 
   function updateMovieCacheStatusText() {
