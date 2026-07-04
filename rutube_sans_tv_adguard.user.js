@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.3.46
+// @version      1.4.0
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki
 // @license      MIT
@@ -24,7 +24,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.3.46';
+  const UI_VERSION = '1.4.0';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -195,6 +195,53 @@
   function isRtstUiElement(el) {
     return Boolean(el && el.closest && el.closest('#rtst-panel, .rtst-modal-backdrop, .rtst-toast'));
   }
+
+  const Dom = {
+    qsa(selector, root = document) {
+      try {
+        const scope = root && root.querySelectorAll ? root : document;
+        return Array.from(scope.querySelectorAll(selector));
+      } catch (e) {
+        return [];
+      }
+    },
+
+    setReason(el, reason) {
+      if (!el || !reason) return;
+      el.dataset.rtstReason = reason.startsWith('скрыто') || reason.startsWith('мусор')
+        ? reason
+        : `скрыто, ${reason}`;
+    },
+
+    mark(el, {
+      className = '',
+      dataKey = '',
+      reason = '',
+      count = false,
+      force = false
+    } = {}) {
+      if (!el || isRtstUiElement(el) || isProtectedHeader(el)) return false;
+      if (!force && isDangerousHideTarget(el)) return false;
+
+      if (dataKey && el.dataset[dataKey] === '1') return false;
+      if (dataKey) el.dataset[dataKey] = '1';
+      if (reason) this.setReason(el, reason);
+      if (className) el.classList.add(className);
+      if (count) hiddenCount += 1;
+      return true;
+    },
+
+    applyHiddenMode(el) {
+      if (!el) return;
+      if (settings.showHidden) {
+        el.classList.remove('rtst-hidden');
+        el.classList.add('rtst-dim');
+      } else {
+        el.classList.remove('rtst-dim');
+        el.classList.add('rtst-hidden');
+      }
+    }
+  };
 
   function installPlayOptionsAdvertStripper() {
     const PATCHER_KEY = '__rtstPlayOptionsAdvertStripperV137';
@@ -1990,12 +2037,30 @@
       html[data-rtst-enabled="1"][data-rtst-hide-comments="1"] button[role="tab"][id^="tab-comments-"],
       html[data-rtst-enabled="1"][data-rtst-hide-comments="1"] button[role="tab"][aria-controls^="tabpanel-comments-"],
       html[data-rtst-enabled="1"][data-rtst-hide-comments="1"] [role="tab"][id^="tab-comments-"],
-      html[data-rtst-enabled="1"][data-rtst-hide-comments="1"] [role="tab"][aria-controls^="tabpanel-comments-"] {
+      html[data-rtst-enabled="1"][data-rtst-hide-comments="1"] [role="tab"][aria-controls^="tabpanel-comments-"],
+      html[data-rtst-enabled="1"][data-rtst-hide-comments="1"][data-rtst-page="video"] section[aria-label*="комментар" i],
+      html[data-rtst-enabled="1"][data-rtst-hide-comments="1"][data-rtst-page="video"] [data-testid*="comment" i],
+      html[data-rtst-enabled="1"][data-rtst-hide-comments="1"][data-rtst-page="video"] [class*="comments-module" i],
+      html[data-rtst-enabled="1"][data-rtst-hide-comments="1"][data-rtst-page="video"] [class*="comment-module" i],
+      html[data-rtst-enabled="1"][data-rtst-hide-comments="1"][data-rtst-page="video"] [class*="comments" i],
+      html[data-rtst-enabled="1"][data-rtst-hide-comments="1"][data-rtst-page="video"] textarea[placeholder*="комментар" i],
+      html[data-rtst-enabled="1"][data-rtst-hide-comments="1"][data-rtst-page="video"] input[placeholder*="комментар" i] {
         display: none !important;
       }
 
       html[data-rtst-enabled="1"][data-rtst-hide-video-info="1"][data-rtst-page="video"] .video-pageinfo-container-module__pageInfoContainer,
-      html[data-rtst-enabled="1"][data-rtst-hide-video-info="1"][data-rtst-page="video"] [class*="video-pageinfo-container-module__pageInfoContainer"] {
+      html[data-rtst-enabled="1"][data-rtst-hide-video-info="1"][data-rtst-page="video"] [class*="video-pageinfo-container-module__pageInfoContainer"],
+      html[data-rtst-enabled="1"][data-rtst-hide-video-info="1"][data-rtst-page="video"] [class*="video-pageinfo-container-module__pageHeaderRow"],
+      html[data-rtst-enabled="1"][data-rtst-hide-video-info="1"][data-rtst-page="video"] [class*="video-pageinfo-container-module__pageInfoContainerWrapperDescription"],
+      html[data-rtst-enabled="1"][data-rtst-hide-video-info="1"][data-rtst-page="video"] section[aria-label="название" i],
+      html[data-rtst-enabled="1"][data-rtst-hide-video-info="1"][data-rtst-page="video"] section[aria-label="описание видео" i],
+      html[data-rtst-enabled="1"][data-rtst-hide-video-info="1"][data-rtst-page="video"] section[aria-label="информация о видео" i],
+      html[data-rtst-enabled="1"][data-rtst-hide-video-info="1"][data-rtst-page="video"] section[aria-label="блок действий" i] {
+        display: none !important;
+      }
+
+      html[data-rtst-enabled="1"][data-rtst-hide-shorts="1"] [data-rtst-search-shorts="1"],
+      html[data-rtst-enabled="1"][data-rtst-hide-shorts="1"] .rtst-search-shorts-hidden {
         display: none !important;
       }
 
@@ -4218,13 +4283,24 @@
     updatePanelRouteState();
   }
 
-  function scheduleScan() {
+  function scheduleScan(reason = 'scheduled', delayMs = 180) {
     if (scanTimer) clearTimeout(scanTimer);
-    const delay = Math.max(700, suspendScanUntil - Date.now() + 120);
-    scanTimer = setTimeout(scanPage, delay);
+
+    const delay = Math.max(
+      Number(delayMs) || 0,
+      suspendScanUntil > Date.now() ? suspendScanUntil - Date.now() + 120 : 0
+    );
+
+    scanTimer = setTimeout(() => {
+      scanTimer = null;
+      scanPage(reason);
+    }, delay);
   }
 
-  function rescanNow() { clearAllMarks(); scanPage(); }
+  function rescanNow() {
+    clearAllMarks();
+    scheduleScan('manual', 0);
+  }
 
   function clearAllMarks() {
     hiddenCount = 0; removedCount = 0;
@@ -4465,13 +4541,13 @@
   }
 
   function markShowcaseBannerHidden(el) {
-    if (!el || el.dataset.rtstShowcaseBannerHidden === '1' || isRtstUiElement(el) || isProtectedHeader(el) || isInsidePlayer(el)) return;
-    if (isDangerousHideTarget(el)) return;
-
-    el.dataset.rtstShowcaseBannerHidden = '1';
-    el.dataset.rtstReason = 'витринный баннер';
-    el.classList.add('rtst-showcase-banner-hidden');
-    hiddenCount += 1;
+    if (!el || isInsidePlayer(el)) return;
+    Dom.mark(el, {
+      className: 'rtst-showcase-banner-hidden',
+      dataKey: 'rtstShowcaseBannerHidden',
+      reason: 'витринный баннер',
+      count: true
+    });
   }
 
 
@@ -4713,10 +4789,13 @@
   }
 
   function markPlayerAdHidden(el) {
-    if (!el || el.dataset.rtstPlayerAdHidden === '1') return;
-    el.dataset.rtstPlayerAdHidden = '1';
-    el.classList.add('rtst-player-ad-hidden');
-    hiddenCount += 1;
+    Dom.mark(el, {
+      className: 'rtst-player-ad-hidden',
+      dataKey: 'rtstPlayerAdHidden',
+      reason: 'реклама плеера',
+      count: true,
+      force: true
+    });
   }
 
   function clickRutubeSkipButtons(root = document) {
@@ -4740,12 +4819,16 @@
     }
   }
 
-  function scanPage() {
+  function scanPage(reason = 'manual') {
     if (!document.body) return;
-    if (Date.now() < suspendScanUntil) { scheduleScan(); return; }
+    if (Date.now() < suspendScanUntil) { scheduleScan('suspended', 120); return; }
 
     if (location.href !== lastUrl) {
-      lastUrl = location.href; clearAllMarks(); suspendScanUntil = Date.now() + 2200; scheduleScan(); return;
+      lastUrl = location.href;
+      clearAllMarks();
+      suspendScanUntil = Date.now() + 900;
+      scheduleScan('route', 120);
+      return;
     }
 
     syncRootFlags();
@@ -4773,7 +4856,6 @@
         scanShowcaseBanners(document);
         reorderSidebar();
       }
-      if (settings.hideComments) hideComments();
       applyHiddenVisibility();
       updateCounter();
       return;
@@ -4798,14 +4880,12 @@
       scanNavigationLinks();
       cleanRutubeChrome();
       scanShowcaseBanners(document);
-      reorderSidebar(); 
+      reorderSidebar();
     }
-    hideShortsBlocks(); 
+    hideShortsBlocks();
     if (settings.cleanWatchPage) cleanWatchPage();
-    if (settings.hideVideoInfo && isVideoPage()) hideVideoInfo();
-    if (settings.hideComments) hideComments();
     if (settings.disableAutoplay) scanAutoplayVideos();
-    
+
     applyHiddenVisibility();
     updateCounter();
   }
@@ -4899,29 +4979,20 @@
       return;
     }
 
-    try {
-      document.querySelectorAll('a[href*="/shorts/"]').forEach((link) => {
-        if (!link || isRtstUiElement(link) || link.closest('[data-rtst-search-shorts="1"]')) return;
-        const card = findCard(link);
-        const target = findSearchShortsHideTarget(card, link);
-        if (!target) return;
+    Dom.qsa('a[href*="/shorts/"]').forEach((link) => {
+      if (!link || isRtstUiElement(link) || link.closest('[data-rtst-search-shorts="1"]')) return;
+      const card = findCard(link);
+      const target = findSearchShortsHideTarget(card, link);
+      if (!target) return;
 
-        if (target.dataset.rtstSearchShorts !== '1') hiddenCount += 1;
-        target.dataset.rtstSearchShorts = '1';
-        target.dataset.rtstHidden = '1';
-        target.dataset.rtstHideTarget = '1';
-        target.dataset.rtstReason = 'скрыто, Shorts';
-        target.classList.add('rtst-search-shorts-hidden');
-
-        if (settings.showHidden) {
-          target.classList.remove('rtst-hidden');
-          target.classList.add('rtst-dim');
-        } else {
-          target.classList.remove('rtst-dim');
-          target.classList.add('rtst-hidden');
-        }
-      });
-    } catch (e) {}
+      if (target.dataset.rtstSearchShorts !== '1') hiddenCount += 1;
+      target.dataset.rtstSearchShorts = '1';
+      target.dataset.rtstHidden = '1';
+      target.dataset.rtstHideTarget = '1';
+      target.dataset.rtstReason = 'скрыто, Shorts';
+      target.classList.add('rtst-search-shorts-hidden');
+      Dom.applyHiddenMode(target);
+    });
   }
 
   function getSearchTrashReason(info) {
@@ -5128,126 +5199,6 @@
     });
   }
 
-  function isVideoInfoElement(el) {
-    if (!el || !el.closest) return false;
-    return Boolean(el.closest(
-      '.video-pageinfo-container-module__pageInfoContainer, ' +
-      '[class*="video-pageinfo-container-module__"], ' +
-      '[class*="wdp-videopage-description-module__"], ' +
-      '[class*="wdp-video-meta-row-module__"], ' +
-      '[class*="wdp-video-options-row-module__"]'
-    ));
-  }
-
-  function hideVideoInfo() {
-    if (!isVideoPage()) return;
-    const selectors = [
-      '.video-pageinfo-container-module__pageInfoContainer',
-      '[class*="video-pageinfo-container-module__pageInfoContainer"]',
-      '[class*="video-pageinfo-container-module__pageHeaderRow"]',
-      '[class*="video-pageinfo-container-module__pageInfoContainerWrapperDescription"]',
-      'section[aria-label="название" i]',
-      'section[aria-label="описание видео" i]',
-      'section[aria-label="информация о видео" i]',
-      'section[aria-label="блок действий" i]'
-    ];
-
-    document.querySelectorAll(selectors.join(',')).forEach((el) => {
-      if (isRtstUiElement(el) || isInsidePlayer(el) || containsVideoPlayer(el)) return;
-      const target = el.closest('.video-pageinfo-container-module__pageInfoContainer, [class*="video-pageinfo-container-module__pageInfoContainer"]') || el;
-      softHideViewElement(target, 'информация о видео');
-    });
-  }
-
-  function hideMyCommentsNavigation() {
-    if (!settings.hideComments) return;
-
-    document.querySelectorAll('a[href="/my/comments/"], a[href^="/my/comments/"]').forEach((a) => {
-      if (isRtstUiElement(a) || isProtectedHeader(a)) return;
-      const target = a.closest('li, [role="listitem"], a.menu-item-module__menu-item, a.wdp-mobile-menu-module__mobile-menu-item') || a;
-      forceHideChromeElement(target, 'пункт: комментарии в «Моё»');
-    });
-
-    document.querySelectorAll('button[role="tab"], [role="tab"]').forEach((tab) => {
-      if (isRtstUiElement(tab) || isProtectedHeader(tab)) return;
-      const text = normalize(tab.textContent || tab.getAttribute('aria-label') || '');
-      const id = normalize(tab.id || '');
-      const controls = normalize(tab.getAttribute('aria-controls') || '');
-      const looksLikeCommentsTab = text === 'комментарии' || id.includes('comments') || controls.includes('comments');
-      if (!looksLikeCommentsTab) return;
-      forceHideChromeElement(tab, 'вкладка: комментарии в «Моё»');
-    });
-  }
-
-  function hideComments() {
-    hideMyCommentsNavigation();
-    if (!isVideoPage()) return;
-
-    const selectors = [
-      'section[aria-label*="комментар" i]',
-      '[data-testid*="comment" i]',
-      '[class*="comments-module" i]',
-      '[class*="comment-module" i]',
-      '[class*="Comments" i]',
-      '[class*="comments" i]',
-      'textarea[placeholder*="комментар" i]',
-      'input[placeholder*="комментар" i]'
-    ];
-
-    document.querySelectorAll(selectors.join(',')).forEach((el) => {
-      if (isRtstUiElement(el) || isInsidePlayer(el) || containsVideoPlayer(el) || isVideoInfoElement(el)) return;
-
-      const aria = normalize(el.getAttribute('aria-label') || '');
-      const text = normalize(String(el.textContent || '').slice(0, 800));
-      const className = String(el.className || '');
-      const placeholder = normalize(el.getAttribute('placeholder') || '');
-      const looksLikeComments = aria.includes('комментар') || text.includes('комментар') || placeholder.includes('комментар') || /comment/i.test(className);
-      if (!looksLikeComments) return;
-
-      const target = findCommentBlockTarget(el);
-      if (!target || isVideoInfoElement(target) || containsVideoPlayer(target)) return;
-      softHideViewElement(target, 'комментарии');
-    });
-  }
-
-  function findCommentBlockTarget(el) {
-    if (!el || !el.closest) return el;
-
-    const direct = el.closest(
-      'section[aria-label*="комментар" i], ' +
-      '[data-testid*="comment" i], ' +
-      '[class*="comments-module" i], ' +
-      '[class*="comment-module" i], ' +
-      '[class*="Comments" i], ' +
-      '[class*="comments" i]'
-    );
-
-    let target = direct || el;
-    if (isVideoInfoElement(target)) return null;
-
-    for (let i = 0; i < 4 && target && target.parentElement; i++) {
-      const parent = target.parentElement;
-      if (!parent || parent === document.body || parent === document.documentElement) break;
-      if (isRtstUiElement(parent) || isInsidePlayer(parent) || containsVideoPlayer(parent) || isVideoInfoElement(parent)) break;
-
-      const tag = parent.tagName ? parent.tagName.toLowerCase() : '';
-      if (['main', 'header', 'footer', 'nav'].includes(tag)) break;
-
-      const className = String(parent.className || '');
-      const aria = normalize(parent.getAttribute('aria-label') || '');
-      const text = String(parent.textContent || '').trim();
-      const looksLikeCommentBlock = /comment/i.test(className) || aria.includes('комментар');
-
-      if (looksLikeCommentBlock && text.length < 5000) {
-        target = parent;
-        continue;
-      }
-      break;
-    }
-
-    return target;
-  }
-
   function findWatchBlockTarget(el) {
     let target = el;
     for (let i = 0; i < 6 && target && target.parentElement; i++) {
@@ -5289,10 +5240,10 @@
   }
 
   function softHideViewElement(el, reason) {
-    if (!el || isRtstUiElement(el) || isProtectedHeader(el) || el === document.body || el === document.documentElement) return;
+    if (!el || el === document.body || el === document.documentElement) return;
     const tag = el.tagName ? el.tagName.toLowerCase() : '';
     if (['main', 'header', 'footer', 'nav'].includes(tag) || isInsidePlayer(el) || containsVideoPlayer(el)) return;
-    el.dataset.rtstViewHidden = '1'; el.dataset.rtstReason = `скрыто, ${reason}`; el.classList.add('rtst-view-hidden');
+    Dom.mark(el, { className: 'rtst-view-hidden', dataKey: 'rtstViewHidden', reason });
   }
 
   function scanNavigationLinks() {
@@ -5522,15 +5473,17 @@
   }
 
   function softHideChromeElement(el, reason) {
-    if (!el || isRtstUiElement(el) || isProtectedHeader(el) || containsCoreMenuText(normalize(el.textContent || ''))) return;
-    el.dataset.rtstChromeHidden = '1'; el.dataset.rtstReason = `скрыто, ${reason}`; el.classList.add('rtst-chrome-hidden');
+    if (!el || containsCoreMenuText(normalize(el.textContent || ''))) return;
+    Dom.mark(el, { className: 'rtst-chrome-hidden', dataKey: 'rtstChromeHidden', reason });
   }
 
   function forceHideChromeElement(el, reason) {
-    if (!el || isRtstUiElement(el) || isProtectedHeader(el)) return;
-    el.dataset.rtstChromeHidden = '1';
-    el.dataset.rtstReason = `скрыто, ${reason}`;
-    el.classList.add('rtst-chrome-hidden');
+    Dom.mark(el, {
+      className: 'rtst-chrome-hidden',
+      dataKey: 'rtstChromeHidden',
+      reason,
+      force: true
+    });
   }
 
   function findChromeItemTarget(el) {
@@ -5650,11 +5603,13 @@
     if (!el || isRtstUiElement(el) || isProtectedHeader(el)) return;
     const target = findBestHideTarget(el);
     if (!target || target.closest('#rtst-panel') || isDangerousHideTarget(target)) return;
+
     if (target.dataset.rtstHidden !== '1') hiddenCount += 1;
-    target.dataset.rtstHidden = '1'; target.dataset.rtstHideTarget = '1'; target.dataset.rtstReason = `скрыто, ${reason}`;
+    target.dataset.rtstHidden = '1';
+    target.dataset.rtstHideTarget = '1';
+    Dom.setReason(target, reason);
     if (target !== el) el.dataset.rtstHiddenChild = '1';
-    if (settings.showHidden) { target.classList.remove('rtst-hidden'); target.classList.add('rtst-dim'); }
-    else { target.classList.remove('rtst-dim'); target.classList.add('rtst-hidden'); }
+    Dom.applyHiddenMode(target);
   }
 
   function isDangerousHideTarget(target) {
@@ -5723,10 +5678,7 @@
   }
 
   function applyHiddenVisibility() {
-    document.querySelectorAll('[data-rtst-hidden="1"]').forEach((el) => {
-      if (settings.showHidden) { el.classList.remove('rtst-hidden'); el.classList.add('rtst-dim'); }
-      else { el.classList.remove('rtst-dim'); el.classList.add('rtst-hidden'); }
-    });
+    Dom.qsa('[data-rtst-hidden="1"]').forEach((el) => Dom.applyHiddenMode(el));
   }
 
   function isSubscriptionsContext(el) {
@@ -5787,6 +5739,72 @@
   function addCurrentChannelButton() {
     const oldBtn = document.getElementById('rtst-current-channel-btn');
     if (oldBtn) oldBtn.remove();
+  }
+
+  function mutationTouchesRutubeContent(mutations) {
+    for (const mutation of mutations) {
+      if (!mutation || mutation.type !== 'childList') continue;
+
+      const nodes = [...(mutation.addedNodes || []), ...(mutation.removedNodes || [])];
+      for (const node of nodes) {
+        if (!node || node.nodeType !== 1) continue;
+        if (isRtstUiElement(node)) continue;
+
+        const tag = (node.tagName || '').toLowerCase();
+        if (tag === 'script' || tag === 'style' || tag === 'link' || tag === 'meta') continue;
+
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  function installDomObserver() {
+    if (observer) observer.disconnect();
+
+    const root = document.body || document.documentElement;
+    if (!root || typeof MutationObserver !== 'function') {
+      setTimeout(() => scheduleScan('observer-fallback', 400), 400);
+      return;
+    }
+
+    observer = new MutationObserver((mutations) => {
+      if (!settings.enabled && location.href === lastUrl) return;
+      if (!mutationTouchesRutubeContent(mutations)) return;
+      scheduleScan('mutation', 140);
+    });
+
+    observer.observe(root, { childList: true, subtree: true });
+  }
+
+  function installRouteWatcher() {
+    const KEY = '__rtstRouteWatcherV140';
+    if (window[KEY]) return;
+    window[KEY] = true;
+
+    const notify = () => scheduleScan('route', 90);
+
+    ['pushState', 'replaceState'].forEach((method) => {
+      const nativeMethod = history[method];
+      if (typeof nativeMethod !== 'function' || nativeMethod.__rtstPatched) return;
+
+      history[method] = function rtstHistoryPatch() {
+        const result = nativeMethod.apply(this, arguments);
+        notify();
+        return result;
+      };
+
+      history[method].__rtstPatched = true;
+      history[method].__rtstOriginal = nativeMethod;
+    });
+
+    window.addEventListener('popstate', notify, true);
+    window.addEventListener('hashchange', notify, true);
+    window.addEventListener('focus', () => scheduleScan('focus', 260), true);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) scheduleScan('visible', 220);
+    }, true);
   }
 
   function setupAutoplayGuard() {
@@ -5903,9 +5921,26 @@
   }
 
   function boot() {
-    installPlayOptionsAdvertStripper(); installRutubeContextMenuUnlocker(); installMobileVideoVolumeSwipe(); installAutoFullscreenOnRotate(); installViewProgressTracker(); loadPanelIconFromLocalCache(); syncRootFlags(); setupAutoplayGuard(); addStyle(); bindEvents(); loadMovieDbFromLocalCache(); setTimeout(checkGithubAvailability, 1500); setTimeout(() => refreshPanelIconCacheInBackground(false), 2200); setTimeout(maybeUpdateMovieDbInBackground, 3500); scheduleScan();
-    window.addEventListener('popstate', () => setTimeout(rescanNow, 250));
-    setInterval(() => { if (location.href !== lastUrl) { scheduleScan(); return; } if (settings.enabled) scheduleScan(); }, 2500);
+    installPlayOptionsAdvertStripper();
+    installRutubeContextMenuUnlocker();
+    installMobileVideoVolumeSwipe();
+    installAutoFullscreenOnRotate();
+    installViewProgressTracker();
+    loadPanelIconFromLocalCache();
+
+    syncRootFlags();
+    setupAutoplayGuard();
+    addStyle();
+    bindEvents();
+    installRouteWatcher();
+    installDomObserver();
+
+    loadMovieDbFromLocalCache();
+    setTimeout(checkGithubAvailability, 1500);
+    setTimeout(() => refreshPanelIconCacheInBackground(false), 2200);
+    setTimeout(maybeUpdateMovieDbInBackground, 3500);
+
+    scheduleScan('boot', 0);
   }
 
   installPlayOptionsAdvertStripper();
