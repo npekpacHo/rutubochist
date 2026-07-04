@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.3.36
+// @version      1.3.39
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki
 // @license      MIT
@@ -24,7 +24,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.3.36';
+  const UI_VERSION = '1.3.39';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -113,10 +113,23 @@
   ];
   const MOVIE_DB_INDEX_FILE = 'index.json';
   const MOVIE_DB_CACHE_KEY = 'rtstMovieDbCache:v1';
+  const MOVIE_DB_AUTO_CHECK_KEY = 'rtstMovieDbAutoCheck:v1';
   const MOVIE_DB_UPDATE_INTERVAL_MS = 3 * 24 * 60 * 60 * 1000;
+  const MOVIE_DB_SATURDAY_CHECK_HOUR = 12;
+  const PANEL_ICON_CACHE_KEY = 'rtstPanelIconCache:v1';
+  const PANEL_ICON_MAX_CACHE_BYTES = 260 * 1024;
+  const PANEL_ICON_CACHE_TTL_MS = 14 * 24 * 60 * 60 * 1000;
+  const PANEL_ICON_URLS = [
+    'https://npekpacho.github.io/rutubochist/rutubochist-icon.svg',
+    'https://npekpacho.github.io/rutubochist/icon.svg',
+    'https://raw.githubusercontent.com/npekpacHo/rutubochist/main/rutubochist-icon.svg',
+    'https://raw.githubusercontent.com/npekpacHo/rutubochist/main/icon.svg'
+  ];
   const PROJECT_URL = 'https://github.com/npekpacHo/rutubochist';
   const movieCache = { index: null, batches: new Map(), currentIndex: 0, currentBatch: null, source: 'none', savedAt: 0 };
   let githubState = { state: 'unknown', checkedAt: 0, message: '' };
+  let panelIconCache = { src: '', source: 'fallback', savedAt: 0 };
+  let panelIconFetchStarted = false;
 
   function loadSettings() {
     try {
@@ -2164,16 +2177,21 @@
       .rtst-panel .rtst-quick-btn:hover { background: rgba(255,255,255,.18) !important; filter: none !important; }
       .rtst-panel .rtst-quick-movie:hover { background: linear-gradient(135deg, #f4fff6, #a8eeb8) !important; filter: none !important; }
       .rtst-panel[data-page="video"] .rtst-movie-cta { display: none !important; }
-      .rtst-panel[data-collapsed="1"] { width: auto !important; min-width: 0 !important; max-width: none !important; overflow: visible !important; border-radius: 6px !important; }
+      .rtst-panel[data-collapsed="1"] { width: auto !important; min-width: 0 !important; max-width: none !important; overflow: visible !important; border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; backdrop-filter: none !important; }
       .rtst-panel[data-collapsed="1"] .rtst-panel-body, .rtst-panel[data-collapsed="1"] .rtst-panel-main, .rtst-panel[data-collapsed="1"] .rtst-panel-caret { display: none !important; }
-      .rtst-panel[data-collapsed="1"] .rtst-panel-head { width: auto !important; min-width: 36px !important; height: 36px !important; padding: 0 9px !important; justify-content: center !important; gap: 6px !important; border-bottom: 0 !important; }
-      .rtst-panel[data-collapsed="1"][data-page="video"] .rtst-panel-head { width: auto !important; min-width: 36px !important; padding: 0 4px 0 0 !important; }
-      .rtst-panel[data-collapsed="1"] .rtst-panel-compact { display: inline-flex !important; margin: 0 4px !important; }
+      .rtst-panel[data-collapsed="1"] .rtst-panel-head { width: auto !important; min-width: 0 !important; height: 40px !important; padding: 0 4px !important; justify-content: center !important; gap: 0 !important; border: 0 !important; background: transparent !important; box-shadow: none !important; }
+      .rtst-panel[data-collapsed="1"][data-page="video"] .rtst-panel-head { width: auto !important; min-width: 0 !important; padding: 0 4px !important; }
+      .rtst-panel[data-collapsed="1"] .rtst-panel-compact { display: inline-flex !important; margin: 0 !important; }
       .rtst-panel[data-collapsed="1"][data-page="video"] .rtst-panel-compact-count { display: none !important; }
       .rtst-panel-main { min-width: 0 !important; }
-      .rtst-panel-compact { display: none !important; align-items: center !important; justify-content: center !important; gap: 5px !important; font: 800 13px/1 Arial, sans-serif !important; color: #f4fff7 !important; white-space: nowrap !important; }
-      .rtst-panel-compact-icon { display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 16px !important; height: 16px !important; color: #f4fff7 !important; }
-      .rtst-panel-compact-count { min-width: 1ch !important; color: rgba(244,255,247,.78) !important; font-weight: 800 !important; }
+      .rtst-panel-compact { display: none !important; align-items: center !important; justify-content: center !important; gap: 5px !important; font: 800 15px/1 Arial, sans-serif !important; color: #f4fff7 !important; white-space: nowrap !important; text-shadow: 0 1px 3px rgba(0,0,0,.62) !important; }
+      .rtst-panel-compact-icon { display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 34px !important; height: 34px !important; color: #f4fff7 !important; font-size: 28px !important; line-height: 1 !important; }
+      .rtst-panel-compact-icon img { display: block !important; width: 34px !important; height: 34px !important; object-fit: contain !important; filter: drop-shadow(0 2px 4px rgba(0,0,0,.58)) !important; }
+      .rtst-panel-compact-count { min-width: 1ch !important; color: #f4fff7 !important; font: 900 15px/1 Arial, sans-serif !important; text-shadow: 0 1px 4px rgba(0,0,0,.72) !important; }
+      .rtst-app-icon { display: inline-flex !important; align-items: center !important; justify-content: center !important; flex: 0 0 auto !important; width: 16px !important; height: 16px !important; font-size: 14px !important; line-height: 1 !important; }
+      .rtst-app-icon img { display: block !important; width: 100% !important; height: 100% !important; object-fit: contain !important; }
+      .rtst-app-icon-title { width: 16px !important; height: 16px !important; margin-right: 0 !important; filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)) !important; }
+      .rtst-app-icon-footer { width: 18px !important; height: 18px !important; }
       .rtst-panel-head { display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 8px !important; padding: 8px 12px !important; cursor: pointer !important; border-bottom: 1px solid rgba(255,255,255,.12) !important; background: rgba(255,255,255,.035) !important; }
       .rtst-panel-title { font-weight: 800 !important; font-size: 14px !important; letter-spacing: .2px !important; }
       .rtst-panel-subtitle { margin-top: 1px !important; opacity: .72 !important; font-size: 11px !important; }
@@ -2211,11 +2229,24 @@
       .rtst-panel-footer { display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 8px !important; margin-top: 10px !important; padding-top: 8px !important; border-top: 1px solid rgba(255,255,255,.10) !important; }
       .rtst-panel-footer .rtst-small { flex: 1 1 auto !important; }
       .rtst-version { display: inline-block !important; margin-top: 2px !important; color: rgba(244,255,247,.62) !important; font-size: 10px !important; }
-      .rtst-panel .rtst-github-link { flex: 0 0 auto !important; width: 28px !important; height: 28px !important; min-width: 28px !important; min-height: 28px !important; padding: 0 !important; border-radius: 8px !important; border: 1px solid rgba(255,255,255,.14) !important; background: rgba(255,255,255,.08) !important; box-shadow: none !important; color: #cfcfcf !important; font: 16px/1 Arial, sans-serif !important; display: flex !important; align-items: center !important; justify-content: center !important; }
-      .rtst-panel .rtst-github-link[data-state="ok"] { color: #53ff7c !important; border-color: rgba(83,255,124,.42) !important; background: rgba(83,255,124,.11) !important; }
-      .rtst-panel .rtst-github-link[data-state="bad"] { color: #ff6b6b !important; border-color: rgba(255,107,107,.42) !important; background: rgba(255,107,107,.11) !important; }
-      .rtst-panel .rtst-github-link[data-state="checking"] { color: #ffd166 !important; border-color: rgba(255,209,102,.42) !important; background: rgba(255,209,102,.10) !important; }
-      .rtst-panel .rtst-github-link:hover { filter: none !important; background: rgba(255,255,255,.16) !important; }
+      .rtst-panel .rtst-github-link {
+        flex: 0 0 auto !important; width: 28px !important; height: 28px !important;
+        min-width: 28px !important; min-height: 28px !important; padding: 0 !important;
+        border: 0 !important; border-radius: 0 !important; background: transparent !important;
+        box-shadow: none !important; color: #f4fff7 !important; font: 16px/1 Arial, sans-serif !important;
+        display: flex !important; align-items: center !important; justify-content: center !important;
+      }
+      .rtst-panel .rtst-github-link:hover { filter: none !important; background: transparent !important; opacity: .82 !important; }
+      .rtst-panel .rtst-github-link .rtst-app-icon { pointer-events: none !important; }
+      .rtst-network-status {
+        flex: 0 0 auto !important; display: inline-flex !important; align-items: center !important; justify-content: center !important;
+        min-height: 24px !important; white-space: nowrap !important; color: rgba(244,255,247,.78) !important;
+        font: 700 11px/1 Arial, sans-serif !important; cursor: default !important; user-select: none !important;
+      }
+      .rtst-network-status[data-state="ok"] { color: #dfffe6 !important; }
+      .rtst-network-status[data-state="bad"] { color: #ffd9d9 !important; }
+      .rtst-network-status[data-state="checking"] { color: #ffe8aa !important; }
+      .rtst-network-status[data-state="unknown"] { color: rgba(244,255,247,.54) !important; }
       .rtst-panel .rtst-mini-btn { min-height: 24px !important; padding: 4px 8px !important; border-radius: 6px !important; background: rgba(255,255,255,.10) !important; color: #f4fff7 !important; border: 1px solid rgba(255,255,255,.14) !important; box-shadow: none !important; font-weight: 600 !important; font-size: 11px !important; }
       .rtst-panel .rtst-mini-btn:hover { background: rgba(255,255,255,.18) !important; }
       .rtst-count { opacity: .62 !important; font-weight: 400 !important; }
@@ -2472,7 +2503,7 @@
           <div class="rtst-panel-counter" id="rtst-counter" hidden></div>
         </div>
         <div class="rtst-panel-compact" aria-hidden="true">
-          <span class="rtst-panel-compact-icon">⊘</span>
+          <span class="rtst-panel-compact-icon rtst-app-icon-target" id="rtst-panel-icon" data-rtst-app-icon="1" title="Рутубочист">🪠</span>
           <span class="rtst-panel-compact-count" id="rtst-compact-count" hidden></span>
         </div>
         <button type="button" class="rtst-head-bug" data-rtst-action="copy-player-diagnostics" title="Скопировать диагностику плеера">🐞</button>
@@ -2493,7 +2524,8 @@
         </div>
         <div class="rtst-panel-footer">
           <div class="rtst-small">Кнопка «⊘» скрывает канал.<br>©2026 npekpacHo<br><span class="rtst-version" id="rtst-version">Версия ${UI_VERSION}</span></div>
-          <button type="button" class="rtst-github-link" id="rtst-github-link" data-rtst-action="open-project" data-state="unknown" title="GitHub">🐙</button>
+          <button type="button" class="rtst-github-link" id="rtst-github-link" data-rtst-action="open-project" title="Открыть страницу проекта на GitHub"><span class="rtst-app-icon rtst-app-icon-footer" data-rtst-app-icon="1" aria-hidden="true">🪠</span></button>
+          <span class="rtst-network-status" id="rtst-network-status" data-state="unknown" title="Доступ к интернету ещё не проверялся">⚪ сеть</span>
         </div>
       </div>
     `;
@@ -2851,6 +2883,7 @@
     const versionEl = document.getElementById('rtst-version');
     if (versionEl) versionEl.textContent = `Версия ${UI_VERSION}`;
     syncGithubBadge();
+    syncPanelIcon();
     syncQuickActions();
     syncRootFlags();
     
@@ -3006,12 +3039,22 @@
       <div class="rtst-modal" role="dialog" aria-modal="true">
         <div class="rtst-modal-head">
           <div class="rtst-modal-title-row">
+            ${appIconHtml('rtst-app-icon-title')}
             <div class="rtst-modal-title">Рутубочист</div>
             <button type="button" class="rtst-enable-toggle" id="rtst-enabled-toggle" data-rtst-action="toggle-enabled" data-state="on" aria-pressed="true">включён</button>
           </div>
           <button type="button" data-rtst-action="close-modal" title="Закрыть">×</button>
         </div>
         <div class="rtst-modal-body">
+          <div class="rtst-section">
+            <div class="rtst-section-title">Что посмотреть</div>
+            <div class="rtst-small" id="rtst-movie-cache-status">${escapeHtml(movieCacheStatusText())}</div>
+            <div class="rtst-small" id="rtst-movie-auto-status">${escapeHtml(movieAutoUpdateStatusText())}</div>
+            <div class="rtst-actions">
+              <button type="button" class="rtst-mini-btn" data-rtst-action="update-movie-db">Обновить базу</button>
+            </div>
+          </div>
+
           <div class="rtst-section">
             <div class="rtst-section-title">Лента и меню</div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-show-hidden"> показывать скрытые карточки бледным</label></div>
@@ -3033,7 +3076,7 @@
             <div class="rtst-section-title">Плеер</div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-strip-player-ads"> пытаться убирать рекламу</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-unlock-context-menu"> включить системное меню по правой кнопке</label></div>
-            <div class="rtst-row"><label><input type="checkbox" id="rtst-swipe-video-volume"> управлять громкостью горизонтальным свайпом по экрану</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-swipe-video-volume"> управлять громкостью свайпом по нижней трети плеера</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-auto-fullscreen-rotate"> fullscreen при повороте после касания плеера</label></div>
           </div>
 
@@ -3060,18 +3103,11 @@
               <input type="file" id="rtst-import-file" accept="application/json,.json">
             </div>
           </div>
-
-          <div class="rtst-section">
-            <div class="rtst-section-title">Что посмотреть</div>
-            <div class="rtst-small" id="rtst-movie-cache-status">${escapeHtml(movieCacheStatusText())}</div>
-            <div class="rtst-actions">
-              <button type="button" class="rtst-mini-btn" data-rtst-action="update-movie-db">Обновить базу</button>
-            </div>
-          </div>
         </div>
       </div>`;
     document.documentElement.appendChild(modal);
     protectRtstUiFromCleanup(modal);
+    syncPanelIcon();
     syncPanel();
     modalOpenedAt = Date.now();
   }
@@ -3084,7 +3120,7 @@
     modal.innerHTML = `
       <div class="rtst-modal rtst-movie-modal" role="dialog" aria-modal="true">
         <div class="rtst-modal-head">
-          <div><div class="rtst-modal-title">Что посмотреть?</div></div>
+          <div>${modalTitleHtml('Что посмотреть?')}</div>
           <button type="button" data-rtst-action="close-modal" title="Закрыть">×</button>
         </div>
         <div class="rtst-modal-fixed" id="rtst-movie-fixed">
@@ -3095,6 +3131,7 @@
         </div>
       </div>`;
     document.documentElement.appendChild(modal);
+    syncPanelIcon();
     renderMovieBatch(movieCache.currentIndex);
     modalOpenedAt = Date.now();
   }
@@ -3335,11 +3372,59 @@
     }
   }
 
-  function maybeUpdateMovieDbInBackground() {
-    const now = Date.now();
+  function movieAutoCheckState() {
+    try {
+      const raw = localStorage.getItem(MOVIE_DB_AUTO_CHECK_KEY);
+      const data = raw ? JSON.parse(raw) : {};
+      return {
+        lastAutoCheckAt: Number(data.lastAutoCheckAt) || 0,
+        lastAutoCheckReason: String(data.lastAutoCheckReason || '')
+      };
+    } catch (e) {
+      return { lastAutoCheckAt: 0, lastAutoCheckReason: '' };
+    }
+  }
+
+  function saveMovieAutoCheckState(reason) {
+    try {
+      localStorage.setItem(MOVIE_DB_AUTO_CHECK_KEY, JSON.stringify({
+        lastAutoCheckAt: Date.now(),
+        lastAutoCheckReason: String(reason || 'auto')
+      }));
+    } catch (e) {}
+  }
+
+  function saturdayAfternoonStart(date = new Date()) {
+    const d = new Date(date.getTime());
+    const day = d.getDay();
+    const diff = (day - 6 + 7) % 7;
+    d.setDate(d.getDate() - diff);
+    d.setHours(MOVIE_DB_SATURDAY_CHECK_HOUR, 0, 0, 0);
+    return d.getTime();
+  }
+
+  function isSaturdayAfternoon(date = new Date()) {
+    return date.getDay() === 6 && date.getHours() >= MOVIE_DB_SATURDAY_CHECK_HOUR;
+  }
+
+  function movieAutoUpdateDecision(now = Date.now()) {
     if (!movieCache.savedAt) loadMovieDbFromLocalCache();
-    if (movieCache.savedAt && now - movieCache.savedAt < MOVIE_DB_UPDATE_INTERVAL_MS) return;
-    refreshMovieDbCache({ silent: true });
+
+    const state = movieAutoCheckState();
+    const currentSaturdayStart = saturdayAfternoonStart(new Date(now));
+    const dueBySaturday = isSaturdayAfternoon(new Date(now)) && state.lastAutoCheckAt < currentSaturdayStart;
+    const dueByInterval = !movieCache.savedAt || now - movieCache.savedAt >= MOVIE_DB_UPDATE_INTERVAL_MS;
+
+    if (dueBySaturday) return { due: true, reason: 'субботняя проверка' };
+    if (dueByInterval) return { due: true, reason: 'прошло 3 дня' };
+    return { due: false, reason: '' };
+  }
+
+  function maybeUpdateMovieDbInBackground() {
+    const decision = movieAutoUpdateDecision(Date.now());
+    if (!decision.due) return;
+    saveMovieAutoCheckState(decision.reason);
+    refreshMovieDbCache({ silent: true }).finally(updateMovieCacheStatusText);
   }
 
   async function loadMovieJsonRemote(path) {
@@ -3383,9 +3468,24 @@
     return `Локальная база: ${count} подборок, источник: ${source}, обновлена ${formatDateTime(new Date(movieCache.savedAt))}.`;
   }
 
+  function movieAutoUpdateStatusText() {
+    const state = movieAutoCheckState();
+    const parts = ['Автообновление: раз в 3 дня и по субботам после 12:00.'];
+    if (state.lastAutoCheckAt) {
+      parts.push(`Последняя автопроверка: ${formatDateTime(new Date(state.lastAutoCheckAt))}${state.lastAutoCheckReason ? ` (${state.lastAutoCheckReason})` : ''}.`);
+    } else {
+      parts.push('Автопроверок ещё не было.');
+    }
+    const decision = movieAutoUpdateDecision(Date.now());
+    parts.push(decision.due ? `Следующая проверка готова: ${decision.reason}.` : 'Следующая проверка пока не требуется.');
+    return parts.join(' ');
+  }
+
   function updateMovieCacheStatusText() {
     const el = document.getElementById('rtst-movie-cache-status');
     if (el) el.textContent = movieCacheStatusText();
+    const autoEl = document.getElementById('rtst-movie-auto-status');
+    if (autoEl) autoEl.textContent = movieAutoUpdateStatusText();
   }
 
   function formatDateTime(date) {
@@ -3394,6 +3494,92 @@
     } catch (e) {
       return String(date);
     }
+  }
+
+  function appIconHtml(extraClass = '') {
+    const cls = ['rtst-app-icon', extraClass].filter(Boolean).join(' ');
+    return `<span class="${escapeAttribute(cls)}" data-rtst-app-icon="1" aria-hidden="true">🪠</span>`;
+  }
+
+  function modalTitleHtml(title) {
+    return `<div class="rtst-modal-title-row">${appIconHtml('rtst-app-icon-title')}<div class="rtst-modal-title">${escapeHtml(title)}</div></div>`;
+  }
+
+  function loadPanelIconFromLocalCache() {
+    try {
+      const raw = localStorage.getItem(PANEL_ICON_CACHE_KEY);
+      if (!raw) return false;
+      const data = JSON.parse(raw);
+      if (!data || typeof data.src !== 'string' || !data.src.startsWith('data:image/')) return false;
+      panelIconCache = {
+        src: data.src,
+        source: String(data.source || 'cache'),
+        savedAt: Number(data.savedAt) || 0
+      };
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function syncPanelIcon() {
+    const src = panelIconCache && panelIconCache.src ? panelIconCache.src : '';
+    const title = src
+      ? `Рутубочист · иконка из ${panelIconCache.source || 'кэша'}`
+      : 'Рутубочист · иконка ещё не загружена';
+
+    document.querySelectorAll('[data-rtst-app-icon="1"]').forEach((el) => {
+      if (!el) return;
+      if (src) {
+        el.innerHTML = `<img alt="Рутубочист" src="${escapeAttribute(src)}">`;
+      } else {
+        el.textContent = '🪠';
+      }
+      if (el.id === 'rtst-panel-icon') el.title = title;
+    });
+  }
+
+  function blobToDataUrl(blob) {
+    return new Promise((resolve, reject) => {
+      try {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(reader.error || new Error('Не удалось прочитать иконку.'));
+        reader.readAsDataURL(blob);
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
+  async function refreshPanelIconCacheInBackground(force = false) {
+    if (panelIconFetchStarted && !force) return;
+    panelIconFetchStarted = true;
+
+    if (!force && panelIconCache.savedAt && Date.now() - panelIconCache.savedAt < PANEL_ICON_CACHE_TTL_MS) {
+      syncPanelIcon();
+      return;
+    }
+
+    for (const url of PANEL_ICON_URLS) {
+      try {
+        const response = await fetch(url + (url.includes('?') ? '&' : '?') + 'rtst=' + Date.now(), { cache: 'no-store' });
+        if (!response.ok) continue;
+        const blob = await response.blob();
+        const type = String(blob.type || '').toLowerCase();
+        if (blob.size > PANEL_ICON_MAX_CACHE_BYTES) continue;
+        if (type && !type.startsWith('image/')) continue;
+        const src = await blobToDataUrl(blob);
+        if (!src || !src.startsWith('data:image/')) continue;
+
+        panelIconCache = { src, source: url, savedAt: Date.now() };
+        try { localStorage.setItem(PANEL_ICON_CACHE_KEY, JSON.stringify(panelIconCache)); } catch (e) {}
+        syncPanelIcon();
+        return;
+      } catch (e) {}
+    }
+
+    syncPanelIcon();
   }
 
   function setGithubState(state, message) {
@@ -3414,25 +3600,35 @@
       const query = btn.dataset.rtstQuery || '';
       btn.title = ok
         ? `Искать через Google: ${query} · site:rutube.ru · без обзоров/трейлеров`
-        : 'Google-поиск доступен только когда GitHub/интернет доступен.';
+        : 'Google-поиск доступен только когда интернет доступен.';
     });
   }
 
   function syncGithubBadge() {
     const btn = document.getElementById('rtst-github-link');
-    if (!btn) return;
-    btn.dataset.state = githubState.state || 'unknown';
-    const actionLine = 'Открыть страницу проекта на GitHub.';
-    const statusLine = githubState.state === 'ok'
-      ? '🟢 ты в Интернете'
-      : githubState.state === 'bad'
-        ? '🔴 ты в Чебурнете.'
-        : githubState.state === 'checking'
-          ? 'Проверяю доступ к GitHub...'
-          : 'Доступ к GitHub ещё не проверялся.';
-    const versionLine = `Версия ${UI_VERSION}`;
-    const detailLine = githubState.message ? `💬: ${githubState.message}` : '';
-    btn.title = [actionLine, statusLine, versionLine, detailLine].filter(Boolean).join('\n');
+    const status = document.getElementById('rtst-network-status');
+    const state = githubState.state || 'unknown';
+
+    if (btn) {
+      const versionLine = `Версия ${UI_VERSION}`;
+      btn.title = ['Открыть страницу проекта на GitHub.', versionLine].filter(Boolean).join('\n');
+    }
+
+    if (!status) return;
+    status.dataset.state = state;
+    if (state === 'ok') {
+      status.textContent = '🟢 интернет';
+      status.title = 'Интернет доступен. GitHub отвечает.';
+    } else if (state === 'bad') {
+      status.textContent = '🔴 чебурнет';
+      status.title = ['GitHub недоступен. Возможен Чебурнет.', githubState.message ? `Ошибка: ${githubState.message}` : ''].filter(Boolean).join('\n');
+    } else if (state === 'checking') {
+      status.textContent = '🟡 проверка';
+      status.title = 'Проверяю доступ к GitHub.';
+    } else {
+      status.textContent = '⚪ сеть';
+      status.title = 'Доступ к интернету ещё не проверялся.';
+    }
   }
 
   async function checkGithubAvailability() {
@@ -3502,10 +3698,8 @@
       toast('Google-поиск отключён: GitHub недоступен. Похоже, Чебурнет.');
       return;
     }
-    const visibleQuery = `${clean} site:rutube.ru`;
     const params = new URLSearchParams({
-      q: visibleQuery,
-      as_q: clean,
+      q: clean,
       as_sitesearch: 'rutube.ru',
       newwindow: '1'
     });
@@ -3535,7 +3729,7 @@
     modal.innerHTML = `
       <div class="rtst-modal" role="dialog" aria-modal="true">
         <div class="rtst-modal-head">
-          <div><div class="rtst-modal-title">${title}</div><div class="rtst-small">${hint}</div></div>
+          <div>${modalTitleHtml(title)}<div class="rtst-small">${hint}</div></div>
           <button type="button" data-rtst-action="close-modal" title="Закрыть">×</button>
         </div>
         <div class="rtst-modal-body">
@@ -3550,6 +3744,7 @@
       </div>
     `;
     document.documentElement.appendChild(modal);
+    syncPanelIcon();
     const textarea = document.getElementById('rtst-modal-list');
     if (textarea) textarea.focus();
     modalOpenedAt = Date.now();
@@ -5374,10 +5569,11 @@
     const patchedPlay = function (...args) {
       if (settings && settings.disableAutoplay && shouldBlockAutoplay(this)) {
         this.autoplay = false; this.removeAttribute('autoplay');
+        try { this.dataset.rtstAutoplayBlockedAt = String(Date.now()); } catch (e) {}
         try { this.pause(); } catch (e) {}
         return Promise.reject(new DOMException('Autoplay prevented by Рутубочист', 'AbortError'));
       }
-      if (Date.now() - lastUserGestureAt < 1800) this.dataset.rtstManualStarted = '1';
+      if (Date.now() - lastUserGestureAt < 5000) this.dataset.rtstManualStarted = '1';
       return originalPlay.apply(this, args);
     };
     patchedPlay.__rtstPatched = true; patchedPlay.__rtstOriginal = originalPlay; HTMLMediaElement.prototype.play = patchedPlay;
@@ -5396,12 +5592,18 @@
     if (!/rutube\.ru$/i.test(location.hostname) && !/rutube\.ru/i.test(location.hostname)) return false;
 
     const now = Date.now();
-    const recentUserGesture = now - lastUserGestureAt < 1800;
+    const recentUserGesture = now - lastUserGestureAt < 5000;
     if (recentUserGesture) return false;
+    if (video.dataset && video.dataset.rtstManualStarted === '1') return false;
 
     if (isPinnedChannelVideo(video)) return true;
+    if (lastVideoEndedAt && now < nextAutoplayBlockUntil) return true;
 
-    return Boolean(lastVideoEndedAt && now < nextAutoplayBlockUntil);
+    // На странице просмотра RUTUBE часто стартует видео программно. Если пользователь
+    // не касался плеера/клавиатуры, считаем это автовоспроизведением и гасим.
+    if (isVideoPage() && !isEmbeddedRutubePlayer()) return true;
+
+    return false;
   }
 
   function scanAutoplayVideos() {
@@ -5415,7 +5617,7 @@
         video.dataset.rtstAutoplayWatched = '1';
 
         video.addEventListener('play', () => {
-          if (Date.now() - lastUserGestureAt < 1800) {
+          if (Date.now() - lastUserGestureAt < 5000) {
             video.dataset.rtstManualStarted = '1';
           }
         }, true);
@@ -5443,9 +5645,10 @@
           if (
             settings.disableAutoplay &&
             isPinnedChannelVideo(video) &&
-            now - lastUserGestureAt > 1800 &&
+            now - lastUserGestureAt > 5000 &&
             video.dataset.rtstManualStarted !== '1'
           ) {
+            try { video.dataset.rtstAutoplayBlockedAt = String(Date.now()); } catch (e) {}
             try { video.pause(); } catch (e) {}
             return;
           }
@@ -5453,22 +5656,24 @@
             settings.disableAutoplay &&
             lastVideoEndedAt &&
             now < nextAutoplayBlockUntil &&
-            now - lastUserGestureAt > 1800 &&
+            now - lastUserGestureAt > 5000 &&
             video.dataset.rtstManualStarted !== '1'
           ) {
+            try { video.dataset.rtstAutoplayBlockedAt = String(Date.now()); } catch (e) {}
             try { video.pause(); } catch (e) {}
           }
         }, true);
       }
 
       if (!video.paused && shouldBlockAutoplay(video)) {
+        try { video.dataset.rtstAutoplayBlockedAt = String(Date.now()); } catch (e) {}
         try { video.pause(); } catch (e) {}
       }
     });
   }
 
   function boot() {
-    installPlayOptionsAdvertStripper(); installRutubeContextMenuUnlocker(); installMobileVideoVolumeSwipe(); installAutoFullscreenOnRotate(); installViewProgressTracker(); syncRootFlags(); setupAutoplayGuard(); addStyle(); bindEvents(); loadMovieDbFromLocalCache(); setTimeout(checkGithubAvailability, 1500); setTimeout(maybeUpdateMovieDbInBackground, 3500); scheduleScan();
+    installPlayOptionsAdvertStripper(); installRutubeContextMenuUnlocker(); installMobileVideoVolumeSwipe(); installAutoFullscreenOnRotate(); installViewProgressTracker(); loadPanelIconFromLocalCache(); syncRootFlags(); setupAutoplayGuard(); addStyle(); bindEvents(); loadMovieDbFromLocalCache(); setTimeout(checkGithubAvailability, 1500); setTimeout(() => refreshPanelIconCacheInBackground(false), 2200); setTimeout(maybeUpdateMovieDbInBackground, 3500); scheduleScan();
     window.addEventListener('popstate', () => setTimeout(rescanNow, 250));
     setInterval(() => { if (location.href !== lastUrl) { scheduleScan(); return; } if (settings.enabled) scheduleScan(); }, 2500);
   }
@@ -5478,6 +5683,7 @@
   installMobileVideoVolumeSwipe();
   installAutoFullscreenOnRotate();
   installViewProgressTracker();
+  loadPanelIconFromLocalCache();
   setupAutoplayGuard();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
   else boot();
