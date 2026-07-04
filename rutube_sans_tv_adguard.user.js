@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.3.39
+// @version      1.3.41
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki
 // @license      MIT
@@ -24,7 +24,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.3.39';
+  const UI_VERSION = '1.3.41';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -2299,8 +2299,21 @@
       .rtst-movie-meta-line span { display: inline-flex !important; align-items: center !important; white-space: nowrap !important; }
       .rtst-movie-search-line { display: flex !important; align-items: center !important; gap: 6px !important; flex-wrap: wrap !important; margin-top: 8px !important; color: rgba(244,255,247,.70) !important; font: 11px/1.3 Arial, sans-serif !important; }
       .rtst-movie-search-label { flex: 0 0 auto !important; opacity: .84 !important; }
-      .rtst-modal .rtst-movie-search-btn { min-height: 28px !important; padding: 5px 10px !important; border-radius: 8px !important; background: rgba(255,255,255,.10) !important; color: #f4fff7 !important; border: 1px solid rgba(255,255,255,.14) !important; box-shadow: none !important; font: 800 11px/1.2 Arial, sans-serif !important; }
+      .rtst-modal .rtst-movie-search-btn {
+        display: inline-flex !important; align-items: center !important; justify-content: center !important;
+        min-height: 28px !important; padding: 5px 10px !important; border-radius: 8px !important;
+        background: rgba(255,255,255,.10) !important; color: #f4fff7 !important;
+        border: 1px solid rgba(255,255,255,.14) !important; box-shadow: none !important;
+        font: 800 11px/1.2 Arial, sans-serif !important; text-decoration: none !important;
+        white-space: nowrap !important; cursor: pointer !important; box-sizing: border-box !important;
+        appearance: none !important; -webkit-appearance: none !important;
+      }
+      .rtst-modal a.rtst-movie-search-btn,
+      .rtst-modal a.rtst-movie-search-btn:visited,
+      .rtst-modal a.rtst-movie-search-btn:hover,
+      .rtst-modal a.rtst-movie-search-btn:active { color: #f4fff7 !important; text-decoration: none !important; }
       .rtst-modal .rtst-movie-search-btn:hover { filter: none !important; background: rgba(255,255,255,.17) !important; }
+      .rtst-modal .rtst-movie-rutube-btn,
       .rtst-modal .rtst-movie-google-btn[data-state="ok"] { border-color: rgba(83,255,124,.36) !important; background: rgba(83,255,124,.10) !important; }
       .rtst-modal .rtst-movie-google-btn:disabled { opacity: .42 !important; cursor: not-allowed !important; filter: grayscale(1) !important; }
       .rtst-movie-loading, .rtst-movie-error, .rtst-movie-empty { padding: 10px !important; border: 1px solid rgba(255,255,255,.10) !important; border-radius: 8px !important; background: rgba(255,255,255,.055) !important; color: rgba(244,255,247,.82) !important; font: 12px/1.4 Arial, sans-serif !important; }
@@ -3195,6 +3208,14 @@
     return text.replace(/^что\s+посмотреть\s+от/iu, 'Подборка от');
   }
 
+  function buildRutubeMovieSearchUrl(query, trailer) {
+    const clean = String(query || '').trim();
+    if (!clean) return '';
+    const finalQuery = trailer ? `${clean} трейлер` : clean;
+    const params = new URLSearchParams({ query: finalQuery, content_type: 'video' });
+    return 'https://rutube.ru/search/?' + params.toString();
+  }
+
   function renderMovieRow(movie) {
     const query = movie && (movie.query || buildMovieQuery(movie));
     const title = movieTitleLine(movie);
@@ -3202,6 +3223,7 @@
     const ratingsHtml = renderMovieRatings(movie && movie.ratings);
     const metaHtml = genresHtml + ratingsHtml;
     const googleOk = isExternalSearchAvailable();
+    const rutubeSearchUrl = buildRutubeMovieSearchUrl(query, false) || 'https://rutube.ru/search/';
     const googleTitle = googleOk
       ? `Искать через Google: ${query} · site:rutube.ru · без обзоров/трейлеров`
       : 'Google-поиск доступен только когда GitHub/интернет доступен.';
@@ -3211,7 +3233,7 @@
         <span class="rtst-movie-meta-line">${metaHtml || '<span>без жанров и рейтингов</span>'}</span>
         <span class="rtst-movie-search-line">
           <span class="rtst-movie-search-label">Искать в:</span>
-          <button type="button" class="rtst-movie-search-btn rtst-movie-rutube-btn" data-rtst-action="movie-search" data-rtst-query="${escapeAttribute(query)}" title="Искать на RUTUBE: ${escapeAttribute(query)}">▶ RUTUBE</button>
+          <a class="rtst-movie-search-btn rtst-movie-rutube-btn" href="${escapeAttribute(rutubeSearchUrl)}" target="_self" title="Искать на RUTUBE: ${escapeAttribute(query)}">▶ RUTUBE</a>
           <button type="button" class="rtst-movie-search-btn rtst-movie-google-btn" data-rtst-action="movie-search-google" data-rtst-query="${escapeAttribute(query)}" data-state="${googleOk ? 'ok' : 'bad'}" title="${escapeAttribute(googleTitle)}" ${googleOk ? '' : 'disabled'}>🔎 Google</button>
         </span>
       </div>`;
@@ -3665,11 +3687,16 @@
   }
 
   function openRutubeMovieSearch(query, trailer) {
-    const clean = String(query || '').trim();
-    if (!clean) { toast('Поисковый запрос пуст.'); return; }
-    const finalQuery = trailer ? `${clean} трейлер` : clean;
-    const params = new URLSearchParams({ query: finalQuery, content_type: 'video' });
-    location.href = 'https://rutube.ru/search/?' + params.toString();
+    const url = buildRutubeMovieSearchUrl(query, trailer);
+    if (!url) { toast('Поисковый запрос пуст.'); return; }
+    // На реальных мобильных браузерах переход через location.href из модалки иногда
+    // оставляет RUTUBE в состоянии чёрного экрана. Нативная ссылка используется
+    // в карточках, а для программных переходов закрываем модалку перед навигацией.
+    closeModal();
+    setTimeout(() => {
+      try { window.location.assign(url); }
+      catch (e) { window.location.href = url; }
+    }, 60);
   }
 
   function googleExcludeWordsForQuery(query) {
