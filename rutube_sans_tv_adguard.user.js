@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.3.45
+// @version      1.3.46
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki
 // @license      MIT
@@ -24,7 +24,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.3.45';
+  const UI_VERSION = '1.3.46';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -5348,11 +5348,27 @@
       'section.menu-auth-section-module__container:not(:has(a[href="/my/"]))',
       'a[href^="https://rutube.sport/"]',
       'a[href^="//rutube.sport/"]',
+      'a.menu-item-module__menu-item[href="/feeds/premier/"]',
+      'a.menu-item-module__menu-item[href="/feeds/start/"]',
+      'a.menu-item-module__menu-item[href="/for_creators"]',
+      'a.menu-item-module__menu-item[href="/for_creators/"]',
+      'a.menu-item-module__menu-item[href="/feeds/live/"]',
       'a.menu-item-module__menu-item[href="/feeds/travel/"]',
       'a.menu-item-module__menu-item[href="/feeds/stream/"]',
       'a.menu-item-module__menu-item[href="/feeds/sport/"]',
       'a.menu-item-module__menu-item[href="/feeds/kids/"]',
       'a.menu-item-module__menu-item[href="/feeds/chempionat-mira-po-futbolu-2026/"]',
+      'a.menu-item-module__menu-item[href="/info/faq/"]',
+      'a.menu-item-module__menu-item[href^="/forms/problem/"]',
+      'a.menu-item-module__menu-item[href^="https://max.ru/rutube_support_bot"]',
+      'a[href="/smarttv/"]',
+      'a[href="/info/about_company/"]',
+      'a[href="/info/activities/"]',
+      'a[href="/info/agreement/"]',
+      'a[href="/info/privacy/"]',
+      'a[href="/info/legal/"]',
+      'a[href="/info/recomlegal/"]',
+      'a[href="https://rutube.ru/brand/"]',
       'a.wdp-mobile-menu-module__mobile-menu-item[href="/categories/"]',
       'a.wdp-mobile-menu-module__mobile-menu-item[href="/feeds/travel/"]',
       'a.wdp-mobile-menu-module__mobile-menu-item[href="/feeds/stream/"]',
@@ -5363,16 +5379,62 @@
 
     try {
       document.querySelectorAll(safeSelectors.join(',')).forEach((el) => {
-        if (!el || isRtstUiElement(el) || isInsideSearchResults(el)) return;
-        forceHideChromeElement(el, 'элемент интерфейса rutube');
+        if (!el || isRtstUiElement(el)) return;
+        const target = el.matches('a[href], button, [role="link"], [role="button"]') ? findChromeItemTarget(el) : el;
+        forceHideSearchChromeElement(target, 'элемент интерфейса rutube');
       });
     } catch (e) {}
+
+    const searchBlockHeadings = ['rutube всегда с вами', 'cкачать приложения', 'скачать приложения', 'больше от rutube', 'rutube в других соцсетях'];
+
+    document.querySelectorAll('section[aria-label*="качать приложения" i], section[aria-label*="скачать приложения" i], section[class*="menu-app-section" i]').forEach((section) => {
+      forceHideSearchChromeElement(section, 'блок: rutube всегда с вами');
+    });
+
+    document.querySelectorAll('ul[class*="menu-guide-section" i], ul[class*="menu-info-section" i], ul[class*="menu-social" i], ul[aria-label="Секция инструкции" i], ul[aria-label*="социальных сетях" i]').forEach((list) => {
+      const section = list.closest('section[class*="menu-section-module__section"], section') || list;
+      forceHideSearchChromeElement(section, 'блок: приложения/справка rutube');
+    });
+
+    document.querySelectorAll('h1,h2,h3,h4,h5,h6,p,span,div').forEach((el) => {
+      if (!el || isRtstUiElement(el)) return;
+      const raw = String(el.textContent || '').trim();
+      if (!raw || raw.length > 80) return;
+      const text = normalize(raw);
+      const match = searchBlockHeadings.find((heading) => text === normalize(heading));
+      if (!match) return;
+      const section = el.closest('section[class*="menu-section-module__section"], section');
+      forceHideSearchChromeElement(section || findChromeBlockTarget(el), `блок: ${match}`);
+    });
 
     hideDuplicateMyRootLink();
   }
 
+  function forceHideSearchChromeElement(el, reason) {
+    if (!el || isRtstUiElement(el) || isProtectedHeader(el) || isInsidePlayer(el) || containsVideoPlayer(el)) return;
+    const tag = el.tagName ? el.tagName.toLowerCase() : '';
+    if (el === document.body || el === document.documentElement || tag === 'main' || el.getAttribute('role') === 'main') return;
+
+    const className = String(el.className || '');
+    const ariaLabel = normalize(el.getAttribute('aria-label') || '');
+    const text = normalize(el.textContent || '');
+    const isMenuish = /menu|sidebar|drawer|navigation|guide|info|app-section|links/i.test(className)
+      || Boolean(el.closest('[class*="menu" i], [class*="sidebar" i], [class*="drawer" i], aside, nav'))
+      || ariaLabel.includes('скачать приложения')
+      || ariaLabel.includes('cкачать приложения')
+      || text === 'rutube всегда с вами'
+      || text === 'больше от rutube'
+      || text === 'rutube в других соцсетях';
+
+    if (tag === 'section' && !isMenuish) return;
+    if (!isMenuish && isInsideSearchResults(el)) return;
+
+    forceHideChromeElement(el, reason);
+  }
+
   function isInsideSearchResults(el) {
     if (!el || !el.closest) return false;
+    if (el.closest('[class*="menu" i], [class*="sidebar" i], [class*="drawer" i], aside, nav')) return false;
     return Boolean(el.closest(
       'main, [role="main"], [data-rtst-card="1"], article, [data-pos-num], [class*="search" i], [class*="Search"], [class*="card" i], [class*="Card"]'
     ));
