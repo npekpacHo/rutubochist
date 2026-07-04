@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.3.43
-// @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
+// @version      1.3.44
+// @description  Рутубочист: 1.3.44 очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki
 // @license      MIT
 // @homepageURL  https://npekpacho.github.io/rutubochist/
@@ -24,7 +24,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.3.43';
+  const UI_VERSION = '1.3.44';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -2754,16 +2754,16 @@
 
     if (settings.hideShorts) {
       parts.push(`
-        body:not([data-page="search"]) a.wdp-mobile-menu-module__mobile-menu-item[href^="/shorts/"],
-        body:not([data-page="search"]) section[aria-label="Shorts" i],
-        body:not([data-page="search"]) section[aria-label="Шортсы" i] {
+        html[data-rtst-page]:not([data-rtst-page="search"]) a.wdp-mobile-menu-module__mobile-menu-item[href^="/shorts/"],
+        html[data-rtst-page]:not([data-rtst-page="search"]) section[aria-label="Shorts" i],
+        html[data-rtst-page]:not([data-rtst-page="search"]) section[aria-label="Шортсы" i] {
           display: none !important;
         }
         @supports selector(:has(*)) {
-          body:not([data-page="search"]) article:has(a[href^="/shorts/"]),
-          body:not([data-page="search"]) [data-testid*="card" i]:has(a[href^="/shorts/"]),
-          body:not([data-page="search"]) .wdp-carousel-module__container:has(a[href^="/shorts/"]),
-          body:not([data-page="search"]) .wdp-slider-module__slider:has(a[href^="/shorts/"]) {
+          html[data-rtst-page]:not([data-rtst-page="search"]) article:has(a[href^="/shorts/"]),
+          html[data-rtst-page]:not([data-rtst-page="search"]) [data-testid*="card" i]:has(a[href^="/shorts/"]),
+          html[data-rtst-page]:not([data-rtst-page="search"]) .wdp-carousel-module__container:has(a[href^="/shorts/"]),
+          html[data-rtst-page]:not([data-rtst-page="search"]) .wdp-slider-module__slider:has(a[href^="/shorts/"]) {
             display: none !important;
           }
         }
@@ -4229,11 +4229,11 @@
 
   function clearAllMarks() {
     hiddenCount = 0; removedCount = 0;
-    document.querySelectorAll('.rtst-hidden,.rtst-dim,.rtst-chrome-hidden,.rtst-view-hidden,.rtst-player-ad-hidden,.rtst-showcase-banner-hidden,.rtst-search-trash,[data-rtst-search-trash="1"]').forEach((el) => {
-      el.classList.remove('rtst-hidden', 'rtst-dim', 'rtst-view-hidden', 'rtst-chrome-hidden', 'rtst-player-ad-hidden', 'rtst-showcase-banner-hidden', 'rtst-search-trash');
+    document.querySelectorAll('.rtst-hidden,.rtst-dim,.rtst-chrome-hidden,.rtst-view-hidden,.rtst-player-ad-hidden,.rtst-showcase-banner-hidden,.rtst-search-trash,.rtst-search-shorts-hidden,[data-rtst-search-trash="1"],[data-rtst-search-shorts="1"]').forEach((el) => {
+      el.classList.remove('rtst-hidden', 'rtst-dim', 'rtst-view-hidden', 'rtst-chrome-hidden', 'rtst-player-ad-hidden', 'rtst-showcase-banner-hidden', 'rtst-search-trash', 'rtst-search-shorts-hidden');
       el.removeAttribute('data-rtst-hidden'); el.removeAttribute('data-rtst-hide-target');
       el.removeAttribute('data-rtst-reason'); el.removeAttribute('data-rtst-chrome-hidden'); el.removeAttribute('data-rtst-view-hidden');
-      el.removeAttribute('data-rtst-player-ad-hidden'); el.removeAttribute('data-rtst-showcase-banner-hidden'); el.removeAttribute('data-rtst-background-mode-hidden'); el.removeAttribute('data-rtst-search-trash'); el.removeAttribute('data-rtst-search-trash-reason'); el.removeAttribute('data-rtst-skip-clicked');
+      el.removeAttribute('data-rtst-player-ad-hidden'); el.removeAttribute('data-rtst-showcase-banner-hidden'); el.removeAttribute('data-rtst-background-mode-hidden'); el.removeAttribute('data-rtst-search-trash'); el.removeAttribute('data-rtst-search-trash-reason'); el.removeAttribute('data-rtst-search-shorts'); el.removeAttribute('data-rtst-skip-clicked');
     });
     document.querySelectorAll('.rtst-watch-badge').forEach((el) => el.remove());
     document.querySelectorAll('[data-rtst-view-state],[data-rtst-processed]').forEach((el) => {
@@ -4260,7 +4260,7 @@
 
     nodes.forEach((el) => {
       try {
-        el.classList.remove('rtst-hidden', 'rtst-dim', 'rtst-view-hidden', 'rtst-chrome-hidden', 'rtst-player-ad-hidden', 'rtst-showcase-banner-hidden', 'rtst-search-trash');
+        el.classList.remove('rtst-hidden', 'rtst-dim', 'rtst-view-hidden', 'rtst-chrome-hidden', 'rtst-player-ad-hidden', 'rtst-showcase-banner-hidden', 'rtst-search-trash', 'rtst-search-shorts-hidden');
         el.removeAttribute('data-rtst-hidden');
         el.removeAttribute('data-rtst-hide-target');
         el.removeAttribute('data-rtst-reason');
@@ -4270,6 +4270,7 @@
         el.removeAttribute('data-rtst-player-ad-hidden');
         el.removeAttribute('data-rtst-showcase-banner-hidden');
         el.removeAttribute('data-rtst-search-trash');
+        el.removeAttribute('data-rtst-search-shorts');
         el.removeAttribute('data-rtst-search-trash-reason');
         el.removeAttribute('data-rtst-skip-clicked');
       } catch (e) {}
@@ -4780,9 +4781,10 @@
     }
 
     if (isSearchPage()) {
-      scanCards();
+      scanCards({ skipShorts: true });
       scanSearchTrashCards();
       cleanSearchShortsTab();
+      hideSearchShortsCardsSafe();
       if (settings.hideSideMenuPolitics || settings.cleanRutubeChrome) {
         cleanRutubeChromeSearchSafe();
       }
@@ -4837,6 +4839,88 @@
         tab.dataset.rtstSearchShortsTab = '1';
         tab.dataset.rtstReason = 'скрыто, вкладка Shorts в поиске';
         tab.style.setProperty('display', 'none', 'important');
+      });
+    } catch (e) {}
+  }
+
+  function clearSearchShortsMarks(root = document) {
+    const scope = root && root.querySelectorAll ? root : document;
+    try {
+      scope.querySelectorAll('.rtst-search-shorts-hidden,[data-rtst-search-shorts="1"]').forEach((el) => {
+        el.classList.remove('rtst-search-shorts-hidden', 'rtst-hidden', 'rtst-dim');
+        el.removeAttribute('data-rtst-search-shorts');
+        el.removeAttribute('data-rtst-hidden');
+        el.removeAttribute('data-rtst-hide-target');
+        el.removeAttribute('data-rtst-reason');
+      });
+    } catch (e) {}
+  }
+
+  function findSearchShortsHideTarget(card, link) {
+    if (!card || !link || isRtstUiElement(card) || isRtstUiElement(link)) return null;
+
+    const candidates = [
+      link.closest('article'),
+      link.closest('li'),
+      link.closest('[data-testid*="card" i]'),
+      link.closest('[class*="card" i]'),
+      link.closest('[class*="tile" i]'),
+      link.closest('[class*="item" i]'),
+      card
+    ].filter(Boolean);
+
+    for (const candidate of candidates) {
+      if (!candidate || isRtstUiElement(candidate) || isProtectedHeader(candidate) || isInsidePlayer(candidate)) continue;
+      const tag = candidate.tagName ? candidate.tagName.toLowerCase() : '';
+      if (['html', 'body', 'main', 'header', 'footer', 'nav', 'aside', 'section'].includes(tag)) continue;
+      if (candidate.closest && candidate.closest('main.rtst-chrome-hidden, [role="main"].rtst-chrome-hidden')) continue;
+
+      const linkCount = candidate.querySelectorAll ? candidate.querySelectorAll('a[href]').length : 0;
+      const videoLinkCount = candidate.querySelectorAll ? candidate.querySelectorAll('a[href*="/video/"], a[href*="/shorts/"], a[href*="/plst/"]').length : 0;
+      const shortsLinkCount = candidate.querySelectorAll ? candidate.querySelectorAll('a[href*="/shorts/"]').length : 0;
+      const textLen = (candidate.textContent || '').trim().length;
+
+      // На мобильном поиске RUTUBE легко спрятать весь контейнер выдачи.
+      // Поэтому режем только явную маленькую карточку Shorts, а не общий список/секцию.
+      if (shortsLinkCount < 1) continue;
+      if (videoLinkCount > 1 || linkCount > 5 || textLen > 1200) continue;
+      if (isDangerousHideTarget(candidate)) continue;
+
+      return candidate;
+    }
+
+    return null;
+  }
+
+  function hideSearchShortsCardsSafe() {
+    if (!isSearchPage()) return;
+
+    if (!settings.enabled || !settings.hideShorts) {
+      clearSearchShortsMarks(document);
+      return;
+    }
+
+    try {
+      document.querySelectorAll('a[href*="/shorts/"]').forEach((link) => {
+        if (!link || isRtstUiElement(link) || link.closest('[data-rtst-search-shorts="1"]')) return;
+        const card = findCard(link);
+        const target = findSearchShortsHideTarget(card, link);
+        if (!target) return;
+
+        if (target.dataset.rtstSearchShorts !== '1') hiddenCount += 1;
+        target.dataset.rtstSearchShorts = '1';
+        target.dataset.rtstHidden = '1';
+        target.dataset.rtstHideTarget = '1';
+        target.dataset.rtstReason = 'скрыто, Shorts';
+        target.classList.add('rtst-search-shorts-hidden');
+
+        if (settings.showHidden) {
+          target.classList.remove('rtst-hidden');
+          target.classList.add('rtst-dim');
+        } else {
+          target.classList.remove('rtst-dim');
+          target.classList.add('rtst-hidden');
+        }
       });
     } catch (e) {}
   }
@@ -4909,7 +4993,8 @@
     }
   }
 
-  function scanCards() {
+  function scanCards(options = {}) {
+    const skipShorts = Boolean(options && options.skipShorts);
     const links = Array.from(document.querySelectorAll('a[href]')).filter((a) => isVideoLikeLink(a) || isChannelLikeLink(a));
     for (const link of links) {
       const card = findCard(link);
@@ -4919,7 +5004,7 @@
       card.dataset.rtstProcessed = '1'; card.dataset.rtstCard = '1';
       const info = readCardInfo(card, link);
       addBlockChannelButton(card, info.channel);
-      const reason = getBlockReason(info);
+      const reason = getBlockReason(info, { skipShorts });
       if (reason) hideElement(card, reason);
     }
   }
@@ -5491,8 +5576,8 @@
     return cleanCandidates[0] || '';
   }
 
-  function getBlockReason(info) {
-    if (settings.hideShorts && info.isShort) return 'shorts';
+  function getBlockReason(info, options = {}) {
+    if (settings.hideShorts && info.isShort && !(options && options.skipShorts)) return 'shorts';
     const channelMatch = info.channel && containsBlocked(info.channel, allBlockedChannels());
     if (channelMatch) return `канал: ${channelMatch}`;
     const wordMatch = containsBlocked(info.text, allBlockedWords());
