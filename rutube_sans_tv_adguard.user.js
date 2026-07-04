@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.3.42
+// @version      1.3.43
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki
 // @license      MIT
@@ -24,7 +24,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.3.42';
+  const UI_VERSION = '1.3.43';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -3080,7 +3080,7 @@
             <div class="rtst-row"><label><input type="checkbox" id="rtst-show-hidden"> показывать скрытые карточки бледным</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-menu"> чистить боковое меню, шапку и промо-блоки</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-shorts"> скрывать Шортсы</label></div>
-            <div class="rtst-row"><label><input type="checkbox" id="rtst-dim-search-trash"> приглушать мусорные результаты поиска</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-dim-search-trash"> приглушать мусор</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-mark-watched"> помечать просмотренные видео</label></div>
           </div>
 
@@ -3219,8 +3219,13 @@
     const clean = String(query || '').trim();
     if (!clean) return '';
     const finalQuery = trailer ? `${clean} трейлер` : clean;
-    const params = new URLSearchParams({ query: finalQuery, content_type: 'video' });
-    return 'https://rutube.ru/search/?' + params.toString();
+
+    // Штатный поиск RUTUBE с мобильной строки уходит на /search/?query=...
+    // без content_type=video. Дополнительный content_type иногда оставляет
+    // реальный мобильный RUTUBE в чёрном экране, особенно при включённой
+    // зачистке интерфейса. Идём тем же маршрутом, что и родной поиск.
+    const params = new URLSearchParams({ query: finalQuery });
+    return '/search/?' + params.toString();
   }
 
   function renderMovieRow(movie) {
@@ -3240,7 +3245,7 @@
         <span class="rtst-movie-meta-line">${metaHtml || '<span>без жанров и рейтингов</span>'}</span>
         <span class="rtst-movie-search-line">
           <span class="rtst-movie-search-label">Искать в:</span>
-          <a class="rtst-movie-search-btn rtst-movie-rutube-btn" href="${escapeAttribute(rutubeSearchUrl)}" target="_self" title="Искать на RUTUBE: ${escapeAttribute(query)}">▶ RUTUBE</a>
+          <a class="rtst-movie-search-btn rtst-movie-rutube-btn" href="${escapeAttribute(rutubeSearchUrl)}" target="_self" title="Искать на RUTUBE: ${escapeAttribute(query)}" rel="nofollow">▶ RUTUBE</a>
           <button type="button" class="rtst-movie-search-btn rtst-movie-google-btn" data-rtst-action="movie-search-google" data-rtst-query="${escapeAttribute(query)}" data-state="${googleOk ? 'ok' : 'bad'}" title="${escapeAttribute(googleTitle)}" ${googleOk ? '' : 'disabled'}>🔎 Google</button>
         </span>
       </div>`;
@@ -4863,7 +4868,7 @@
     if (!target || isRtstUiElement(target) || isDangerousHideTarget(target)) return;
 
     target.dataset.rtstSearchTrash = '1';
-    target.dataset.rtstSearchTrashReason = `мусор поиска: ${reason}`;
+    target.dataset.rtstSearchTrashReason = `мусор: ${reason}`;
     target.classList.add('rtst-search-trash');
   }
 
