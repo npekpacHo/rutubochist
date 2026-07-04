@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.3.41
-// @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть. Хотфикс А.
+// @version      1.3.42
+// @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki
 // @license      MIT
 // @homepageURL  https://npekpacho.github.io/rutubochist/
@@ -24,7 +24,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.3.41';
+  const UI_VERSION = '1.3.42';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -2742,6 +2742,13 @@
             display: none !important;
           }
         }
+        /* На поиске не даём зачистке chrome случайно превращать выдачу в чёрный экран. */
+        html[data-rtst-page="search"] main.rtst-chrome-hidden,
+        html[data-rtst-page="search"] [role="main"].rtst-chrome-hidden,
+        html[data-rtst-page="search"] main .rtst-showcase-banner-hidden,
+        html[data-rtst-page="search"] [role="main"] .rtst-showcase-banner-hidden {
+          display: revert !important;
+        }
       `);
     }
 
@@ -4772,10 +4779,7 @@
       scanSearchTrashCards();
       cleanSearchShortsTab();
       if (settings.hideSideMenuPolitics || settings.cleanRutubeChrome) {
-        scanNavigationLinks();
-        cleanRutubeChrome();
-        scanShowcaseBanners(document);
-        reorderSidebar();
+        cleanRutubeChromeSearchSafe();
       }
       if (settings.disableAutoplay) scanAutoplayVideos();
       applyHiddenVisibility();
@@ -5235,6 +5239,54 @@
 
       forceHideChromeElement(a, 'дубль: Моё');
     });
+  }
+
+  function cleanRutubeChromeSearchSafe() {
+    // На странице поиска особенно на реальном мобильном RUTUBE нельзя запускать общую
+    // зачистку chrome-элементов: широкие селекторы и подъём к родителям иногда цепляют
+    // основной контейнер выдачи и оставляют чёрный экран. Здесь чистим только явно
+    // служебные элементы шапки/меню, не трогая main и карточки результатов.
+    const safeSelectors = [
+      '.wdp-header-right-module__wrapper .wdp-notification-bell-module__mobileS',
+      '.wdp-header-right-module__wrapper .wdp-notification-bell-module__desktop',
+      '.wdp-header-right-module__wrapper [class*="wdp-notification-bell-module__"]',
+      '.wdp-header-right-module__wrapper [class*="safe-mode-header-entrypoint-module__button"]',
+      '.wdp-header-right-module__wrapper [class*="premium-subscription-entrypoint-module__"]',
+      '.menu-divider-module__divider',
+      'hr.menu-divider-module__divider',
+      'button.menu-collapse-module__collapse-trigger[name="По темам"]',
+      'button[name="По темам"][aria-roledescription*="по темам" i]',
+      'section.menu-auth-section-module__container:not(:has(a[href="/my/"]))',
+      'a[href^="https://rutube.sport/"]',
+      'a[href^="//rutube.sport/"]',
+      'a.menu-item-module__menu-item[href="/feeds/travel/"]',
+      'a.menu-item-module__menu-item[href="/feeds/stream/"]',
+      'a.menu-item-module__menu-item[href="/feeds/sport/"]',
+      'a.menu-item-module__menu-item[href="/feeds/kids/"]',
+      'a.menu-item-module__menu-item[href="/feeds/chempionat-mira-po-futbolu-2026/"]',
+      'a.wdp-mobile-menu-module__mobile-menu-item[href="/categories/"]',
+      'a.wdp-mobile-menu-module__mobile-menu-item[href="/feeds/travel/"]',
+      'a.wdp-mobile-menu-module__mobile-menu-item[href="/feeds/stream/"]',
+      'a.wdp-mobile-menu-module__mobile-menu-item[href="/feeds/sport/"]',
+      'a.wdp-mobile-menu-module__mobile-menu-item[href="/feeds/kids/"]',
+      'a.wdp-mobile-menu-module__mobile-menu-item[href="/feeds/chempionat-mira-po-futbolu-2026/"]'
+    ];
+
+    try {
+      document.querySelectorAll(safeSelectors.join(',')).forEach((el) => {
+        if (!el || isRtstUiElement(el) || isInsideSearchResults(el)) return;
+        forceHideChromeElement(el, 'элемент интерфейса rutube');
+      });
+    } catch (e) {}
+
+    hideDuplicateMyRootLink();
+  }
+
+  function isInsideSearchResults(el) {
+    if (!el || !el.closest) return false;
+    return Boolean(el.closest(
+      'main, [role="main"], [data-rtst-card="1"], article, [data-pos-num], [class*="search" i], [class*="Search"], [class*="card" i], [class*="Card"]'
+    ));
   }
 
   function cleanRutubeChrome() {
