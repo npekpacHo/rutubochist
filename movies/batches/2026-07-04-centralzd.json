@@ -1,0 +1,205 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.1",
+  "id": "2026-07-04-centralzd",
+  "title": "Что посмотреть от 04.07.2026",
+  "date": "2026-07-04",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_04072026_14119908",
+  "extractedAt": "2026-07-04T07:04:52.503Z",
+  "count": 7,
+  "items": [
+    {
+      "id": "obsessiya-obsession-2025",
+      "title": "Обсессия",
+      "originalTitle": "Obsession",
+      "year": 2025,
+      "query": "Обсессия Obsession 2025",
+      "genres": [
+        "ужасы"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.3,
+          "votes": 64468,
+          "percent": 73
+        },
+        "imdb": {
+          "value": 8.1,
+          "votes": 135829,
+          "percent": 81
+        },
+        "rottenTomatoes": {
+          "critics": 94,
+          "audience": 94
+        }
+      }
+    },
+    {
+      "id": "zakulis-e-real-nosti-backrooms-2026",
+      "title": "Закулисье реальности",
+      "originalTitle": "Backrooms",
+      "year": 2026,
+      "query": "Закулисье реальности Backrooms 2026",
+      "genres": [
+        "ужасы"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.7,
+          "votes": 81825,
+          "percent": 67
+        },
+        "imdb": {
+          "value": 7.1,
+          "votes": 56858,
+          "percent": 71
+        },
+        "rottenTomatoes": {
+          "critics": 87,
+          "audience": 74
+        }
+      }
+    },
+    {
+      "id": "smert-robin-guda-the-death-of-robin-hood-2026",
+      "title": "Смерть Робин Гуда",
+      "originalTitle": "The Death of Robin Hood",
+      "year": 2026,
+      "query": "Смерть Робин Гуда The Death of Robin Hood 2026",
+      "genres": [
+        "боевик",
+        "драма",
+        "приключения",
+        "мультфильм",
+        "фэнтези",
+        "комедия",
+        "семейный"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.6,
+          "votes": 7328,
+          "percent": 76
+        },
+        "imdb": {
+          "value": 7.7,
+          "votes": 15323,
+          "percent": 77
+        },
+        "rottenTomatoes": {
+          "critics": 92,
+          "audience": 95
+        }
+      }
+    },
+    {
+      "id": "nochnoy-biznes-the-get-out-2026",
+      "title": "Ночной бизнес",
+      "originalTitle": "The Get Out",
+      "year": 2026,
+      "query": "Ночной бизнес The Get Out 2026",
+      "genres": [
+        "боевик",
+        "триллер",
+        "комедия"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.2,
+          "votes": 1032,
+          "percent": 62
+        },
+        "imdb": {
+          "value": 5.4,
+          "votes": 615,
+          "percent": 54
+        },
+        "rottenTomatoes": {
+          "critics": 55
+        }
+      }
+    },
+    {
+      "id": "enola-holms-3-enola-holmes-3-2026",
+      "title": "Энола Холмс 3",
+      "originalTitle": "Enola Holmes 3",
+      "year": 2026,
+      "query": "Энола Холмс 3 Enola Holmes 3 2026",
+      "genres": [
+        "детектив",
+        "криминал"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.2,
+          "votes": 1051,
+          "percent": 62
+        },
+        "imdb": {
+          "value": 6.1,
+          "votes": 2332,
+          "percent": 61
+        },
+        "rottenTomatoes": {
+          "critics": 71,
+          "audience": 60
+        }
+      }
+    },
+    {
+      "id": "kaliforniyskaya-afera-california-schemin-2025",
+      "title": "Калифорнийская афера",
+      "originalTitle": "California Schemin'",
+      "year": 2025,
+      "query": "Калифорнийская афера California Schemin' 2025",
+      "genres": [
+        "драма",
+        "биография",
+        "история",
+        "музыка"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.2,
+          "votes": 247,
+          "percent": 72
+        },
+        "rottenTomatoes": {
+          "critics": 96
+        }
+      }
+    },
+    {
+      "id": "modnaya-bratva-i-love-boosters-2026",
+      "title": "Модная братва",
+      "originalTitle": "I Love Boosters",
+      "year": 2026,
+      "query": "Модная братва I Love Boosters 2026",
+      "genres": [
+        "комедия",
+        "мультфильм",
+        "фантастика",
+        "фэнтези",
+        "боевик",
+        "приключения",
+        "драма",
+        "триллер"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.8,
+          "votes": 135019,
+          "percent": 78
+        },
+        "imdb": {
+          "value": 8.1,
+          "votes": 210000,
+          "percent": 81
+        },
+        "rottenTomatoes": {
+          "critics": 100
+        }
+      }
+    }
+  ]
+}
