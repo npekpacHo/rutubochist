@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.4.5
+// @version      1.4.6
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki
 // @license      MIT
@@ -24,7 +24,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.4.5';
+  const UI_VERSION = '1.4.6';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -2170,8 +2170,12 @@
   function addStyle() {
     const css = `
       html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] .video-page-layout-module__right,
+      html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] .video-page-layout-module__side,
       html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] .wdp-see-also-module__wrapper,
-      html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] section[aria-label="Рекомендации" i] {
+      html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] .additional-recommendations-module__section,
+      html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] section[aria-label="Рекомендации" i],
+      html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] section[aria-label="Дополнительные рекомендации" i],
+      html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] section[aria-label*="рекомендац" i][data-testid="grid"] {
         display: none !important;
       }
       html[data-rtst-enabled="1"][data-rtst-clean-watch="1"][data-rtst-page="video"] [class*="safe-mode-video-banner-module__banner"] {
@@ -5498,12 +5502,18 @@
     const selectors = [
       '.wdp-see-also-module__wrapper', '.additional-recommendations-module__section',
       'section[aria-label="Рекомендации" i]', 'aside[aria-label="Рекомендации" i]',
+      'section[aria-label="Дополнительные рекомендации" i]', 'aside[aria-label="Дополнительные рекомендации" i]',
       '.video-page-layout-module__right', '.video-page-layout-module__side'
     ];
     document.querySelectorAll(selectors.join(',')).forEach((el) => {
       if (!el || isRtstUiElement(el) || isInsidePlayer(el) || containsVideoPlayer(el) || isProtectedHeader(el)) return;
       if (el.closest('section[aria-label="блок действий" i], section[aria-label="информация о видео" i], section[aria-label="описание видео" i]')) return;
-      const target = el.closest('.wdp-see-also-module__wrapper') || el.closest('.video-page-layout-module__right') || el;
+      const target =
+        el.closest('.additional-recommendations-module__section') ||
+        el.closest('.wdp-see-also-module__wrapper') ||
+        el.closest('.video-page-layout-module__right') ||
+        el.closest('.video-page-layout-module__side') ||
+        el;
       if (!target || target.closest('#rtst-panel') || (target.querySelector && target.querySelector('#rtst-home-link'))) return;
       
       const text = normalize(target.textContent || target.getAttribute('aria-label') || '');
