@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.4.3
+// @version      1.4.5
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki
 // @license      MIT
@@ -24,7 +24,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.4.3';
+  const UI_VERSION = '1.4.5';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -2511,7 +2511,7 @@
       .rtst-modal-head > button[data-rtst-action="close-modal"] { flex: 0 0 auto !important; width: 32px !important; height: 32px !important; min-width: 32px !important; min-height: 32px !important; padding: 0 !important; border-radius: 8px !important; background: rgba(255,255,255,.08) !important; color: #f4fff7 !important; box-shadow: none !important; font: 800 18px/1 Arial, sans-serif !important; }
       .rtst-modal-head > button[data-rtst-action="close-modal"]:hover { background: rgba(255,255,255,.16) !important; filter: none !important; }
       .rtst-modal .rtst-danger { background: #ffcbc6 !important; color: #2a0805 !important; }
-      .rtst-modal.rtst-movie-modal { width: 780px !important; max-width: calc(100vw - 24px) !important; }
+      .rtst-modal.rtst-movie-modal { width: 680px !important; max-width: calc(100vw - 24px) !important; }
       .rtst-movie-source { color: rgba(244,255,247,.76) !important; text-decoration: underline !important; }
       .rtst-modal .rtst-movie-source-btn { min-height: 0 !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; background: transparent !important; color: rgba(244,255,247,.76) !important; box-shadow: none !important; text-decoration: underline !important; font: 11px/1.3 Arial, sans-serif !important; cursor: pointer !important; }
       .rtst-modal .rtst-movie-source-btn:hover { color: #f4fff7 !important; filter: none !important; }
@@ -2519,11 +2519,25 @@
       .rtst-movie-nav { display: flex !important; gap: 4px !important; flex-wrap: wrap !important; align-items: center !important; }
       .rtst-movie-status { color: rgba(244,255,247,.78) !important; font: 11px/1.3 Arial, sans-serif !important; }
       .rtst-movie-list { display: flex !important; flex-direction: column !important; gap: 4px !important; margin: 0 !important; }
-      .rtst-modal .rtst-movie-row { display: block !important; width: 100% !important; min-height: 0 !important; margin: 0 !important; padding: 6px 8px !important; border: 1px solid rgba(255,255,255,.10) !important; border-radius: 8px !important; background: rgba(255,255,255,.055) !important; color: #f4fff7 !important; cursor: pointer !important; text-align: left !important; box-shadow: none !important; font: 12px/1.35 Arial, sans-serif !important; }
-      .rtst-modal .rtst-movie-row:hover { background: rgba(255,255,255,.105) !important; filter: none !important; }
+      .rtst-modal .rtst-movie-row {
+        display: block !important; position: relative !important; overflow: hidden !important; isolation: isolate !important; width: 100% !important; min-height: 0 !important;
+        margin: 0 !important; padding: 6px 8px !important; border: 1px solid rgba(255,255,255,.10) !important; border-radius: 8px !important;
+        background: rgba(255,255,255,.055) !important;
+        color: #f4fff7 !important; cursor: pointer !important; text-align: left !important; box-shadow: none !important; font: 12px/1.35 Arial, sans-serif !important;
+      }
+      .rtst-modal .rtst-movie-row::before {
+        content: '' !important; position: absolute !important; left: 0 !important; top: 0 !important; bottom: 0 !important; width: var(--rtst-movie-rating-pct, 0%) !important;
+        background: var(--rtst-movie-rating-fill, linear-gradient(90deg, rgba(138, 196, 154, .22), rgba(138, 196, 154, .22))) !important;
+        opacity: .94 !important; pointer-events: none !important; z-index: 0 !important;
+      }
+      .rtst-modal .rtst-movie-row:hover { background: rgba(255,255,255,.09) !important; filter: none !important; }
+      .rtst-modal .rtst-movie-row:hover::before { opacity: 1 !important; filter: saturate(1.08) brightness(1.08) !important; }
+      .rtst-modal .rtst-movie-row > span { position: relative !important; z-index: 1 !important; }
       .rtst-movie-title-line { display: block !important; color: #f4fff7 !important; font-weight: 800 !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
       .rtst-movie-meta-line { display: flex !important; flex-wrap: wrap !important; gap: 4px 12px !important; margin-top: 6px !important; color: rgba(244,255,247,.76) !important; font-size: 11px !important; }
       .rtst-movie-meta-line span { display: inline-flex !important; align-items: center !important; white-space: nowrap !important; }
+      .rtst-movie-rating-line { display: flex !important; align-items: center !important; flex-wrap: wrap !important; gap: 4px 10px !important; margin-top: 5px !important; color: rgba(223,255,230,.90) !important; font: 800 11px/1.3 Arial, sans-serif !important; }
+      .rtst-movie-rating-line span { display: inline-flex !important; align-items: center !important; white-space: nowrap !important; }
       .rtst-movie-search-line { display: flex !important; align-items: center !important; gap: 6px !important; flex-wrap: wrap !important; margin-top: 8px !important; color: rgba(244,255,247,.70) !important; font: 11px/1.3 Arial, sans-serif !important; }
       .rtst-movie-search-label { flex: 0 0 auto !important; opacity: .84 !important; }
       .rtst-modal .rtst-movie-search-btn {
@@ -2664,6 +2678,7 @@
         .rtst-modal.rtst-movie-modal { width: 100vw !important; max-width: 100vw !important; }
         .rtst-modal .rtst-movie-row { min-height: 60px !important; font-size: 14px !important; padding: 12px !important; margin-bottom: 8px !important; }
         .rtst-movie-meta-line { gap: 6px 10px !important; margin-top: 8px !important; font-size: 12px !important; }
+        .rtst-movie-rating-line { margin-top: 7px !important; gap: 6px 10px !important; font-size: 12px !important; }
         .rtst-movie-search-line { margin-top: 10px !important; gap: 8px !important; }
         .rtst-modal .rtst-movie-search-btn { flex: 1 1 120px !important; min-height: 42px !important; font-size: 13px !important; padding: 8px 10px !important; }
         .rtst-movie-toolbar { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; }
@@ -2790,6 +2805,7 @@
         .rtst-modal.rtst-movie-modal { width: 100vw !important; max-width: 100vw !important; }
         .rtst-modal .rtst-movie-row { min-height: 60px !important; font-size: 14px !important; padding: 12px !important; margin-bottom: 8px !important; }
         .rtst-movie-meta-line { gap: 6px 10px !important; margin-top: 8px !important; font-size: 12px !important; }
+        .rtst-movie-rating-line { margin-top: 7px !important; gap: 6px 10px !important; font-size: 12px !important; }
         .rtst-movie-search-line { margin-top: 10px !important; gap: 8px !important; }
         .rtst-modal .rtst-movie-search-btn { flex: 1 1 120px !important; min-height: 42px !important; font-size: 13px !important; padding: 8px 10px !important; }
         .rtst-movie-toolbar { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; }
@@ -3588,16 +3604,18 @@
     const title = movieTitleLine(movie);
     const genresHtml = renderMovieGenres(movie && movie.genres);
     const ratingsHtml = renderMovieRatings(movie && movie.ratings);
-    const metaHtml = genresHtml + ratingsHtml;
+    const ratingPercent = movieRatingPercent(movie && movie.ratings);
+    const ratingFill = movieGenreRatingFill(movie && movie.genres);
     const googleOk = isExternalSearchAvailable();
     const rutubeSearchUrl = buildRutubeMovieSearchUrl(query, false) || 'https://rutube.ru/search/';
     const googleTitle = googleOk
       ? `Искать через Google: ${query} · site:rutube.ru · без обзоров/трейлеров`
       : 'Google-поиск доступен только когда GitHub/интернет доступен.';
     return `
-      <div class="rtst-movie-row" data-rtst-query="${escapeAttribute(query)}">
+      <div class="rtst-movie-row" data-rtst-query="${escapeAttribute(query)}" style="--rtst-movie-rating-pct: ${escapeAttribute(String(ratingPercent))}%; --rtst-movie-rating-fill: ${escapeAttribute(ratingFill)};">
         <span class="rtst-movie-title-line">${escapeHtml(title)}</span>
-        <span class="rtst-movie-meta-line">${metaHtml || '<span>без жанров и рейтингов</span>'}</span>
+        <span class="rtst-movie-meta-line">${genresHtml || '<span>жанры не указаны</span>'}</span>
+        ${ratingsHtml ? `<span class="rtst-movie-rating-line">${ratingsHtml}</span>` : '<span class="rtst-movie-rating-line"><span>рейтингов пока нет</span></span>'}
         <span class="rtst-movie-search-line">
           <span class="rtst-movie-search-label">Искать в:</span>
           <a class="rtst-movie-search-btn rtst-movie-rutube-btn" href="${escapeAttribute(rutubeSearchUrl)}" target="_self" title="Искать на RUTUBE: ${escapeAttribute(query)}" rel="nofollow">▶ RUTUBE</a>
@@ -3652,21 +3670,67 @@
     return '🎬';
   }
 
+  function movieGenreRatingColor(genre) {
+    const g = normalize(genre);
+
+    if (g.includes('ужас')) return 'rgba(180, 132, 206, .23)';
+    if (g.includes('трилл')) return 'rgba(134, 165, 205, .23)';
+    if (g.includes('боев')) return 'rgba(217, 132, 112, .23)';
+    if (g.includes('криминал')) return 'rgba(145, 154, 180, .23)';
+    if (g.includes('детектив')) return 'rgba(129, 148, 196, .23)';
+    if (g.includes('драма')) return 'rgba(137, 158, 206, .22)';
+    if (g.includes('комед')) return 'rgba(207, 188, 113, .23)';
+    if (g.includes('приключ')) return 'rgba(111, 183, 169, .23)';
+    if (g.includes('фантаст')) return 'rgba(109, 178, 199, .23)';
+    if (g.includes('фэнт')) return 'rgba(168, 140, 205, .23)';
+    if (g.includes('мульт') || g.includes('анима')) return 'rgba(198, 145, 190, .23)';
+    if (g.includes('мелодрам')) return 'rgba(210, 139, 167, .23)';
+    if (g.includes('документ')) return 'rgba(142, 174, 143, .22)';
+    if (g.includes('семейн')) return 'rgba(151, 183, 130, .22)';
+    if (g.includes('вестерн')) return 'rgba(201, 158, 110, .23)';
+    if (g.includes('воен')) return 'rgba(150, 161, 125, .23)';
+    if (g.includes('биограф')) return 'rgba(183, 166, 129, .22)';
+    if (g.includes('истор')) return 'rgba(174, 151, 124, .23)';
+    if (g.includes('спорт')) return 'rgba(128, 184, 171, .22)';
+    if (g.includes('мюзикл') || g.includes('музык')) return 'rgba(197, 151, 199, .23)';
+
+    return 'rgba(138, 196, 154, .22)';
+  }
+
+  function movieGenreRatingFill(genres) {
+    const fallback = 'linear-gradient(90deg, rgba(138, 196, 154, .22), rgba(138, 196, 154, .22))';
+    if (!Array.isArray(genres) || !genres.length) return fallback;
+
+    const colors = [];
+    const seen = new Set();
+
+    for (const genre of genres) {
+      const color = movieGenreRatingColor(genre);
+      if (!color || seen.has(color)) continue;
+      seen.add(color);
+      colors.push(color);
+      if (colors.length >= 3) break;
+    }
+
+    if (!colors.length) return fallback;
+    if (colors.length === 1) return `linear-gradient(90deg, ${colors[0]}, ${colors[0]})`;
+    if (colors.length === 2) return `linear-gradient(90deg, ${colors[0]} 0%, ${colors[1]} 100%)`;
+    return `linear-gradient(90deg, ${colors[0]} 0%, ${colors[1]} 52%, ${colors[2]} 100%)`;
+  }
+
   function renderMovieRatings(ratings) {
     if (!ratings || typeof ratings !== 'object') return '';
     const parts = [];
     if (ratings.imdb && Number.isFinite(Number(ratings.imdb.value))) {
-      const percent = Number.isFinite(Number(ratings.imdb.percent)) ? Number(ratings.imdb.percent) : Number(ratings.imdb.value) * 10;
-      parts.push(`<span>IMDb ${movieRatingBar(percent)} ${formatMovieRatingValue(ratings.imdb.value)}/10</span>`);
+      parts.push(`<span>IMDb ${formatMovieRatingValue(ratings.imdb.value)}/10</span>`);
     }
     if (ratings.kinopoisk && Number.isFinite(Number(ratings.kinopoisk.value))) {
-      const percent = Number.isFinite(Number(ratings.kinopoisk.percent)) ? Number(ratings.kinopoisk.percent) : Number(ratings.kinopoisk.value) * 10;
-      parts.push(`<span>КП ${movieRatingBar(percent)} ${formatMovieRatingValue(ratings.kinopoisk.value)}/10</span>`);
+      parts.push(`<span>КП ${formatMovieRatingValue(ratings.kinopoisk.value)}/10</span>`);
     }
     if (ratings.rottenTomatoes && typeof ratings.rottenTomatoes === 'object') {
       const critics = ratings.rottenTomatoes.critics != null ? ratings.rottenTomatoes.critics : '–';
       const audience = ratings.rottenTomatoes.audience != null ? ratings.rottenTomatoes.audience : '–';
-      parts.push(`<span>🍅 ${critics}/${audience}</span>`);
+      parts.push(`<span>🍅 ${escapeHtml(String(critics))}/${escapeHtml(String(audience))}</span>`);
     }
     return parts.join('');
   }
@@ -3677,9 +3741,33 @@
     return Number.isInteger(n) ? String(n) : String(Math.round(n * 10) / 10);
   }
 
-  function movieRatingBar(percent) {
-    const filled = Math.max(0, Math.min(10, Math.round((Number(percent) || 0) / 10)));
-    return '█'.repeat(filled) + '░'.repeat(10 - filled);
+  function clampMovieRatingPercent(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return 0;
+    return Math.max(0, Math.min(100, Math.round(n)));
+  }
+
+  function movieRatingPercent(ratings) {
+    if (!ratings || typeof ratings !== 'object') return 0;
+
+    if (ratings.imdb && Number.isFinite(Number(ratings.imdb.value))) {
+      const percent = Number.isFinite(Number(ratings.imdb.percent)) ? Number(ratings.imdb.percent) : Number(ratings.imdb.value) * 10;
+      return clampMovieRatingPercent(percent);
+    }
+
+    if (ratings.kinopoisk && Number.isFinite(Number(ratings.kinopoisk.value))) {
+      const percent = Number.isFinite(Number(ratings.kinopoisk.percent)) ? Number(ratings.kinopoisk.percent) : Number(ratings.kinopoisk.value) * 10;
+      return clampMovieRatingPercent(percent);
+    }
+
+    if (ratings.rottenTomatoes && typeof ratings.rottenTomatoes === 'object') {
+      const critics = Number(ratings.rottenTomatoes.critics);
+      const audience = Number(ratings.rottenTomatoes.audience);
+      const values = [critics, audience].filter(Number.isFinite);
+      if (values.length) return clampMovieRatingPercent(values.reduce((sum, value) => sum + value, 0) / values.length);
+    }
+
+    return 0;
   }
 
   async function loadMovieBatch(index) {
