@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.4.0
+// @version      1.4.3
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki
 // @license      MIT
@@ -24,7 +24,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.4.0';
+  const UI_VERSION = '1.4.3';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -88,7 +88,7 @@
   const SETTINGS_DEFAULTS = {
     enabled: true, showHidden: false, hideSideMenuPolitics: true, hideShorts: true, hardRemove: false,
     cleanRutubeChrome: true, cleanWatchPage: true, disableAutoplay: true, hideComments: false, hideVideoInfo: false,
-    stripPlayerAds: true, unlockContextMenu: true, swipeVideoVolume: true, autoFullscreenOnRotate: false, dimSearchTrash: true, markWatchedVideos: true,
+    stripPlayerAds: true, unlockContextMenu: true, swipeVideoVolume: true, autoFullscreenOnRotate: false, hideVpnPopup: true, dimSearchTrash: true, markWatchedVideos: true,
     safeRouterPatch060: true, safeDelayedScan070: true,
     blockedChannels: DEFAULT_BLOCKED_CHANNELS, blockedWords: DEFAULT_BLOCKED_WORDS, userChannels: [], userWords: []
   };
@@ -620,6 +620,7 @@
           stripPlayerAds: Boolean(settings && settings.stripPlayerAds !== false),
           swipeVideoVolume: Boolean(settings && settings.swipeVideoVolume !== false),
           autoFullscreenOnRotate: Boolean(settings && settings.autoFullscreenOnRotate),
+          hideVpnPopup: Boolean(settings && settings.hideVpnPopup !== false),
           dimSearchTrash: Boolean(settings && settings.dimSearchTrash !== false),
           markWatchedVideos: Boolean(settings && settings.markWatchedVideos !== false),
           cleanWatchPage: Boolean(settings && settings.cleanWatchPage),
@@ -805,6 +806,153 @@
       };
 
       NativeXHR.prototype.__rtstPlayOptionsPatched = true;
+    }
+  }
+
+
+  function installVpnPopupSuppressor() {
+    const PATCHER_KEY = '__rtstVpnPopupSuppressorV141';
+
+    function isVpnPopupSuppressionEnabled() {
+      try {
+        return Boolean(settings && settings.enabled && settings.hideVpnPopup !== false);
+      } catch (e) {
+        return true;
+      }
+    }
+
+    function disableVpnDetectionEnv(env) {
+      if (!env || typeof env !== 'object') return env;
+      try { env.VPN_DETECTION_ENABLED = 'false'; } catch (e) {}
+      try { env.VPN_DETECTION_BLOCK_ON_ERROR = 'false'; } catch (e) {}
+      try { env.RTST_VPN_DETECTION_DISABLED = true; } catch (e) {}
+      return env;
+    }
+
+    function patchEnv() {
+      try {
+        if (window.__env__ && typeof window.__env__ === 'object') {
+          disableVpnDetectionEnv(window.__env__);
+          return;
+        }
+      } catch (e) {}
+
+      try {
+        const descriptor = Object.getOwnPropertyDescriptor(window, '__env__');
+        if (descriptor && descriptor.configurable === false) return;
+
+        let envValue;
+        Object.defineProperty(window, '__env__', {
+          configurable: true,
+          enumerable: true,
+          get() {
+            return envValue;
+          },
+          set(value) {
+            envValue = disableVpnDetectionEnv(value);
+          }
+        });
+      } catch (e) {}
+    }
+
+    function looksLikeVpnPopup(el) {
+      if (!el || isRtstUiElement(el)) return false;
+
+      try {
+        const raw = normalize([
+          el.getAttribute && el.getAttribute('aria-label'),
+          el.getAttribute && el.getAttribute('title'),
+          el.getAttribute && el.getAttribute('role'),
+          el.className,
+          el.id,
+          el.textContent
+        ].join(' '));
+
+        if (!/(vpn|прокси|proxy|впн)/i.test(raw)) return false;
+        if (/(добавить|канал|комментар|рекомендац|поиск|rtst|рутубочист)/i.test(raw)) return false;
+
+        const role = normalize(el.getAttribute && el.getAttribute('role') || '');
+        const cls = normalize(String(el.className || ''));
+        const id = normalize(String(el.id || ''));
+        const popupLike = role === 'dialog' || /(modal|popup|dialog|overlay|vpn|proxy|detect)/i.test(`${cls} ${id}`);
+        if (!popupLike) return false;
+
+        const r = el.getBoundingClientRect ? el.getBoundingClientRect() : null;
+        if (r && r.width < 120 && r.height < 80) return false;
+
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function removeVpnPopup(root = document) {
+      if (!isVpnPopupSuppressionEnabled()) return;
+      patchEnv();
+
+      const scope = root && root.querySelectorAll ? root : document;
+      const selector = [
+        '[role="dialog"]',
+        '[class*="vpn" i]',
+        '[id*="vpn" i]',
+        '[class*="proxy" i]',
+        '[id*="proxy" i]',
+        '[class*="detect" i]',
+        '[class*="modal" i]',
+        '[class*="popup" i]'
+      ].join(',');
+
+      try {
+        const candidates = [];
+        if (looksLikeVpnPopup(scope)) candidates.push(scope);
+        scope.querySelectorAll(selector).forEach((el) => {
+          if (looksLikeVpnPopup(el)) candidates.push(el);
+        });
+
+        candidates.forEach((el) => {
+          const target = el.closest && el.closest('[role="dialog"], [class*="modal" i], [class*="popup" i], [class*="overlay" i]') || el;
+          if (!target || target === document.documentElement || target === document.body || isRtstUiElement(target)) return;
+          try { target.dataset.rtstVpnPopupHidden = '1'; } catch (e) {}
+          try { target.remove(); } catch (e) { try { target.classList.add('rtst-player-ad-hidden'); } catch (e2) {} }
+        });
+      } catch (e) {}
+    }
+
+    if (!isVpnPopupSuppressionEnabled()) return;
+
+    patchEnv();
+
+    if (window[PATCHER_KEY]) {
+      removeVpnPopup(document);
+      return;
+    }
+    window[PATCHER_KEY] = true;
+
+    const startObserver = () => {
+      const root = document.body || document.documentElement;
+      if (!root || typeof MutationObserver !== 'function') {
+        setTimeout(() => removeVpnPopup(document), 600);
+        return;
+      }
+
+      const observer = new MutationObserver((mutations) => {
+        if (!isVpnPopupSuppressionEnabled()) return;
+        for (const mutation of mutations) {
+          for (const node of mutation.addedNodes || []) {
+            if (node && node.nodeType === 1) removeVpnPopup(node);
+          }
+        }
+      });
+
+      observer.observe(root, { childList: true, subtree: true });
+      removeVpnPopup(document);
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', startObserver, { once: true });
+      setTimeout(() => removeVpnPopup(document), 900);
+    } else {
+      startObserver();
     }
   }
 
@@ -2275,7 +2423,21 @@
       .rtst-panel-body { padding: 8px 12px 12px !important; }
       .rtst-row { display: flex !important; gap: 6px !important; align-items: center !important; flex-wrap: wrap !important; margin: 4px 0 !important; }
       .rtst-panel label { display: flex !important; gap: 6px !important; align-items: center !important; cursor: pointer !important; font-size: 11px !important;}
-      .rtst-panel input[type="text"] { width: 100% !important; min-height: 26px !important; padding: 4px 8px !important; border-radius: 7px !important; border: 1px solid rgba(186,242,198,.22) !important; background: rgba(255,255,255,.08) !important; color: #f4fff7 !important; outline: none !important; font: 11px/1.3 Arial, sans-serif !important; }
+      .rtst-panel input[type="text"],
+      .rtst-modal input[type="text"] {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        min-height: 26px !important;
+        padding: 4px 8px !important;
+        border-radius: 7px !important;
+        border: 1px solid rgba(186,242,198,.22) !important;
+        background: rgba(255,255,255,.08) !important;
+        color: #f4fff7 !important;
+        outline: none !important;
+        font: 11px/1.3 Arial, sans-serif !important;
+      }
       .rtst-panel textarea { width: 100% !important; min-height: 80px !important; padding: 6px 8px !important; border-radius: 7px !important; border: 1px solid rgba(186,242,198,.22) !important; background: rgba(255,255,255,.08) !important; color: #f4fff7 !important; outline: none !important; resize: vertical !important; font: 11px/1.3 Consolas, monospace !important; }
       .rtst-panel button { min-height: 26px !important; padding: 4px 10px !important; border: 0 !important; border-radius: 999px !important; background: linear-gradient(135deg, #e9ffed, #bdf2c8) !important; color: #122216 !important; cursor: pointer !important; font: 700 11px/1.2 Arial, sans-serif !important; box-shadow: 0 2px 6px rgba(0,0,0,.18) !important; }
       .rtst-panel button:hover { filter: brightness(.9) !important; }
@@ -2459,7 +2621,7 @@
         
         /* Увеличенные мишени для пальцев */
         .rtst-panel button, .rtst-modal button { min-height: 44px !important; font-size: 14px !important; padding: 10px 16px !important; }
-        .rtst-panel input[type="text"] { min-height: 44px !important; font-size: 16px !important; padding: 8px 12px !important; }
+        .rtst-panel input[type="text"], .rtst-modal input[type="text"] { min-height: 44px !important; font-size: 16px !important; padding: 8px 12px !important; }
         .rtst-panel textarea, .rtst-modal textarea { font-size: 14px !important; padding: 12px !important; }
         .rtst-radio, .rtst-panel label, .rtst-row { min-height: 44px !important; font-size: 14px !important; margin: 4px 0 !important; }
         .rtst-radio-group { grid-template-columns: 1fr !important; gap: 8px !important; }
@@ -2514,7 +2676,7 @@
       }
 
       /* Мобильная альбомная ориентация часто шире 680px, поэтому базовый mobile-блок выше не срабатывает.
-         Свернутую кнопку всё равно держим сверху по центру, чтобы она не прыгала при повороте экрана. */
+         Сенсорный смартфон остаётся смартфоном даже тогда, когда RUTUBE делает вид, что это ноутбук. */
       @media (hover: none) and (pointer: coarse), (max-height: 520px) and (orientation: landscape) {
         .rtst-panel[data-collapsed="1"] {
           top: calc(env(safe-area-inset-top, 0px) + 12px) !important;
@@ -2523,6 +2685,117 @@
           right: auto !important;
           transform: translateX(-50%) !important;
         }
+      }
+
+      @media (hover: none) and (pointer: coarse) and (orientation: landscape), (max-height: 520px) and (orientation: landscape) {
+        .rtst-panel:not([data-collapsed="1"]) {
+          top: auto !important;
+          bottom: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          transform: none !important;
+          width: 100vw !important;
+          max-width: 100vw !important;
+          max-height: calc(100vh - env(safe-area-inset-top, 0px)) !important;
+          border-radius: 16px 16px 0 0 !important;
+          border-left: 0 !important;
+          border-right: 0 !important;
+          border-bottom: 0 !important;
+          font-size: 14px !important;
+        }
+
+        .rtst-panel:not([data-collapsed="1"]) .rtst-panel-head { padding: 12px 16px !important; }
+        .rtst-panel:not([data-collapsed="1"]) .rtst-panel-title { font-size: 16px !important; }
+        .rtst-panel:not([data-collapsed="1"]) .rtst-panel-subtitle { font-size: 13px !important; }
+        .rtst-panel:not([data-collapsed="1"]) .rtst-panel-body {
+          padding: 10px 16px calc(env(safe-area-inset-bottom, 0px) + 18px) !important;
+          max-height: calc(100vh - 74px - env(safe-area-inset-top, 0px)) !important;
+          overflow-y: auto !important;
+        }
+
+        .rtst-panel button,
+        .rtst-modal button {
+          min-height: 44px !important;
+          font-size: 14px !important;
+          padding: 10px 16px !important;
+        }
+
+        .rtst-panel input[type="text"],
+        .rtst-modal input[type="text"] {
+          min-height: 44px !important;
+          font-size: 16px !important;
+          padding: 8px 12px !important;
+        }
+
+        .rtst-panel textarea,
+        .rtst-modal textarea {
+          font-size: 14px !important;
+          padding: 12px !important;
+        }
+
+        .rtst-radio,
+        .rtst-panel label,
+        .rtst-row {
+          min-height: 44px !important;
+          font-size: 14px !important;
+          margin: 4px 0 !important;
+        }
+
+        .rtst-radio-group { grid-template-columns: 1fr !important; gap: 8px !important; }
+        .rtst-section { padding: 12px !important; margin: 12px 0 !important; }
+        .rtst-section-title { font-size: 13px !important; margin-bottom: 8px !important; }
+        .rtst-actions,
+        .rtst-modal-actions { flex-direction: column !important; gap: 8px !important; }
+        .rtst-actions button,
+        .rtst-modal-actions button,
+        .rtst-modal-actions > div { width: 100% !important; }
+        .rtst-modal-actions > div { display: flex !important; flex-direction: column !important; gap: 8px !important; }
+
+        .rtst-modal-backdrop {
+          padding: 0 !important;
+          align-items: stretch !important;
+          justify-content: stretch !important;
+        }
+
+        .rtst-modal {
+          width: 100vw !important;
+          max-width: 100vw !important;
+          height: 100vh !important;
+          max-height: 100vh !important;
+          border-radius: 0 !important;
+          border: 0 !important;
+          display: flex !important;
+          flex-direction: column !important;
+          font-size: 14px !important;
+        }
+
+        .rtst-modal-head { padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px 10px !important; }
+        .rtst-modal-head > button[data-rtst-action="close-modal"] {
+          width: 40px !important;
+          height: 40px !important;
+          min-width: 40px !important;
+          min-height: 40px !important;
+          font-size: 22px !important;
+        }
+        .rtst-modal-title { font-size: 16px !important; }
+        .rtst-modal-title-row { gap: 8px !important; }
+        .rtst-enable-toggle { min-width: 74px !important; min-height: 38px !important; padding: 8px 10px !important; font-size: 13px !important; }
+        .rtst-modal-body {
+          flex: 1 !important;
+          overflow-y: auto !important;
+          padding: 12px 16px calc(env(safe-area-inset-bottom, 0px) + 16px) !important;
+        }
+        .rtst-modal-fixed { padding: 10px 16px !important; }
+        .rtst-modal textarea { min-height: 34vh !important; }
+        .rtst-modal.rtst-movie-modal { width: 100vw !important; max-width: 100vw !important; }
+        .rtst-modal .rtst-movie-row { min-height: 60px !important; font-size: 14px !important; padding: 12px !important; margin-bottom: 8px !important; }
+        .rtst-movie-meta-line { gap: 6px 10px !important; margin-top: 8px !important; font-size: 12px !important; }
+        .rtst-movie-search-line { margin-top: 10px !important; gap: 8px !important; }
+        .rtst-modal .rtst-movie-search-btn { flex: 1 1 120px !important; min-height: 42px !important; font-size: 13px !important; padding: 8px 10px !important; }
+        .rtst-movie-toolbar { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; }
+        .rtst-movie-nav { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 8px !important; }
+        .rtst-movie-nav button { width: 100% !important; padding-left: 8px !important; padding-right: 8px !important; }
+        .rtst-toast { right: 16px !important; left: 16px !important; bottom: 32px !important; max-width: none !important; text-align: center !important; font-size: 14px !important; padding: 12px !important; }
       }
     `;
 
@@ -2651,6 +2924,7 @@
     root.dataset.rtstUnlockContextMenu = (settings.enabled && settings.unlockContextMenu !== false) ? '1' : '0';
     root.dataset.rtstSwipeVideoVolume = (settings.enabled && settings.swipeVideoVolume !== false) ? '1' : '0';
     root.dataset.rtstAutoFullscreen = (settings.enabled && settings.autoFullscreenOnRotate) ? '1' : '0';
+    root.dataset.rtstHideVpnPopup = (settings.enabled && settings.hideVpnPopup !== false) ? '1' : '0';
     root.dataset.rtstDimSearchTrash = (settings.enabled && settings.dimSearchTrash !== false) ? '1' : '0';
     root.dataset.rtstHideVideoInfo = (settings.enabled && settings.hideVideoInfo) ? '1' : '0';
     root.dataset.rtstHideComments = (settings.enabled && settings.hideComments) ? '1' : '0';
@@ -2663,12 +2937,24 @@
     const old = document.getElementById(styleId);
     const chromeOn = Boolean(cleanChromeOn != null ? cleanChromeOn : (settings.cleanRutubeChrome || settings.hideSideMenuPolitics));
     
-    if (isEmbeddedRutubePlayer() || !settings.enabled || (!chromeOn && !settings.hideShorts && !settings.cleanWatchPage && !settings.hideVideoInfo && !settings.hideComments)) {
+    if (isEmbeddedRutubePlayer() || !settings.enabled || (!chromeOn && !settings.hideShorts && !settings.cleanWatchPage && !settings.hideVideoInfo && !settings.hideComments && settings.hideVpnPopup === false)) {
       if (old) old.remove();
       return;
     }
 
     const parts = [];
+
+    if (settings.hideVpnPopup !== false) {
+      parts.push(`
+        html[data-rtst-enabled="1"][data-rtst-hide-vpn-popup="1"] [class*="vpn-popup" i],
+        html[data-rtst-enabled="1"][data-rtst-hide-vpn-popup="1"] [class*="vpn-detect" i],
+        html[data-rtst-enabled="1"][data-rtst-hide-vpn-popup="1"] [class*="proxy-popup" i] {
+          display: none !important;
+          visibility: hidden !important;
+          pointer-events: none !important;
+        }
+      `);
+    }
 
     if (chromeOn) {
       parts.push(`
@@ -2958,6 +3244,8 @@
     if (swipeVideoVolumeToggle) swipeVideoVolumeToggle.checked = Boolean(settings.swipeVideoVolume !== false);
     const autoFullscreenToggle = document.getElementById('rtst-auto-fullscreen-rotate');
     if (autoFullscreenToggle) autoFullscreenToggle.checked = Boolean(settings.autoFullscreenOnRotate);
+    const hideVpnPopupToggle = document.getElementById('rtst-hide-vpn-popup');
+    if (hideVpnPopupToggle) hideVpnPopupToggle.checked = Boolean(settings.hideVpnPopup !== false);
     
     const channelCount = document.getElementById('rtst-channel-count');
     if (channelCount) channelCount.textContent = `(${settings.userChannels.length})`;
@@ -3005,6 +3293,7 @@
       if (target.id === 'rtst-unlock-context-menu') { settings.unlockContextMenu = target.checked; saveSettings(); syncRootFlags(); installRutubeContextMenuUnlocker(); rescanNow(); }
       if (target.id === 'rtst-swipe-video-volume') { settings.swipeVideoVolume = target.checked; saveSettings(); syncRootFlags(); installMobileVideoVolumeSwipe(); }
       if (target.id === 'rtst-auto-fullscreen-rotate') { settings.autoFullscreenOnRotate = target.checked; saveSettings(); syncRootFlags(); installAutoFullscreenOnRotate(); if (target.checked) maybeAutoFullscreenOnRotate('settings'); }
+      if (target.id === 'rtst-hide-vpn-popup') { settings.hideVpnPopup = target.checked; saveSettings(); syncRootFlags(); installVpnPopupSuppressor(); rescanNow(); }
       if (target.id === 'rtst-import-file' && target.files && target.files[0]) { importSettingsFromFile(target.files[0]); target.value = ''; }
     }, true);
 
@@ -3160,6 +3449,7 @@
           <div class="rtst-section">
             <div class="rtst-section-title">Плеер</div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-strip-player-ads"> пытаться убирать рекламу</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-vpn-popup"> подавлять VPN/прокси-плашку</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-unlock-context-menu"> включить системное меню по правой кнопке</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-swipe-video-volume"> управлять громкостью свайпом по нижней трети плеера</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-auto-fullscreen-rotate"> fullscreen при повороте после касания плеера</label></div>
@@ -4209,7 +4499,7 @@
         enabled: settings.enabled, showHidden: settings.showHidden, hideSideMenuPolitics: settings.hideSideMenuPolitics,
         hideShorts: settings.hideShorts, hardRemove: settings.hardRemove, cleanRutubeChrome: settings.cleanRutubeChrome,
         cleanWatchPage: settings.cleanWatchPage, disableAutoplay: settings.disableAutoplay, hideComments: settings.hideComments,
-        hideVideoInfo: settings.hideVideoInfo, stripPlayerAds: settings.stripPlayerAds, unlockContextMenu: settings.unlockContextMenu, swipeVideoVolume: settings.swipeVideoVolume, autoFullscreenOnRotate: settings.autoFullscreenOnRotate, dimSearchTrash: settings.dimSearchTrash, markWatchedVideos: settings.markWatchedVideos,
+        hideVideoInfo: settings.hideVideoInfo, stripPlayerAds: settings.stripPlayerAds, unlockContextMenu: settings.unlockContextMenu, swipeVideoVolume: settings.swipeVideoVolume, autoFullscreenOnRotate: settings.autoFullscreenOnRotate, hideVpnPopup: settings.hideVpnPopup, dimSearchTrash: settings.dimSearchTrash, markWatchedVideos: settings.markWatchedVideos,
         blockedChannels: allBlockedChannels(), blockedWords: allBlockedWords(), userChannels: settings.userChannels, userWords: settings.userWords
       }
     };
@@ -4238,7 +4528,7 @@
     if (!src || typeof src !== 'object') throw new Error('bad settings json');
     const next = { ...settings };
     for (const key of ['blockedChannels', 'blockedWords', 'userChannels', 'userWords']) { if (Array.isArray(src[key])) next[key] = unique(src[key]); }
-    for (const key of ['enabled', 'showHidden', 'hideSideMenuPolitics', 'hideShorts', 'hardRemove', 'cleanRutubeChrome', 'cleanWatchPage', 'disableAutoplay', 'hideComments', 'hideVideoInfo', 'stripPlayerAds', 'unlockContextMenu', 'swipeVideoVolume', 'autoFullscreenOnRotate', 'dimSearchTrash', 'markWatchedVideos']) {
+    for (const key of ['enabled', 'showHidden', 'hideSideMenuPolitics', 'hideShorts', 'hardRemove', 'cleanRutubeChrome', 'cleanWatchPage', 'disableAutoplay', 'hideComments', 'hideVideoInfo', 'stripPlayerAds', 'unlockContextMenu', 'swipeVideoVolume', 'autoFullscreenOnRotate', 'hideVpnPopup', 'dimSearchTrash', 'markWatchedVideos']) {
       if (typeof src[key] === 'boolean') next[key] = src[key];
     }
     if (typeof src.cleanRutubeChrome === 'boolean' && typeof src.hideSideMenuPolitics !== 'boolean') next.hideSideMenuPolitics = src.cleanRutubeChrome;
@@ -5849,7 +6139,7 @@
 
     // На странице просмотра RUTUBE часто стартует видео программно. Если пользователь
     // не касался плеера/клавиатуры, считаем это автовоспроизведением и гасим.
-    if (isVideoPage() && !isEmbeddedRutubePlayer()) return true;
+    if (isVideoPage() || isEmbeddedRutubePlayer()) return true;
 
     return false;
   }
@@ -5922,6 +6212,7 @@
 
   function boot() {
     installPlayOptionsAdvertStripper();
+    installVpnPopupSuppressor();
     installRutubeContextMenuUnlocker();
     installMobileVideoVolumeSwipe();
     installAutoFullscreenOnRotate();
@@ -5949,6 +6240,7 @@
   installAutoFullscreenOnRotate();
   installViewProgressTracker();
   loadPanelIconFromLocalCache();
+  installVpnPopupSuppressor();
   setupAutoplayGuard();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
   else boot();
