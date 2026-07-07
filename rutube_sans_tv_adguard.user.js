@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.4.6
+// @version      1.4.7
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki
 // @license      MIT
@@ -24,7 +24,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.4.6';
+  const UI_VERSION = '1.4.7';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -2387,23 +2387,31 @@
         font: 700 11px/1.2 Arial, sans-serif !important; cursor: pointer !important; text-align: center !important;
       }
       .rtst-panel .rtst-quick-movie {
-        min-height: 38px !important; border-radius: 10px !important;
-        background: linear-gradient(135deg, #e9ffed, #bdf2c8) !important; color: #122216 !important;
-        font: 800 13px/1.2 Arial, sans-serif !important; border-color: rgba(189,242,200,.42) !important;
+        position: relative !important; overflow: hidden !important;
+        min-height: 42px !important; padding: 9px 14px !important; border-radius: 12px !important;
+        background: linear-gradient(120deg, #eefcf2 0%, #c9f5d4 34%, #d7f4ff 68%, #fff0cf 100%) !important;
+        background-size: 220% 220% !important; color: #102617 !important;
+        font: 800 13px/1.2 Arial, sans-serif !important; border-color: rgba(189,242,200,.54) !important;
+        box-shadow: 0 8px 18px rgba(44, 190, 91, .18), inset 0 1px 0 rgba(255,255,255,.72) !important;
+        animation: rtst-movie-shimmer 8s ease-in-out infinite !important;
       }
       .rtst-panel .rtst-quick-btn:hover { background: rgba(255,255,255,.18) !important; filter: none !important; }
-      .rtst-panel .rtst-quick-movie:hover { background: linear-gradient(135deg, #f4fff6, #a8eeb8) !important; filter: none !important; }
+      .rtst-panel .rtst-quick-movie:hover {
+        background: linear-gradient(120deg, #f6fff8 0%, #bdf0ca 34%, #c8efff 68%, #ffe8b0 100%) !important;
+        background-size: 220% 220% !important; filter: none !important;
+        box-shadow: 0 10px 22px rgba(44, 190, 91, .24), inset 0 1px 0 rgba(255,255,255,.82) !important;
+      }
       .rtst-panel[data-page="video"] .rtst-movie-cta { display: none !important; }
       .rtst-panel[data-collapsed="1"] { width: auto !important; min-width: 0 !important; max-width: none !important; overflow: visible !important; border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; backdrop-filter: none !important; }
       .rtst-panel[data-collapsed="1"] .rtst-panel-body, .rtst-panel[data-collapsed="1"] .rtst-panel-main, .rtst-panel[data-collapsed="1"] .rtst-panel-caret { display: none !important; }
-      .rtst-panel[data-collapsed="1"] .rtst-panel-head { width: auto !important; min-width: 0 !important; height: 40px !important; padding: 0 4px !important; justify-content: center !important; gap: 0 !important; border: 0 !important; background: transparent !important; box-shadow: none !important; }
-      .rtst-panel[data-collapsed="1"][data-page="video"] .rtst-panel-head { width: auto !important; min-width: 0 !important; padding: 0 4px !important; }
+      .rtst-panel[data-collapsed="1"] .rtst-panel-head { width: auto !important; min-width: 0 !important; height: 72px !important; padding: 4px !important; justify-content: center !important; gap: 0 !important; border: 0 !important; background: transparent !important; box-shadow: none !important; }
+      .rtst-panel[data-collapsed="1"][data-page="video"] .rtst-panel-head { width: auto !important; min-width: 0 !important; padding: 4px !important; }
       .rtst-panel[data-collapsed="1"] .rtst-panel-compact { display: inline-flex !important; margin: 0 !important; }
       .rtst-panel[data-collapsed="1"][data-page="video"] .rtst-panel-compact-count { display: none !important; }
       .rtst-panel-main { min-width: 0 !important; }
       .rtst-panel-compact { display: none !important; align-items: center !important; justify-content: center !important; gap: 5px !important; font: 800 15px/1 Arial, sans-serif !important; color: #f4fff7 !important; white-space: nowrap !important; text-shadow: 0 1px 3px rgba(0,0,0,.62) !important; }
-      .rtst-panel-compact-icon { display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 34px !important; height: 34px !important; color: #f4fff7 !important; font-size: 28px !important; line-height: 1 !important; }
-      .rtst-panel-compact-icon img { display: block !important; width: 34px !important; height: 34px !important; object-fit: contain !important; filter: drop-shadow(0 2px 4px rgba(0,0,0,.58)) !important; }
+      .rtst-panel-compact-icon { display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 64px !important; height: 64px !important; color: #f4fff7 !important; font-size: 54px !important; line-height: 1 !important; }
+      .rtst-panel-compact-icon img { display: block !important; width: 64px !important; height: 64px !important; object-fit: contain !important; filter: drop-shadow(0 3px 7px rgba(0,0,0,.62)) !important; }
       .rtst-panel-compact-count { min-width: 1ch !important; color: #f4fff7 !important; font: 900 15px/1 Arial, sans-serif !important; text-shadow: 0 1px 4px rgba(0,0,0,.72) !important; }
       .rtst-app-icon { display: inline-flex !important; align-items: center !important; justify-content: center !important; flex: 0 0 auto !important; width: 16px !important; height: 16px !important; font-size: 14px !important; line-height: 1 !important; }
       .rtst-app-icon img { display: block !important; width: 100% !important; height: 100% !important; object-fit: contain !important; }
@@ -2454,8 +2462,27 @@
       .rtst-radio { min-height: 26px !important; padding: 4px 6px !important; border: 1px solid rgba(255,255,255,.14) !important; border-radius: 6px !important; background: rgba(255,255,255,.055) !important; font-size: 11px !important;}
       .rtst-panel input[type="radio"], .rtst-panel input[type="checkbox"] { accent-color: #bdf2c8 !important; margin: 0 !important; }
       .rtst-actions { display: flex !important; gap: 4px !important; flex-wrap: wrap !important; margin-top: 6px !important; }
-      .rtst-panel .rtst-movie-cta { margin: 2px 0 10px !important; padding: 0 !important; }
-      .rtst-panel .rtst-movie-cta-btn { width: 100% !important; min-height: 36px !important; padding: 6px 12px !important; border-radius: 8px !important; font: 800 13px/1.2 Arial, sans-serif !important; letter-spacing: .1px !important; }
+      @keyframes rtst-movie-shimmer {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+      }
+      .rtst-panel .rtst-movie-cta { margin: 8px 0 14px !important; padding: 0 !important; }
+      .rtst-panel .rtst-movie-cta-btn {
+        position: relative !important; overflow: hidden !important;
+        width: 100% !important; min-height: 46px !important; padding: 11px 16px !important; border-radius: 12px !important;
+        background: linear-gradient(120deg, #eefcf2 0%, #c9f5d4 34%, #d7f4ff 68%, #fff0cf 100%) !important;
+        background-size: 220% 220% !important; color: #102617 !important;
+        font: 850 14px/1.2 Arial, sans-serif !important; letter-spacing: .15px !important;
+        border: 1px solid rgba(189,242,200,.54) !important;
+        box-shadow: 0 9px 20px rgba(44, 190, 91, .19), inset 0 1px 0 rgba(255,255,255,.74) !important;
+        animation: rtst-movie-shimmer 8s ease-in-out infinite !important;
+      }
+      .rtst-panel .rtst-movie-cta-btn:hover {
+        filter: none !important;
+        background: linear-gradient(120deg, #f6fff8 0%, #bdf0ca 34%, #c8efff 68%, #ffe8b0 100%) !important;
+        background-size: 220% 220% !important;
+        box-shadow: 0 11px 24px rgba(44, 190, 91, .25), inset 0 1px 0 rgba(255,255,255,.84) !important;
+      }
       .rtst-panel .rtst-movie-cta-caption { margin-top: 5px !important; color: rgba(244,255,247,.66) !important; font: 11px/1.3 Arial, sans-serif !important; text-align: center !important; }
       .rtst-panel-footer { display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 8px !important; margin-top: 10px !important; padding-top: 8px !important; border-top: 1px solid rgba(255,255,255,.10) !important; }
       .rtst-panel-footer .rtst-small { flex: 1 1 auto !important; }
@@ -2614,6 +2641,9 @@
           right: auto !important;
           transform: translateX(-50%) !important;
         }
+        .rtst-panel[data-collapsed="1"] .rtst-panel-head { height: 48px !important; padding: 4px !important; }
+        .rtst-panel[data-collapsed="1"] .rtst-panel-compact-icon { width: 40px !important; height: 40px !important; font-size: 34px !important; }
+        .rtst-panel[data-collapsed="1"] .rtst-panel-compact-icon img { width: 40px !important; height: 40px !important; }
 
         /* Развернутая панель: Выезжает снизу (Bottom Sheet) для удобства пальца */
         .rtst-panel:not([data-collapsed="1"]) {
@@ -2704,6 +2734,9 @@
           right: auto !important;
           transform: translateX(-50%) !important;
         }
+        .rtst-panel[data-collapsed="1"] .rtst-panel-head { height: 48px !important; padding: 4px !important; }
+        .rtst-panel[data-collapsed="1"] .rtst-panel-compact-icon { width: 40px !important; height: 40px !important; font-size: 34px !important; }
+        .rtst-panel[data-collapsed="1"] .rtst-panel-compact-icon img { width: 40px !important; height: 40px !important; }
       }
 
       @media (hover: none) and (pointer: coarse) and (orientation: landscape), (max-height: 520px) and (orientation: landscape) {
