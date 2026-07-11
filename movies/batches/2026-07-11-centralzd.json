@@ -1,0 +1,162 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.1",
+  "id": "2026-07-11-centralzd",
+  "title": "Что посмотреть от 11.07.2026",
+  "date": "2026-07-11",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_11072026_14141329",
+  "extractedAt": "2026-07-11T08:29:31.187Z",
+  "count": 7,
+  "items": [
+    {
+      "id": "zhivaya-yarost-fo-ze-ngaan-2025",
+      "title": "Живая ярость",
+      "originalTitle": "Fo ze ngaan",
+      "year": 2025,
+      "query": "Живая ярость Fo ze ngaan 2025",
+      "genres": [
+        "боевик",
+        "криминал"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.2,
+          "votes": 4032,
+          "percent": 72
+        },
+        "imdb": {
+          "value": 7.9,
+          "votes": 6355,
+          "percent": 79
+        },
+        "rottenTomatoes": {
+          "critics": 98,
+          "audience": 95
+        }
+      }
+    },
+    {
+      "id": "gor-koe-rozhdestvo-amarga-navidad-bitter-christmas-autofiction-2026",
+      "title": "Горькое Рождество",
+      "originalTitle": "Amarga Navidad (Bitter Christmas) (Autofiction)",
+      "year": 2026,
+      "query": "Горькое Рождество Amarga Navidad (Bitter Christmas) (Autofiction) 2026",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.5,
+          "votes": 841,
+          "percent": 65
+        },
+        "rottenTomatoes": {
+          "critics": 89
+        }
+      }
+    },
+    {
+      "id": "kryl-ya-uzhasa-wings-of-dread-wan-mi-wei-ji-2026",
+      "title": "Крылья ужаса",
+      "originalTitle": "Wings of Dread (Wan mi wei ji)",
+      "year": 2026,
+      "query": "Крылья ужаса Wings of Dread (Wan mi wei ji) 2026",
+      "genres": [
+        "боевик"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.4,
+          "votes": 74,
+          "percent": 64
+        }
+      }
+    },
+    {
+      "id": "prestuplenie-na-tret-em-etazhe-le-crime-du-3e-tage-2026",
+      "title": "Преступление на третьем этаже",
+      "originalTitle": "Le crime du 3e étage",
+      "year": 2026,
+      "query": "Преступление на третьем этаже Le crime du 3e étage 2026",
+      "genres": [
+        "драма",
+        "комедия"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7,
+          "votes": 20,
+          "percent": 70
+        }
+      }
+    },
+    {
+      "id": "dobro-pozhalovat-v-dekorado-decorado-2025",
+      "title": "Добро пожаловать в Декорадо",
+      "originalTitle": "Decorado",
+      "year": 2025,
+      "query": "Добро пожаловать в Декорадо Decorado 2025",
+      "genres": [
+        "мультфильм",
+        "ужасы",
+        "фэнтези",
+        "комедия"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.8,
+          "votes": 323,
+          "percent": 68
+        },
+        "rottenTomatoes": {
+          "critics": 89
+        }
+      }
+    },
+    {
+      "id": "zverolyuciya-evolution-2026",
+      "title": "Зверолюция",
+      "originalTitle": "Evolution",
+      "year": 2026,
+      "query": "Зверолюция Evolution 2026",
+      "genres": [
+        "мультфильм",
+        "фантастика",
+        "комедия",
+        "приключения"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 5.9,
+          "votes": 2236,
+          "percent": 59
+        },
+        "imdb": {
+          "value": 6.7,
+          "votes": 45,
+          "percent": 67
+        }
+      }
+    },
+    {
+      "id": "ya-ne-boyus-no-tengo-miedo-1-sezon-2026",
+      "title": "Я не боюсь",
+      "originalTitle": "No tengo miedo (1 сезон)",
+      "year": 2026,
+      "query": "Я не боюсь No tengo miedo (1 сезон) 2026",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.1,
+          "votes": 193,
+          "percent": 71
+        },
+        "rottenTomatoes": {
+          "critics": 86
+        }
+      }
+    }
+  ]
+}
