@@ -1,0 +1,189 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.3",
+  "id": "2026-07-18-centralzd",
+  "title": "Что посмотреть от 18.07.2026",
+  "date": "2026-07-18",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_18072026_14162289",
+  "extractedAt": "2026-07-18T09:12:25.788Z",
+  "count": 8,
+  "items": [
+    {
+      "id": "layfhak-lifehack-2025",
+      "title": "Лайфхак",
+      "originalTitle": "LifeHack",
+      "year": 2025,
+      "query": "Лайфхак LifeHack 2025",
+      "genres": [
+        "боевик",
+        "криминал",
+        "триллер"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.2,
+          "votes": 637,
+          "percent": 62
+        },
+        "rottenTomatoes": {
+          "critics": 95
+        }
+      }
+    },
+    {
+      "id": "ayron-meyden-pylayuschee-stremlenie-iron-maiden-burning-ambition-2026",
+      "title": "Айрон Мэйден: Пылающее стремление",
+      "originalTitle": "Iron Maiden: Burning Ambition",
+      "year": 2026,
+      "query": "Айрон Мэйден: Пылающее стремление Iron Maiden: Burning Ambition 2026",
+      "genres": [
+        "документальный",
+        "биография",
+        "музыка"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.4,
+          "votes": 1700,
+          "percent": 74
+        },
+        "rottenTomatoes": {
+          "critics": 87,
+          "audience": 95
+        }
+      }
+    },
+    {
+      "id": "billi-aylish-tur-hit-me-hard-and-soft-billie-eilish-hit-me-hard-and-soft-the-tour-billie-e",
+      "title": "Билли Айлиш: Тур «Hit Me Hard and Soft»",
+      "originalTitle": "Billie Eilish: Hit Me Hard and Soft: The Tour (Billie Eilish: Hit Me Hard and Soft)",
+      "year": 2026,
+      "query": "Билли Айлиш: Тур «Hit Me Hard and Soft» Billie Eilish: Hit Me Hard and Soft: The Tour (Billie Eilish: Hit Me Hard and Soft) 2026",
+      "genres": [
+        "документальный",
+        "концерт",
+        "музыка"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 8.4,
+          "votes": 1071,
+          "percent": 84
+        },
+        "imdb": {
+          "value": 7.4,
+          "votes": 60,
+          "percent": 74
+        },
+        "rottenTomatoes": {
+          "critics": 91,
+          "audience": 97
+        }
+      }
+    },
+    {
+      "id": "vestis-the-westies-1-sezon-2026",
+      "title": "Вестис",
+      "originalTitle": "The Westies (1 сезон)",
+      "year": 2026,
+      "query": "Вестис The Westies (1 сезон) 2026",
+      "genres": [
+        "драма",
+        "криминал"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.6,
+          "votes": 682,
+          "percent": 76
+        },
+        "imdb": {
+          "value": 7,
+          "votes": 505,
+          "percent": 70
+        },
+        "rottenTomatoes": {
+          "critics": 71,
+          "audience": 65
+        }
+      }
+    },
+    {
+      "id": "ubiystvo-101-murder-101-1-sezon-2026",
+      "title": "Убийство 101",
+      "originalTitle": "Murder 101 (1 сезон)",
+      "year": 2026,
+      "query": "Убийство 101 Murder 101 (1 сезон) 2026",
+      "genres": [
+        "документальный",
+        "детектив"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.1,
+          "votes": 198,
+          "percent": 71
+        }
+      }
+    },
+    {
+      "id": "nastoyaschiy-volk-s-uoll-strit-the-real-wolf-of-wall-street-1-sezon-2026",
+      "title": "Настоящий Волк с Уолл-стрит",
+      "originalTitle": "The Real Wolf of Wall Street (1 сезон)",
+      "year": 2026,
+      "query": "Настоящий Волк с Уолл-стрит The Real Wolf of Wall Street (1 сезон) 2026",
+      "genres": [
+        "документальный",
+        "криминал"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.4,
+          "votes": 77,
+          "percent": 74
+        }
+      }
+    },
+    {
+      "id": "do-grobovoy-doski-ride-or-die-1-sezon-2026",
+      "title": "До гробовой доски",
+      "originalTitle": "Ride or Die (1 сезон)",
+      "year": 2026,
+      "query": "До гробовой доски Ride or Die (1 сезон) 2026",
+      "genres": [
+        "боевик",
+        "приключения",
+        "комедия"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.6,
+          "votes": 400,
+          "percent": 76
+        }
+      }
+    },
+    {
+      "id": "laki-lucky-1-sezon-2026",
+      "title": "Лаки",
+      "originalTitle": "Lucky (1 сезон)",
+      "year": 2026,
+      "query": "Лаки Lucky (1 сезон) 2026",
+      "genres": [
+        "драма",
+        "криминал"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.8,
+          "votes": 683,
+          "percent": 68
+        },
+        "rottenTomatoes": {
+          "critics": 78,
+          "audience": 60
+        }
+      }
+    }
+  ]
+}
