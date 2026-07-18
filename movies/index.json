@@ -1,7 +1,15 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-11",
+  "updatedAt": "2026-07-18",
   "batches": [
+    {
+  "id": "2026-07-18-centralzd",
+  "title": "Что посмотреть от 18.07.2026",
+  "date": "2026-07-18",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_18072026_14162289",
+  "file": "batches/2026-07-18-centralzd.json",
+  "count": 8
+},
     {
   "id": "2026-07-11-centralzd",
   "title": "Что посмотреть от 11.07.2026",
