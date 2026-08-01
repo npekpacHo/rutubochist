@@ -1,0 +1,230 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.3",
+  "id": "2026-08-01-centralzd",
+  "title": "Что посмотреть от 01.08.2026",
+  "date": "2026-08-01",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_01082026_14203764",
+  "extractedAt": "2026-08-01T10:46:43.391Z",
+  "count": 9,
+  "items": [
+    {
+      "id": "supergerl-supergirl-2026",
+      "title": "Супергёрл",
+      "originalTitle": "Supergirl",
+      "year": 2026,
+      "query": "Супергёрл Supergirl 2026",
+      "genres": [
+        "фантастика",
+        "боевик",
+        "приключения"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 5.6,
+          "votes": 8960,
+          "percent": 56
+        },
+        "imdb": {
+          "value": 6,
+          "votes": 63000,
+          "percent": 60
+        },
+        "rottenTomatoes": {
+          "critics": 52,
+          "audience": 73
+        }
+      }
+    },
+    {
+      "id": "ee-lichnyy-ad-her-private-hell-2026",
+      "title": "Её личный ад",
+      "originalTitle": "Her Private Hell",
+      "year": 2026,
+      "query": "Её личный ад Her Private Hell 2026",
+      "genres": [
+        "ужасы",
+        "триллер"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 5.7,
+          "votes": 2984,
+          "percent": 57
+        },
+        "imdb": {
+          "value": 4.8,
+          "votes": 303,
+          "percent": 48
+        },
+        "rottenTomatoes": {
+          "critics": 42,
+          "audience": 35
+        }
+      }
+    },
+    {
+      "id": "koloniya-gunche-2026",
+      "title": "Колония",
+      "originalTitle": "Gunche",
+      "year": 2026,
+      "query": "Колония Gunche 2026",
+      "genres": [
+        "ужасы",
+        "боевик"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.8,
+          "votes": 14514,
+          "percent": 68
+        },
+        "imdb": {
+          "value": 6.9,
+          "votes": 3490,
+          "percent": 69
+        }
+      }
+    },
+    {
+      "id": "levit-leviticus-2026",
+      "title": "Левит",
+      "originalTitle": "Leviticus",
+      "year": 2026,
+      "query": "Левит Leviticus 2026",
+      "genres": [
+        "ужасы",
+        "фантастика",
+        "триллер",
+        "мелодрама"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.7,
+          "votes": 2868,
+          "percent": 67
+        },
+        "imdb": {
+          "value": 6.7,
+          "votes": 6408,
+          "percent": 67
+        },
+        "rottenTomatoes": {
+          "critics": 92,
+          "audience": 82
+        }
+      }
+    },
+    {
+      "id": "72-chasa-72-hours-2026",
+      "title": "72 часа",
+      "originalTitle": "72 Hours",
+      "year": 2026,
+      "query": "72 часа 72 Hours 2026",
+      "genres": [
+        "комедия"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 5.6,
+          "votes": 306,
+          "percent": 56
+        },
+        "imdb": {
+          "value": 5.4,
+          "votes": 9200,
+          "percent": 54
+        },
+        "rottenTomatoes": {
+          "critics": 16,
+          "audience": 51
+        }
+      }
+    },
+    {
+      "id": "propast-2026",
+      "title": "Пропасть",
+      "year": 2026,
+      "query": "Пропасть 2026",
+      "genres": [
+        "триллер"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.9,
+          "votes": 89212,
+          "percent": 69
+        }
+      }
+    },
+    {
+      "id": "v-kompanii-volkov-amerikanskoe-puteshestvie-in-the-company-of-wolves-an-american-journey-2",
+      "title": "В компании волков: Американское путешествие",
+      "originalTitle": "In the Company of Wolves: An American Journey",
+      "year": 2026,
+      "query": "В компании волков: Американское путешествие In the Company of Wolves: An American Journey 2026",
+      "genres": [
+        "документальный"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 9.1,
+          "votes": 19,
+          "percent": 91
+        }
+      }
+    },
+    {
+      "id": "v-yarosti-furious-1-sezon-2026",
+      "title": "В ярости",
+      "originalTitle": "Furious (1 сезон)",
+      "year": 2026,
+      "query": "В ярости Furious (1 сезон) 2026",
+      "genres": [
+        "триллер",
+        "драма",
+        "криминал"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.4,
+          "votes": 1400,
+          "percent": 74
+        },
+        "rottenTomatoes": {
+          "critics": 100,
+          "audience": 90
+        }
+      }
+    },
+    {
+      "id": "hodyachie-mertvecy-mertvyy-gorod-the-walking-dead-dead-city-3-sezon-2023",
+      "title": "Ходячие мертвецы: Мертвый город",
+      "originalTitle": "The Walking Dead: Dead City (3 сезон)",
+      "year": 2023,
+      "query": "Ходячие мертвецы: Мертвый город The Walking Dead: Dead City (3 сезон) 2023",
+      "genres": [
+        "ужасы",
+        "драма",
+        "триллер",
+        "приключения"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.9,
+          "votes": 89212,
+          "percent": 69
+        },
+        "imdb": {
+          "value": 7.4,
+          "votes": 1400,
+          "percent": 74
+        },
+        "rottenTomatoes": {
+          "critics": 100,
+          "audience": 46
+        }
+      }
+    }
+  ]
+}
