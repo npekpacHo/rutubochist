@@ -1,0 +1,242 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.3",
+  "id": "2026-08-15-centralzd",
+  "title": "Что посмотреть от 15.08.2026",
+  "date": "2026-08-15",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_15082026_14244743",
+  "extractedAt": "2026-08-15T19:47:33.785Z",
+  "count": 10,
+  "items": [
+    {
+      "id": "priglashenie-the-invite-2026",
+      "title": "Приглашение",
+      "originalTitle": "The Invite",
+      "year": 2026,
+      "query": "Приглашение The Invite 2026",
+      "genres": [
+        "комедия"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.9,
+          "votes": 3989,
+          "percent": 69
+        },
+        "imdb": {
+          "value": 7.8,
+          "votes": 29558,
+          "percent": 78
+        },
+        "rottenTomatoes": {
+          "critics": 97,
+          "audience": 89
+        }
+      }
+    },
+    {
+      "id": "min-ony-i-monstry-minions-monsters-2026",
+      "title": "Миньоны и монстры",
+      "originalTitle": "Minions & Monsters",
+      "year": 2026,
+      "query": "Миньоны и монстры Minions & Monsters 2026",
+      "genres": [
+        "мультфильм",
+        "фантастика",
+        "комедия",
+        "криминал",
+        "приключения",
+        "семейный"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.5,
+          "votes": 19268,
+          "percent": 65
+        },
+        "imdb": {
+          "value": 6.5,
+          "votes": 8651,
+          "percent": 65
+        },
+        "rottenTomatoes": {
+          "critics": 89,
+          "audience": 75
+        }
+      }
+    },
+    {
+      "id": "molodoy-vashington-young-washington-2026",
+      "title": "Молодой Вашингтон",
+      "originalTitle": "Young Washington",
+      "year": 2026,
+      "query": "Молодой Вашингтон Young Washington 2026",
+      "genres": [
+        "биография",
+        "история"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.5,
+          "votes": 8221,
+          "percent": 75
+        },
+        "rottenTomatoes": {
+          "critics": 60,
+          "audience": 92
+        }
+      }
+    },
+    {
+      "id": "den-rozhdeniya-the-birthday-party-2025",
+      "title": "День рождения",
+      "originalTitle": "The Birthday Party",
+      "year": 2025,
+      "query": "День рождения The Birthday Party 2025",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6,
+          "votes": 409,
+          "percent": 60
+        },
+        "imdb": {
+          "value": 5.2,
+          "votes": 200,
+          "percent": 52
+        },
+        "rottenTomatoes": {
+          "critics": 45
+        }
+      }
+    },
+    {
+      "id": "lyubov-moya-el-ser-querido-2026",
+      "title": "Любовь моя",
+      "originalTitle": "El ser querido",
+      "year": 2026,
+      "query": "Любовь моя El ser querido 2026",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7,
+          "votes": 268,
+          "percent": 70
+        },
+        "rottenTomatoes": {
+          "critics": 87
+        }
+      }
+    },
+    {
+      "id": "geyl-dotri-i-kart-blansh-na-izmenu-gail-daughtry-and-the-celebrity-sex-pass-2026",
+      "title": "Гейл Дотри и карт-бланш на измену",
+      "originalTitle": "Gail Daughtry and the Celebrity Sex Pass",
+      "year": 2026,
+      "query": "Гейл Дотри и карт-бланш на измену Gail Daughtry and the Celebrity Sex Pass 2026",
+      "genres": [
+        "комедия"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.8,
+          "votes": 1540,
+          "percent": 68
+        },
+        "rottenTomatoes": {
+          "critics": 76,
+          "audience": 81
+        }
+      }
+    },
+    {
+      "id": "shepotom-voix-basse-in-a-whisper-2026",
+      "title": "Шёпотом",
+      "originalTitle": "À voix basse (In a Whisper)",
+      "year": 2026,
+      "query": "Шёпотом À voix basse (In a Whisper) 2026",
+      "genres": [
+        "драма",
+        "детектив"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.1,
+          "votes": 75,
+          "percent": 71
+        },
+        "rottenTomatoes": {
+          "critics": 93
+        }
+      }
+    },
+    {
+      "id": "sdelano-v-evrosoyuze-made-in-eu-2025",
+      "title": "Сделано в Евросоюзе",
+      "originalTitle": "Made in EU",
+      "year": 2025,
+      "query": "Сделано в Евросоюзе Made in EU 2025",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.5,
+          "votes": 132,
+          "percent": 65
+        }
+      }
+    },
+    {
+      "id": "dobro-pozhalovat-domoy-detka-welcome-home-baby-2025",
+      "title": "Добро пожаловать домой, детка",
+      "originalTitle": "Welcome Home Baby",
+      "year": 2025,
+      "query": "Добро пожаловать домой, детка Welcome Home Baby 2025",
+      "genres": [
+        "триллер",
+        "детектив"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6,
+          "votes": 240,
+          "percent": 60
+        }
+      }
+    },
+    {
+      "id": "dzhek-richer-reacher-4-sezon-2022",
+      "title": "Джек Ричер",
+      "originalTitle": "Reacher (4 сезон)",
+      "year": 2022,
+      "query": "Джек Ричер Reacher (4 сезон) 2022",
+      "genres": [
+        "боевик",
+        "триллер",
+        "драма",
+        "криминал"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.4,
+          "votes": 61237,
+          "percent": 74
+        },
+        "imdb": {
+          "value": 8,
+          "votes": 289000,
+          "percent": 80
+        },
+        "rottenTomatoes": {
+          "critics": 93,
+          "audience": 88
+        }
+      }
+    }
+  ]
+}
