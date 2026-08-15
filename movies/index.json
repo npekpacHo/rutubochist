@@ -1,7 +1,15 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-08",
+  "updatedAt": "2026-08-15",
   "batches": [
+    {
+  "id": "2026-08-15-centralzd",
+  "title": "Что посмотреть от 15.08.2026",
+  "date": "2026-08-15",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_15082026_14244743",
+  "file": "batches/2026-08-15-centralzd.json",
+  "count": 10
+},
     {
   "id": "2026-08-08-centralzd",
   "title": "Что посмотреть от 08.08.2026",
