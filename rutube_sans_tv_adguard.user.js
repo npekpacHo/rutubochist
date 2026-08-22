@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.4.11
+// @version      1.4.12
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki
 // @license      MIT
@@ -24,7 +24,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.4.11';
+  const UI_VERSION = '1.4.12';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -2559,7 +2559,7 @@
       .rtst-modal .rtst-movie-nav .rtst-movie-icon-btn:hover { background: rgba(255,255,255,.17) !important; filter: none !important; }
       .rtst-modal .rtst-movie-nav .rtst-movie-icon-btn svg { width: 18px !important; height: 18px !important; display: block !important; }
       .rtst-modal .rtst-movie-nav .rtst-movie-refresh-btn.is-loading svg { animation: rtst-movie-refresh-spin .75s linear infinite !important; }
-      @keyframes rtst-movie-refresh-spin { to { transform: rotate(360deg); } }
+      @keyframes rtst-movie-refresh-spin { to { transform: rotate(-360deg); } }
       .rtst-movie-status { color: rgba(244,255,247,.78) !important; font: 11px/1.3 Arial, sans-serif !important; }
       .rtst-movie-list { display: flex !important; flex-direction: column !important; gap: 4px !important; margin: 0 !important; }
       .rtst-modal .rtst-movie-row {
@@ -2730,6 +2730,9 @@
         .rtst-movie-toolbar { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; }
         .rtst-movie-nav { display: grid !important; grid-template-columns: minmax(0, 1fr) 44px 44px minmax(0, 1fr) !important; gap: 8px !important; }
         .rtst-movie-nav button { width: 100% !important; padding-left: 8px !important; padding-right: 8px !important; }
+        .rtst-movie-nav button[data-rtst-action="movie-newer"], .rtst-movie-nav button[data-rtst-action="movie-older"] { font-size: 0 !important; }
+        .rtst-movie-nav button[data-rtst-action="movie-newer"]::before { content: "←"; font: 800 22px/1 Arial, sans-serif !important; }
+        .rtst-movie-nav button[data-rtst-action="movie-older"]::before { content: "→"; font: 800 22px/1 Arial, sans-serif !important; }
         .rtst-modal .rtst-movie-nav .rtst-movie-icon-btn { width: 44px !important; height: 44px !important; min-width: 44px !important; min-height: 44px !important; padding: 0 !important; }
         .rtst-modal .rtst-movie-nav .rtst-movie-icon-btn svg { width: 20px !important; height: 20px !important; }
         
@@ -2862,6 +2865,9 @@
         .rtst-movie-toolbar { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; }
         .rtst-movie-nav { display: grid !important; grid-template-columns: minmax(0, 1fr) 44px 44px minmax(0, 1fr) !important; gap: 8px !important; }
         .rtst-movie-nav button { width: 100% !important; padding-left: 8px !important; padding-right: 8px !important; }
+        .rtst-movie-nav button[data-rtst-action="movie-newer"], .rtst-movie-nav button[data-rtst-action="movie-older"] { font-size: 0 !important; }
+        .rtst-movie-nav button[data-rtst-action="movie-newer"]::before { content: "←"; font: 800 22px/1 Arial, sans-serif !important; }
+        .rtst-movie-nav button[data-rtst-action="movie-older"]::before { content: "→"; font: 800 22px/1 Arial, sans-serif !important; }
         .rtst-modal .rtst-movie-nav .rtst-movie-icon-btn { width: 44px !important; height: 44px !important; min-width: 44px !important; min-height: 44px !important; padding: 0 !important; }
         .rtst-modal .rtst-movie-nav .rtst-movie-icon-btn svg { width: 20px !important; height: 20px !important; }
         .rtst-toast { right: 16px !important; left: 16px !important; bottom: 32px !important; max-width: none !important; text-align: center !important; font-size: 14px !important; padding: 12px !important; }
