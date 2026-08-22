@@ -1,0 +1,208 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.3",
+  "id": "2026-08-22-centralzd",
+  "title": "Что посмотреть от 22.08.2026",
+  "date": "2026-08-22",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_22082026_14264785",
+  "extractedAt": "2026-08-22T10:24:12.696Z",
+  "count": 8,
+  "items": [
+    {
+      "id": "myatezh-mutiny-2025",
+      "title": "Мятеж",
+      "originalTitle": "Mutiny",
+      "year": 2025,
+      "query": "Мятеж Mutiny 2025",
+      "genres": [
+        "боевик",
+        "триллер",
+        "криминал"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 5.8,
+          "votes": 911,
+          "percent": 58
+        },
+        "imdb": {
+          "value": 5.7,
+          "votes": 1920,
+          "percent": 57
+        },
+        "rottenTomatoes": {
+          "critics": 51
+        }
+      }
+    },
+    {
+      "id": "chudaki-luchshee-i-poslednee-jackass-best-and-last-2026",
+      "title": "Чудаки: Лучшее и последнее",
+      "originalTitle": "Jackass: Best and Last",
+      "year": 2026,
+      "query": "Чудаки: Лучшее и последнее Jackass: Best and Last 2026",
+      "genres": [
+        "документальный",
+        "комедия"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.2,
+          "votes": 1269,
+          "percent": 62
+        },
+        "imdb": {
+          "value": 6.9,
+          "votes": 1763,
+          "percent": 69
+        },
+        "rottenTomatoes": {
+          "critics": 87,
+          "audience": 83
+        }
+      }
+    },
+    {
+      "id": "40-svidaniy-40-nochey-40-dates-and-40-nights-2026",
+      "title": "40 свиданий, 40 ночей",
+      "originalTitle": "40 Dates and 40 Nights",
+      "year": 2026,
+      "query": "40 свиданий, 40 ночей 40 Dates and 40 Nights 2026",
+      "genres": [
+        "мелодрама",
+        "комедия"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.4,
+          "votes": 761,
+          "percent": 64
+        },
+        "imdb": {
+          "value": 6.2,
+          "votes": 1056,
+          "percent": 62
+        },
+        "rottenTomatoes": {
+          "critics": 87,
+          "audience": 83
+        }
+      }
+    },
+    {
+      "id": "draka-bagarre-brawl-2026",
+      "title": "Драка",
+      "originalTitle": "Bagarre (Brawl)",
+      "year": 2026,
+      "query": "Драка Bagarre (Brawl) 2026",
+      "genres": [
+        "боевик",
+        "комедия"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 5.9,
+          "votes": 120,
+          "percent": 59
+        }
+      }
+    },
+    {
+      "id": "ne-govori-udachi-don-t-say-good-luck-2026",
+      "title": "Не говори «удачи»",
+      "originalTitle": "Don't Say Good Luck",
+      "year": 2026,
+      "query": "Не говори «удачи» Don't Say Good Luck 2026",
+      "genres": [
+        "комедия"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.8,
+          "votes": 1337,
+          "percent": 68
+        },
+        "rottenTomatoes": {
+          "critics": 95,
+          "audience": 81
+        }
+      }
+    },
+    {
+      "id": "fonari-lanterns-1-sezon-2026",
+      "title": "Фонари",
+      "originalTitle": "Lanterns (1 сезон)",
+      "year": 2026,
+      "query": "Фонари Lanterns (1 сезон) 2026",
+      "genres": [
+        "фантастика",
+        "боевик",
+        "криминал",
+        "детектив",
+        "приключения"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.8,
+          "votes": 756,
+          "percent": 78
+        },
+        "imdb": {
+          "value": 8.1,
+          "votes": 8300,
+          "percent": 81
+        },
+        "rottenTomatoes": {
+          "critics": 94,
+          "audience": 83
+        }
+      }
+    },
+    {
+      "id": "lyudvig-ludwig-2-sezon-2024",
+      "title": "Людвиг",
+      "originalTitle": "Ludwig (2 сезон)",
+      "year": 2024,
+      "query": "Людвиг Ludwig (2 сезон) 2024",
+      "genres": [
+        "драма",
+        "комедия",
+        "криминал",
+        "детектив"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.6,
+          "votes": 7090,
+          "percent": 76
+        },
+        "imdb": {
+          "value": 8.1,
+          "votes": 21000,
+          "percent": 81
+        },
+        "rottenTomatoes": {
+          "critics": 97,
+          "audience": 87
+        }
+      }
+    },
+    {
+      "id": "lev-lion-1-sezon-2026",
+      "title": "Лев",
+      "originalTitle": "Lion (1 сезон)",
+      "year": 2026,
+      "query": "Лев Lion (1 сезон) 2026",
+      "genres": [
+        "документальный"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 8.1,
+          "votes": 43,
+          "percent": 81
+        }
+      }
+    }
+  ]
+}
