@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.4.10
+// @version      1.4.11
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki
 // @license      MIT
@@ -24,7 +24,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.4.10';
+  const UI_VERSION = '1.4.11';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -2551,6 +2551,15 @@
       .rtst-modal .rtst-movie-source-btn:hover { color: #f4fff7 !important; filter: none !important; }
       .rtst-movie-toolbar { display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 10px !important; flex-wrap: wrap !important; margin: 0 !important; }
       .rtst-movie-nav { display: flex !important; gap: 4px !important; flex-wrap: wrap !important; align-items: center !important; }
+      .rtst-modal .rtst-movie-nav .rtst-movie-icon-btn {
+        display: inline-flex !important; align-items: center !important; justify-content: center !important; flex: 0 0 32px !important;
+        width: 32px !important; height: 32px !important; min-width: 32px !important; min-height: 32px !important; padding: 0 !important;
+        border-radius: 8px !important; background: rgba(255,255,255,.09) !important; color: #f4fff7 !important; box-shadow: none !important;
+      }
+      .rtst-modal .rtst-movie-nav .rtst-movie-icon-btn:hover { background: rgba(255,255,255,.17) !important; filter: none !important; }
+      .rtst-modal .rtst-movie-nav .rtst-movie-icon-btn svg { width: 18px !important; height: 18px !important; display: block !important; }
+      .rtst-modal .rtst-movie-nav .rtst-movie-refresh-btn.is-loading svg { animation: rtst-movie-refresh-spin .75s linear infinite !important; }
+      @keyframes rtst-movie-refresh-spin { to { transform: rotate(360deg); } }
       .rtst-movie-status { color: rgba(244,255,247,.78) !important; font: 11px/1.3 Arial, sans-serif !important; }
       .rtst-movie-list { display: flex !important; flex-direction: column !important; gap: 4px !important; margin: 0 !important; }
       .rtst-modal .rtst-movie-row {
@@ -2719,8 +2728,10 @@
         .rtst-movie-search-line { margin-top: 10px !important; gap: 8px !important; }
         .rtst-modal .rtst-movie-search-btn { flex: 1 1 120px !important; min-height: 42px !important; font-size: 13px !important; padding: 8px 10px !important; }
         .rtst-movie-toolbar { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; }
-        .rtst-movie-nav { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 8px !important; }
+        .rtst-movie-nav { display: grid !important; grid-template-columns: minmax(0, 1fr) 44px 44px minmax(0, 1fr) !important; gap: 8px !important; }
         .rtst-movie-nav button { width: 100% !important; padding-left: 8px !important; padding-right: 8px !important; }
+        .rtst-modal .rtst-movie-nav .rtst-movie-icon-btn { width: 44px !important; height: 44px !important; min-width: 44px !important; min-height: 44px !important; padding: 0 !important; }
+        .rtst-modal .rtst-movie-nav .rtst-movie-icon-btn svg { width: 20px !important; height: 20px !important; }
         
         /* Тосты */
         .rtst-toast { right: 16px !important; left: 16px !important; bottom: 32px !important; max-width: none !important; text-align: center !important; font-size: 14px !important; padding: 12px !important; }
@@ -2849,8 +2860,10 @@
         .rtst-movie-search-line { margin-top: 10px !important; gap: 8px !important; }
         .rtst-modal .rtst-movie-search-btn { flex: 1 1 120px !important; min-height: 42px !important; font-size: 13px !important; padding: 8px 10px !important; }
         .rtst-movie-toolbar { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; }
-        .rtst-movie-nav { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 8px !important; }
+        .rtst-movie-nav { display: grid !important; grid-template-columns: minmax(0, 1fr) 44px 44px minmax(0, 1fr) !important; gap: 8px !important; }
         .rtst-movie-nav button { width: 100% !important; padding-left: 8px !important; padding-right: 8px !important; }
+        .rtst-modal .rtst-movie-nav .rtst-movie-icon-btn { width: 44px !important; height: 44px !important; min-width: 44px !important; min-height: 44px !important; padding: 0 !important; }
+        .rtst-modal .rtst-movie-nav .rtst-movie-icon-btn svg { width: 20px !important; height: 20px !important; }
         .rtst-toast { right: 16px !important; left: 16px !important; bottom: 32px !important; max-width: none !important; text-align: center !important; font-size: 14px !important; padding: 12px !important; }
       }
     `;
@@ -3430,7 +3443,7 @@
       if (action === 'open-project') { event.preventDefault(); event.stopPropagation(); openProjectPage(); return; }
       if (action === 'movie-newer') { switchMovieBatch(-1); return; }
       if (action === 'movie-older') { switchMovieBatch(1); return; }
-      if (action === 'movie-refresh') { refreshMovieNavigator(); return; }
+      if (action === 'movie-refresh') { refreshMovieNavigator(actionEl); return; }
       if (action === 'movie-random') { openRandomMovieSearch(); return; }
       if (action === 'movie-search') { event.preventDefault(); event.stopPropagation(); openRutubeMovieSearch(actionEl.dataset.rtstQuery || '', actionEl.dataset.rtstTrailer === '1'); return; }
       if (action === 'movie-search-google') { event.preventDefault(); event.stopPropagation(); openGoogleMovieSearch(actionEl.dataset.rtstQuery || ''); return; }
@@ -3615,7 +3628,12 @@
           </div>
           <div class="rtst-movie-nav">
             <button type="button" data-rtst-action="movie-newer" ${index <= 0 ? 'disabled' : ''}>← Новее</button>
-            <button type="button" data-rtst-action="movie-random">Случайный</button>
+            <button type="button" class="rtst-movie-icon-btn rtst-movie-random-btn" data-rtst-action="movie-random" title="Случайный фильм" aria-label="Случайный фильм">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z"/><path d="M8 8l0 .01"/><path d="M12 12l0 .01"/><path d="M16 16l0 .01"/><path d="M16 8l0 .01"/><path d="M8 16l0 .01"/></svg>
+            </button>
+            <button type="button" class="rtst-movie-icon-btn rtst-movie-refresh-btn" data-rtst-action="movie-refresh" title="Обновить список" aria-label="Обновить список">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"/><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"/></svg>
+            </button>
             <button type="button" data-rtst-action="movie-older" ${index >= total - 1 ? 'disabled' : ''}>Старше →</button>
           </div>
         </div>`,
@@ -4006,9 +4024,24 @@
     renderMovieBatch((movieCache.currentIndex || 0) + delta);
   }
 
-  async function refreshMovieNavigator() {
-    await refreshMovieDbCache({ silent: false });
-    renderMovieBatch(movieCache.currentIndex || 0);
+  async function refreshMovieNavigator(button) {
+    if (button) {
+      button.disabled = true;
+      button.classList.add('is-loading');
+      button.setAttribute('aria-busy', 'true');
+      button.title = 'Обновляю список...';
+    }
+    try {
+      await refreshMovieDbCache({ silent: false });
+      await renderMovieBatch(movieCache.currentIndex || 0);
+    } finally {
+      if (button && button.isConnected) {
+        button.disabled = false;
+        button.classList.remove('is-loading');
+        button.removeAttribute('aria-busy');
+        button.title = 'Обновить список';
+      }
+    }
   }
 
   async function updateMovieDbFromSettings(button) {
