@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.4.8
+// @version      1.4.10
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki
 // @license      MIT
@@ -24,7 +24,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.4.8';
+  const UI_VERSION = '1.4.10';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -109,13 +109,15 @@
 
   const MOVIE_DB_BASE_URLS = [
     'https://npekpacho.github.io/rutubochist/movies/',
+    'https://npekpacho.ru/rutube/movies/',
     'https://raw.githubusercontent.com/npekpacHo/rutubochist/main/movies/'
   ];
   const MOVIE_DB_INDEX_FILE = 'index.json';
   const MOVIE_DB_CACHE_KEY = 'rtstMovieDbCache:v1';
   const MOVIE_DB_AUTO_CHECK_KEY = 'rtstMovieDbAutoCheck:v1';
   const MOVIE_DB_UPDATE_INTERVAL_MS = 3 * 24 * 60 * 60 * 1000;
-  const MOVIE_DB_SATURDAY_CHECK_HOUR = 12;
+  const MOVIE_DB_SUNDAY_CHECK_HOUR = 12;
+  const MOVIE_DB_REQUEST_TIMEOUT_MS = 20 * 1000;
   const PANEL_ICON_CACHE_KEY = 'rtstPanelIconCache:v1';
   const PANEL_ICON_MAX_CACHE_BYTES = 260 * 1024;
   const PANEL_ICON_CACHE_TTL_MS = 14 * 24 * 60 * 60 * 1000;
@@ -128,6 +130,7 @@
   const PROJECT_URL = 'https://github.com/npekpacHo/rutubochist';
   const movieCache = { index: null, batches: new Map(), currentIndex: 0, currentBatch: null, source: 'none', savedAt: 0 };
   let githubState = { state: 'unknown', checkedAt: 0, message: '' };
+  let movieDbLastRemoteSource = 'none';
   let panelIconCache = { src: '', source: 'fallback', savedAt: 0 };
   let panelIconFetchStarted = false;
 
@@ -3650,7 +3653,7 @@
     const rutubeSearchUrl = buildRutubeMovieSearchUrl(query, false) || 'https://rutube.ru/search/';
     const googleTitle = googleOk
       ? `Искать через Google: ${query} · site:rutube.ru · без обзоров/трейлеров`
-      : 'Google-поиск доступен только когда GitHub/интернет доступен.';
+      : 'Google-поиск доступен только когда база/интернет доступны.';
     return `
       <div class="rtst-movie-row" data-rtst-query="${escapeAttribute(query)}" style="--rtst-movie-rating-pct: ${escapeAttribute(String(ratingPercent))}%; --rtst-movie-rating-fill: ${escapeAttribute(ratingFill)};">
         <span class="rtst-movie-title-line">${escapeHtml(title)}</span>
@@ -3877,8 +3880,8 @@
         if (!entry.file) continue;
         packed[cacheKey] = await loadMovieJsonRemote(entry.file);
       }
-      saveMovieDbToLocalCache(indexData, packed, 'github');
-      setGithubState('ok', `База обновлена: ${formatDateTime(new Date())}.`);
+      saveMovieDbToLocalCache(indexData, packed, movieDbLastRemoteSource || 'remote');
+      setGithubState('ok', `База обновлена: ${formatDateTime(new Date())}. Источник: ${movieCache.source}.`);
       if (!silent) toast('База обновлена и сохранена локально.');
       return true;
     } catch (e) {
@@ -3911,28 +3914,28 @@
     } catch (e) {}
   }
 
-  function saturdayAfternoonStart(date = new Date()) {
+  function sundayAfternoonStart(date = new Date()) {
     const d = new Date(date.getTime());
     const day = d.getDay();
-    const diff = (day - 6 + 7) % 7;
+    const diff = day;
     d.setDate(d.getDate() - diff);
-    d.setHours(MOVIE_DB_SATURDAY_CHECK_HOUR, 0, 0, 0);
+    d.setHours(MOVIE_DB_SUNDAY_CHECK_HOUR, 0, 0, 0);
     return d.getTime();
   }
 
-  function isSaturdayAfternoon(date = new Date()) {
-    return date.getDay() === 6 && date.getHours() >= MOVIE_DB_SATURDAY_CHECK_HOUR;
+  function isSundayAfternoon(date = new Date()) {
+    return date.getDay() === 0 && date.getHours() >= MOVIE_DB_SUNDAY_CHECK_HOUR;
   }
 
   function movieAutoUpdateDecision(now = Date.now()) {
     if (!movieCache.savedAt) loadMovieDbFromLocalCache();
 
     const state = movieAutoCheckState();
-    const currentSaturdayStart = saturdayAfternoonStart(new Date(now));
-    const dueBySaturday = isSaturdayAfternoon(new Date(now)) && state.lastAutoCheckAt < currentSaturdayStart;
+    const currentSundayStart = sundayAfternoonStart(new Date(now));
+    const dueBySunday = isSundayAfternoon(new Date(now)) && state.lastAutoCheckAt < currentSundayStart;
     const dueByInterval = !movieCache.savedAt || now - movieCache.savedAt >= MOVIE_DB_UPDATE_INTERVAL_MS;
 
-    if (dueBySaturday) return { due: true, reason: 'субботняя проверка' };
+    if (dueBySunday) return { due: true, reason: 'воскресная проверка' };
     if (dueByInterval) return { due: true, reason: 'прошло 3 дня' };
     return { due: false, reason: '' };
   }
@@ -3944,6 +3947,44 @@
     refreshMovieDbCache({ silent: true }).finally(updateMovieCacheStatusText);
   }
 
+  function movieDbSourceLabel(url) {
+    try {
+      const host = new URL(url, location.href).hostname.toLowerCase();
+      if (host === 'npekpacho.ru') return 'npekpacho.ru';
+      if (host.includes('github')) return 'github';
+      return host || 'remote';
+    } catch (e) {
+      return 'remote';
+    }
+  }
+
+  async function fetchMovieJsonWithTimeout(url, timeoutMs = MOVIE_DB_REQUEST_TIMEOUT_MS) {
+    const canAbort = typeof AbortController === 'function';
+    const controller = canAbort ? new AbortController() : null;
+    let timer = null;
+
+    try {
+      const fetchPromise = fetch(url, {
+        cache: 'no-store',
+        signal: controller ? controller.signal : undefined
+      });
+
+      const response = await new Promise((resolve, reject) => {
+        timer = setTimeout(() => {
+          try { if (controller) controller.abort(); } catch (e) {}
+          reject(new Error(`тайм-аут ${Math.round(timeoutMs / 1000)} с`));
+        }, timeoutMs);
+
+        fetchPromise.then(resolve, reject);
+      });
+
+      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+      return await response.json();
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
   async function loadMovieJsonRemote(path) {
     const cleanPath = String(path || '').replace(/^\/+/, '');
     const urls = /^https?:\/\//i.test(cleanPath) ? [cleanPath] : MOVIE_DB_BASE_URLS.map((base) => base + cleanPath);
@@ -3951,9 +3992,9 @@
     for (const baseUrl of urls) {
       const url = baseUrl + (baseUrl.includes('?') ? '&' : '?') + 'rtst=' + Date.now();
       try {
-        const response = await fetch(url, { cache: 'no-store' });
-        if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-        return await response.json();
+        const json = await fetchMovieJsonWithTimeout(url);
+        movieDbLastRemoteSource = movieDbSourceLabel(url);
+        return json;
       } catch (e) {
         lastError = e;
       }
@@ -4134,13 +4175,13 @@
     status.dataset.state = state;
     if (state === 'ok') {
       status.textContent = '🟢 интернет';
-      status.title = 'Интернет доступен. GitHub отвечает.';
+      status.title = `Интернет доступен. База отвечает через ${movieCache.source || movieDbLastRemoteSource || 'remote'}.`;
     } else if (state === 'bad') {
       status.textContent = '🔴 чебурнет';
-      status.title = ['GitHub недоступен. Возможен Чебурнет.', githubState.message ? `Ошибка: ${githubState.message}` : ''].filter(Boolean).join('\n');
+      status.title = ['База подборок недоступна. Возможен Чебурнет, DNS-бубен или просто RUTUBE опять победил смысл.', githubState.message ? `Ошибка: ${githubState.message}` : ''].filter(Boolean).join('\n');
     } else if (state === 'checking') {
       status.textContent = '🟡 проверка';
-      status.title = 'Проверяю доступ к GitHub.';
+      status.title = 'Проверяю доступ к базе подборок.';
     } else {
       status.textContent = '⚪ сеть';
       status.title = 'Доступ к интернету ещё не проверялся.';
