@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.4.12
+// @version      1.4.13
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki
 // @license      MIT
@@ -24,7 +24,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.4.12';
+  const UI_VERSION = '1.4.13';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -196,7 +196,7 @@
   }
 
   function isRtstUiElement(el) {
-    return Boolean(el && el.closest && el.closest('#rtst-panel, .rtst-modal-backdrop, .rtst-toast'));
+    return Boolean(el && el.closest && el.closest('#rtst-panel, .rtst-modal-backdrop, .rtst-toast, [data-rtst-primary-movie="1"]'));
   }
 
   const Dom = {
@@ -2276,6 +2276,28 @@
       }
       .rtst-chrome-hidden, .rtst-view-hidden { display: none !important; }
 
+      /* Первый блок меню работает как белый список: RUTUBE может добавлять что угодно,
+         но остаются только четыре нужных раздела и наш пункт «Что посмотреть». */
+      @supports selector(ul:has(a[href])) {
+        html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"]
+        ul[class*="menu-links-module__list"]:has(a[href="/feeds/movies-serials/"]):has(a[href="/categories/"]):has(a[href="/feeds/top/"])
+        > li:not([data-rtst-primary-movie="1"]):not(:has(a[href="/"])):not(:has(a[href="/feeds/movies-serials/"])):not(:has(a[href="/categories/"])):not(:has(a[href="/feeds/top/"])) {
+          display: none !important;
+        }
+      }
+      .rtst-primary-pruned { display: none !important; }
+      [data-rtst-primary-movie="1"] .rtst-primary-movie-icon {
+        -webkit-mask-image: none !important;
+        mask-image: none !important;
+        background: none !important;
+        color: currentColor !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font: 900 21px/1 Arial, sans-serif !important;
+      }
+      [data-rtst-primary-movie="1"] .rtst-primary-movie-icon::before { content: "✦"; }
+
       .rtst-search-trash {
         position: relative !important;
         opacity: .42 !important;
@@ -3433,7 +3455,7 @@
         else toast('Канал не определён.');
         return;
       }
-      if (action === 'open-movie-modal') { openMovieModal(); return; }
+      if (action === 'open-movie-modal') { event.preventDefault(); event.stopPropagation(); openMovieModal(); return; }
       if (action === 'open-settings-modal') { openSettingsModal(); return; }
       if (action === 'toggle-enabled') {
         event.preventDefault();
@@ -4802,6 +4824,7 @@
 
   function clearAllMarks() {
     hiddenCount = 0; removedCount = 0;
+    if (!settings.enabled || !(settings.cleanRutubeChrome || settings.hideSideMenuPolitics)) restorePrimaryMenu();
     document.querySelectorAll('.rtst-hidden,.rtst-dim,.rtst-chrome-hidden,.rtst-view-hidden,.rtst-player-ad-hidden,.rtst-showcase-banner-hidden,.rtst-search-trash,.rtst-search-shorts-hidden,[data-rtst-search-trash="1"],[data-rtst-search-shorts="1"]').forEach((el) => {
       el.classList.remove('rtst-hidden', 'rtst-dim', 'rtst-view-hidden', 'rtst-chrome-hidden', 'rtst-player-ad-hidden', 'rtst-showcase-banner-hidden', 'rtst-search-trash', 'rtst-search-shorts-hidden');
       el.removeAttribute('data-rtst-hidden'); el.removeAttribute('data-rtst-hide-target');
@@ -4847,6 +4870,81 @@
         el.removeAttribute('data-rtst-search-trash-reason');
         el.removeAttribute('data-rtst-skip-clicked');
       } catch (e) {}
+    });
+  }
+
+  const PRIMARY_MENU_ALLOWED_PATHS = ['/', '/feeds/movies-serials/', '/categories/', '/feeds/top/'];
+
+  function primaryMenuPath(value) {
+    try {
+      const path = new URL(String(value || ''), location.origin).pathname || '/';
+      return path === '/' ? '/' : path.replace(/\/+$/, '') + '/';
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function isPrimaryMenuList(list) {
+    if (!list || !list.querySelectorAll) return false;
+    const className = String(list.className || '');
+    const menuContext = /menu/i.test(className) || Boolean(list.closest('[class*="menu" i], nav, aside'));
+    if (!menuContext) return false;
+    const paths = new Set(Array.from(list.querySelectorAll('a[href]')).map((a) => primaryMenuPath(a.getAttribute('href'))));
+    return PRIMARY_MENU_ALLOWED_PATHS.every((path) => paths.has(path));
+  }
+
+  function restorePrimaryMenu() {
+    document.querySelectorAll('[data-rtst-primary-movie="1"]').forEach((item) => item.remove());
+    document.querySelectorAll('.rtst-primary-pruned').forEach((item) => item.classList.remove('rtst-primary-pruned'));
+  }
+
+  function ensurePrimaryMenu() {
+    const cleanOn = Boolean(settings.enabled && (settings.cleanRutubeChrome || settings.hideSideMenuPolitics));
+    if (!cleanOn || isEmbeddedRutubePlayer()) { restorePrimaryMenu(); return; }
+
+    document.querySelectorAll('[data-rtst-primary-movie="1"]').forEach((item) => {
+      if (!isPrimaryMenuList(item.parentElement)) item.remove();
+    });
+
+    document.querySelectorAll('ul[class*="menu" i], nav ul, aside ul').forEach((list) => {
+      if (!isPrimaryMenuList(list)) return;
+
+      Array.from(list.children).forEach((item) => {
+        if (item.dataset && item.dataset.rtstPrimaryMovie === '1') return;
+        const link = item.querySelector && item.querySelector('a[href]');
+        const keep = link && PRIMARY_MENU_ALLOWED_PATHS.includes(primaryMenuPath(link.getAttribute('href')));
+        item.classList.toggle('rtst-primary-pruned', !keep);
+      });
+
+      if (list.querySelector(':scope > [data-rtst-primary-movie="1"]')) return;
+      const templateLink = Array.from(list.querySelectorAll('a[href]')).find((a) => primaryMenuPath(a.getAttribute('href')) === '/feeds/top/') || list.querySelector('a[href]');
+      const templateItem = templateLink && templateLink.closest('li, [role="listitem"]');
+      if (!templateItem) return;
+
+      const item = templateItem.cloneNode(true);
+      item.dataset.rtstPrimaryMovie = '1';
+      const link = item.querySelector('a[href]');
+      if (!link) return;
+
+      link.setAttribute('href', '#rtst-what-to-watch');
+      link.dataset.rtstAction = 'open-movie-modal';
+      link.title = 'Открыть подборки «Что посмотреть»';
+      link.setAttribute('aria-label', 'Что посмотреть');
+      link.removeAttribute('aria-current');
+      Array.from(link.classList || []).forEach((name) => {
+        if (/menu-item--active/i.test(name)) link.classList.remove(name);
+      });
+
+      const title = link.querySelector('[class*="menu-item-module__menu-item-title"], p, [class*="title" i]');
+      if (title) title.textContent = 'Что посмотреть';
+
+      const icon = link.querySelector('[class*="menu-icon-module__icon-image"]');
+      if (icon) {
+        icon.removeAttribute('style');
+        icon.classList.add('rtst-primary-movie-icon');
+      }
+
+      list.appendChild(item);
     });
   }
 
@@ -5786,6 +5884,7 @@
   }
 
   function cleanRutubeChromeSearchSafe() {
+    ensurePrimaryMenu();
     // На странице поиска особенно на реальном мобильном RUTUBE нельзя запускать общую
     // зачистку chrome-элементов: широкие селекторы и подъём к родителям иногда цепляют
     // основной контейнер выдачи и оставляют чёрный экран. Здесь чистим только явно
@@ -5899,6 +5998,7 @@
   }
 
   function cleanRutubeChrome() {
+    ensurePrimaryMenu();
     const exactItems = ['rutube для блогеров', 'rutube x premier', 'rutube x start', 'rutube x kion', 'rutube х kion', 'rutube x кион', 'rutube х кион', 'активировать промокод', 'по темам', 'детям', 'вопросы и ответы', 'сообщить о проблеме', 'письмо в поддержку', 'поддержка в max', 'help@rutube.ru', 'о rutube', 'направления деятельности', 'пользовательское соглашение', 'конфиденциальность', 'правовая информация', 'рекомендательная система', 'фирменный стиль'];
     const blockHeadings = ['rutube всегда с вами', 'cкачать приложения', 'скачать приложения', 'больше от rutube', 'rutube в других соцсетях'];
 
@@ -6034,7 +6134,7 @@
   }
 
   function containsCoreMenuText(text) {
-    return ['главная', 'подписки', 'история просмотра', 'плейлисты', 'смотреть позже', 'комментарии', 'понравилось', 'по темам', 'каталог', 'в топе', 'трансляции', 'мое', 'моё'].some((word) => text.includes(word));
+    return ['главная', 'кино и сериалы', 'подписки', 'история просмотра', 'плейлисты', 'смотреть позже', 'комментарии', 'понравилось', 'по темам', 'каталог', 'в топе', 'трансляции', 'мое', 'моё'].some((word) => text.includes(word));
   }
 
   function isVideoLikeLink(a) { return (a.href || '').includes('/video/') || (a.href || '').includes('/shorts/') || (a.href || '').includes('/plst/'); }
