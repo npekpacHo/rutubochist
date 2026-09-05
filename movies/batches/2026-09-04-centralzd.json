@@ -1,0 +1,221 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.3",
+  "id": "2026-09-04-centralzd",
+  "title": "Что посмотреть от 04.09.2026",
+  "date": "2026-09-04",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_04092026_14304978",
+  "extractedAt": "2026-09-05T11:08:20.472Z",
+  "count": 9,
+  "items": [
+    {
+      "id": "meydey-mayday-2026",
+      "title": "Мэйдэй",
+      "originalTitle": "Mayday",
+      "year": 2026,
+      "query": "Мэйдэй Mayday 2026",
+      "genres": [
+        "боевик",
+        "комедия",
+        "приключения"
+      ],
+      "ratings": {
+        "rottenTomatoes": {
+          "critics": 81
+        }
+      }
+    },
+    {
+      "id": "hochu-zanyat-sya-s-toboy-seksom-i-want-your-sex-2026",
+      "title": "Хочу заняться с тобой сексом",
+      "originalTitle": "I Want Your Sex",
+      "year": 2026,
+      "query": "Хочу заняться с тобой сексом I Want Your Sex 2026",
+      "genres": [
+        "триллер",
+        "драма",
+        "мелодрама",
+        "комедия",
+        "мультфильм",
+        "фэнтези",
+        "приключения",
+        "семейный"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 5.9,
+          "votes": 624,
+          "percent": 59
+        },
+        "imdb": {
+          "value": 7.6,
+          "votes": 12000,
+          "percent": 76
+        },
+        "rottenTomatoes": {
+          "critics": 96,
+          "audience": 95
+        }
+      }
+    },
+    {
+      "id": "beguschaya-the-runner-2026",
+      "title": "Бегущая",
+      "originalTitle": "The Runner",
+      "year": 2026,
+      "query": "Бегущая The Runner 2026",
+      "genres": [
+        "боевик",
+        "триллер",
+        "драма"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.1,
+          "votes": 719,
+          "percent": 61
+        },
+        "imdb": {
+          "value": 4.1,
+          "votes": 5600,
+          "percent": 41
+        },
+        "rottenTomatoes": {
+          "critics": 9,
+          "audience": 31
+        }
+      }
+    },
+    {
+      "id": "na-grani-voyny-the-brink-of-war-reykjavik-2026",
+      "title": "На грани войны",
+      "originalTitle": "The Brink of War (Reykjavik)",
+      "year": 2026,
+      "query": "На грани войны The Brink of War (Reykjavik) 2026",
+      "genres": [
+        "триллер",
+        "драма",
+        "военный",
+        "история"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.3,
+          "votes": 1700,
+          "percent": 63
+        },
+        "rottenTomatoes": {
+          "critics": 71,
+          "audience": 87
+        }
+      }
+    },
+    {
+      "id": "ne-te-devushki-the-wrong-girls-2026",
+      "title": "Не те девушки",
+      "originalTitle": "The Wrong Girls",
+      "year": 2026,
+      "query": "Не те девушки The Wrong Girls 2026",
+      "genres": [
+        "комедия",
+        "криминал"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 5.5,
+          "votes": 1100,
+          "percent": 55
+        },
+        "rottenTomatoes": {
+          "critics": 61,
+          "audience": 69
+        }
+      }
+    },
+    {
+      "id": "poymat-el-chapo-facing-el-chapo-la-captura-2026",
+      "title": "Поймать Эль Чапо",
+      "originalTitle": "Facing El Chapo / La Captura",
+      "year": 2026,
+      "query": "Поймать Эль Чапо Facing El Chapo / La Captura 2026",
+      "genres": [
+        "боевик",
+        "криминал",
+        "драма"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.6,
+          "votes": 142,
+          "percent": 66
+        },
+        "imdb": {
+          "value": 6.7,
+          "votes": 2771,
+          "percent": 67
+        },
+        "rottenTomatoes": {
+          "audience": 77
+        }
+      }
+    },
+    {
+      "id": "odnazhdy-na-blizhnem-vostoke-once-upon-a-time-in-the-middle-east-huan-ying-laai-long-can-g",
+      "title": "Однажды на Ближнем Востоке",
+      "originalTitle": "Once Upon a Time in the Middle East (Huan ying laai long can guan)",
+      "year": 2026,
+      "query": "Однажды на Ближнем Востоке Once Upon a Time in the Middle East (Huan ying laai long can guan) 2026",
+      "genres": [
+        "драма",
+        "военный"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 8.3,
+          "votes": 981,
+          "percent": 83
+        }
+      }
+    },
+    {
+      "id": "mangust-the-mongoose-2026",
+      "title": "Мангуст",
+      "originalTitle": "The Mongoose",
+      "year": 2026,
+      "query": "Мангуст The Mongoose 2026",
+      "genres": [
+        "боевик",
+        "триллер"
+      ],
+      "ratings": {}
+    },
+    {
+      "id": "dzhentl-meny-the-gentlemen-2-sezon-2024",
+      "title": "Джентльмены",
+      "originalTitle": "The Gentlemen (2 сезон)",
+      "year": 2024,
+      "query": "Джентльмены The Gentlemen (2 сезон) 2024",
+      "genres": [
+        "боевик",
+        "комедия",
+        "криминал"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.8,
+          "votes": 86678,
+          "percent": 78
+        },
+        "imdb": {
+          "value": 8,
+          "votes": 176000,
+          "percent": 80
+        },
+        "rottenTomatoes": {
+          "critics": 82,
+          "audience": 74
+        }
+      }
+    }
+  ]
+}
