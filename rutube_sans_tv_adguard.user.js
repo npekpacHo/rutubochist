@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.4.13
+// @version      1.4.14
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki
 // @license      MIT
@@ -24,7 +24,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.4.13';
+  const UI_VERSION = '1.4.14';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -5659,10 +5659,22 @@
     }
   }
 
+  function isRutubeNavigationElement(el) {
+    if (!el || !el.closest) return false;
+    return Boolean(el.closest(
+      'ul[class*="menu-links-module__list"], ' +
+      '[class*="menu-links-module__list-item"], ' +
+      'a[class*="menu-item-module__menu-item"], ' +
+      '[class*="mobile-menu-module__"], ' +
+      '[class*="sidebar" i] nav, nav[class*="menu" i]'
+    ));
+  }
+
   function scanCards(options = {}) {
     const skipShorts = Boolean(options && options.skipShorts);
     const links = Array.from(document.querySelectorAll('a[href]')).filter((a) => isVideoLikeLink(a) || isChannelLikeLink(a));
     for (const link of links) {
+      if (isRutubeNavigationElement(link)) continue;
       const card = findCard(link);
       if (!card || card.closest('#rtst-panel')) continue;
       applyWatchProgressBadge(card, link);
@@ -6301,7 +6313,7 @@
   }
 
   function addBlockChannelButton(card, channel) {
-    if (!channel || isWatchPage() || isSubscriptionsContext(card)) return;
+    if (!channel || isWatchPage() || isSubscriptionsContext(card) || isRutubeNavigationElement(card)) return;
     const existing = card.querySelector('.rtst-block-btn[data-rtst-action="block-card-channel"]');
     if (existing) {
       existing.textContent = '⊘'; existing.dataset.rtstChannel = channel; existing.title = `Скрыть канал: ${channel}`; existing.setAttribute('aria-label', `Скрыть канал: ${channel}`);
