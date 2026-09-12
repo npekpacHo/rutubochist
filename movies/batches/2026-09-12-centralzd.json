@@ -1,0 +1,200 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.3",
+  "id": "2026-09-12-centralzd",
+  "title": "Что посмотреть от 12.09.2026",
+  "date": "2026-09-12",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_12092026_14324676",
+  "extractedAt": "2026-09-12T10:26:47.734Z",
+  "count": 8,
+  "items": [
+    {
+      "id": "moana-moana-2026",
+      "title": "Моана",
+      "originalTitle": "Moana",
+      "year": 2026,
+      "query": "Моана Moana 2026",
+      "genres": [
+        "мюзикл",
+        "фэнтези",
+        "боевик",
+        "комедия",
+        "приключения",
+        "семейный"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.5,
+          "votes": 15556,
+          "percent": 65
+        },
+        "imdb": {
+          "value": 5.8,
+          "votes": 13302,
+          "percent": 58
+        },
+        "rottenTomatoes": {
+          "critics": 32,
+          "audience": 88
+        }
+      }
+    },
+    {
+      "id": "vsego-odna-noch-tol-ko-na-odnu-noch-one-night-only-2026",
+      "title": "Всего одна ночь",
+      "originalTitle": "Только на одну ночь / One Night Only",
+      "year": 2026,
+      "query": "Всего одна ночь Только на одну ночь / One Night Only 2026",
+      "genres": [
+        "драма",
+        "мелодрама",
+        "комедия"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.4,
+          "votes": 1207,
+          "percent": 64
+        },
+        "imdb": {
+          "value": 6.3,
+          "votes": 3372,
+          "percent": 63
+        },
+        "rottenTomatoes": {
+          "critics": 43,
+          "audience": 76
+        }
+      }
+    },
+    {
+      "id": "parallel-nye-istorii-histoires-parall-les-parallel-tales-2026",
+      "title": "Параллельные истории",
+      "originalTitle": "Histoires parallèles (Parallel Tales)",
+      "year": 2026,
+      "query": "Параллельные истории Histoires parallèles (Parallel Tales) 2026",
+      "genres": [
+        "триллер",
+        "драма",
+        "детектив"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.8,
+          "votes": 1408,
+          "percent": 68
+        },
+        "imdb": {
+          "value": 6,
+          "votes": 496,
+          "percent": 60
+        },
+        "rottenTomatoes": {
+          "critics": 19
+        }
+      }
+    },
+    {
+      "id": "noch-i-den-virginia-woolf-s-night-day-2026",
+      "title": "Ночь и день",
+      "originalTitle": "Virginia Woolf's Night & Day",
+      "year": 2026,
+      "query": "Ночь и день Virginia Woolf's Night & Day 2026",
+      "genres": [
+        "драма",
+        "мелодрама"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.1,
+          "votes": 248,
+          "percent": 61
+        },
+        "rottenTomatoes": {
+          "critics": 81
+        }
+      }
+    },
+    {
+      "id": "na-proizvol-sud-by-l-abandon-forsaken-2026",
+      "title": "На произвол судьбы",
+      "originalTitle": "L'abandon (Forsaken)",
+      "year": 2026,
+      "query": "На произвол судьбы L'abandon (Forsaken) 2026",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.6,
+          "votes": 461,
+          "percent": 76
+        }
+      }
+    },
+    {
+      "id": "dorogoy-tebe-gei-a-ma-de-qing-shu-dear-you-letter-to-grandma-2026",
+      "title": "Дорогой тебе",
+      "originalTitle": "Gei a ma de qing shu (Dear You) (Letter to Grandma)",
+      "year": 2026,
+      "query": "Дорогой тебе Gei a ma de qing shu (Dear You) (Letter to Grandma) 2026",
+      "genres": [
+        "мелодрама",
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 8.3,
+          "votes": 1761,
+          "percent": 83
+        }
+      }
+    },
+    {
+      "id": "gazeta-the-paper-2-sezon-2025",
+      "title": "Газета",
+      "originalTitle": "The Paper (2 сезон)",
+      "year": 2025,
+      "query": "Газета The Paper (2 сезон) 2025",
+      "genres": [
+        "комедия"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.8,
+          "votes": 3776,
+          "percent": 68
+        },
+        "imdb": {
+          "value": 6.9,
+          "votes": 14486,
+          "percent": 69
+        },
+        "rottenTomatoes": {
+          "critics": 80
+        }
+      }
+    },
+    {
+      "id": "propavshaya-bez-vesti-last-seen-1-sezon-2026",
+      "title": "Пропавшая без вести",
+      "originalTitle": "Last Seen (1 сезон)",
+      "year": 2026,
+      "query": "Пропавшая без вести Last Seen (1 сезон) 2026",
+      "genres": [
+        "триллер",
+        "детектив"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.6,
+          "votes": 328,
+          "percent": 76
+        },
+        "rottenTomatoes": {
+          "critics": 86
+        }
+      }
+    }
+  ]
+}
