@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.4.17
+// @version      1.4.19
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki / npekpacHo
 // @license      MIT
@@ -39,7 +39,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.4.17';
+  const UI_VERSION = '1.4.19';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -103,7 +103,7 @@
   const SETTINGS_DEFAULTS = {
     enabled: true, showHidden: false, hideSideMenuPolitics: true, hideShorts: true, hardRemove: false,
     cleanRutubeChrome: true, cleanWatchPage: true, disableAutoplay: true, hideComments: false, hideVideoInfo: false,
-    stripPlayerAds: true, unlockContextMenu: true, swipeVideoVolume: true, autoFullscreenOnRotate: false, hideVpnPopup: true, dimSearchTrash: true, markWatchedVideos: true,
+    stripPlayerAds: true, unlockContextMenu: true, swipeVideoVolume: true, autoFullscreenOnRotate: false, hideVpnPopup: true, dimSearchTrash: true, markWatchedVideos: true, seriesNavigator: true,
     safeRouterPatch060: true, safeDelayedScan070: true,
     blockedChannels: DEFAULT_BLOCKED_CHANNELS, blockedWords: DEFAULT_BLOCKED_WORDS, userChannels: [], userWords: []
   };
@@ -148,6 +148,16 @@
   let movieDbLastRemoteSource = 'none';
   let panelIconCache = { src: '', source: 'fallback', savedAt: 0 };
   let panelIconFetchStarted = false;
+
+  const SERIES_API_TIMEOUT_MS = 6500;
+  const SERIES_MAX_PLAYLIST_PAGES = 8;
+  const seriesRuntime = {
+    currentVideoId: '',
+    requestToken: 0,
+    result: null,
+    videoCache: new Map(),
+    listCache: new Map()
+  };
 
   function loadSettings() {
     try {
@@ -211,7 +221,7 @@
   }
 
   function isRtstUiElement(el) {
-    return Boolean(el && el.closest && el.closest('#rtst-panel, .rtst-modal-backdrop, .rtst-toast, [data-rtst-primary-movie="1"], [data-rtst-primary-home="1"]'));
+    return Boolean(el && el.closest && el.closest('#rtst-panel, .rtst-modal-backdrop, .rtst-toast, #rtst-series-nav, .rtst-series-modal, [data-rtst-primary-movie="1"], [data-rtst-primary-home="1"]'));
   }
 
   const Dom = {
@@ -641,6 +651,7 @@
           hideVpnPopup: Boolean(settings && settings.hideVpnPopup !== false),
           dimSearchTrash: Boolean(settings && settings.dimSearchTrash !== false),
           markWatchedVideos: Boolean(settings && settings.markWatchedVideos !== false),
+          seriesNavigator: Boolean(settings && settings.seriesNavigator !== false),
           cleanWatchPage: Boolean(settings && settings.cleanWatchPage),
           disableAutoplay: Boolean(settings && settings.disableAutoplay)
         },
@@ -2417,6 +2428,117 @@
         background: var(--pen-button-primary-hover, #1EABE9) !important; color: var(--pen-button-primary-hover-text, #fff) !important;
       }
       .rtst-home-link .rtst-home-content { display: inline-flex !important; align-items: center !important; justify-content: center !important; gap: 4px !important; }
+
+      /* --- СЕРИАЛИЗАТОР: В СТРОКЕ ЗАГОЛОВКА --- */
+      [data-rtst-series-title-row="1"] {
+        display: flex !important;
+        align-items: center !important;
+        gap: 7px !important;
+        min-width: 0 !important;
+      }
+      [data-rtst-series-title-row="1"] > h1[data-rtst-series-title="1"] {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+        transition: opacity .16s ease !important;
+      }
+      [data-rtst-series-title-row="1"] > h1[data-rtst-series-clickable="1"] {
+        cursor: pointer !important;
+      }
+      [data-rtst-series-title-row="1"] > h1[data-rtst-series-clickable="1"]:hover {
+        opacity: .82 !important;
+      }
+      [data-rtst-series-title-row="1"] > h1[data-rtst-series-clickable="1"]:focus-visible {
+        outline: 2px solid rgba(189,242,200,.55) !important;
+        outline-offset: 3px !important;
+        border-radius: 5px !important;
+      }
+      .rtst-series-title-arrow {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 4px !important;
+        flex: 0 0 auto !important;
+        min-width: 38px !important;
+        height: 34px !important;
+        padding: 0 8px !important;
+        border: 1px solid rgba(255,255,255,.12) !important;
+        border-radius: 9px !important;
+        background: rgba(255,255,255,.055) !important;
+        color: inherit !important;
+        text-decoration: none !important;
+        font: 800 12px/1 Arial, sans-serif !important;
+        box-sizing: border-box !important;
+        user-select: none !important;
+      }
+      a.rtst-series-title-arrow:hover {
+        background: rgba(255,255,255,.12) !important;
+      }
+      .rtst-series-title-arrow[aria-disabled="true"] {
+        opacity: .24 !important;
+        pointer-events: none !important;
+      }
+      .rtst-series-title-arrow .rtst-series-arrow-glyph {
+        font-size: 17px !important;
+        line-height: 1 !important;
+      }
+      .rtst-series-title-arrow .rtst-series-arrow-number {
+        min-width: 1ch !important;
+        text-align: center !important;
+      }
+      [data-rtst-series-title-row="1"][data-rtst-series-loading="1"] > h1[data-rtst-series-title="1"]::after {
+        content: '' !important;
+        display: inline-block !important;
+        width: 10px !important;
+        height: 10px !important;
+        margin-left: 8px !important;
+        border: 2px solid rgba(255,255,255,.22) !important;
+        border-top-color: rgba(255,255,255,.78) !important;
+        border-radius: 50% !important;
+        vertical-align: 0 !important;
+        animation: rtst-series-spin .75s linear infinite !important;
+      }
+      @keyframes rtst-series-spin { to { transform: rotate(360deg); } }
+
+      .rtst-modal.rtst-series-modal { width: 560px !important; max-width: calc(100vw - 24px) !important; }
+      .rtst-series-list { display: flex !important; flex-direction: column !important; gap: 5px !important; }
+      .rtst-series-list-row {
+        display: grid !important;
+        grid-template-columns: 74px minmax(0,1fr) auto !important;
+        align-items: center !important;
+        gap: 8px !important;
+        min-height: 38px !important;
+        padding: 7px 9px !important;
+        border: 1px solid rgba(255,255,255,.10) !important;
+        border-radius: 8px !important;
+        background: rgba(255,255,255,.045) !important;
+        color: #f4fff7 !important;
+        text-decoration: none !important;
+      }
+      .rtst-series-list-row:hover { background: rgba(255,255,255,.10) !important; }
+      .rtst-series-list-row[data-current="1"] { border-color: rgba(189,242,200,.42) !important; background: rgba(189,242,200,.10) !important; }
+      .rtst-series-list-episode { font: 800 11px/1.2 Arial, sans-serif !important; white-space: nowrap !important; }
+      .rtst-series-list-title { overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; font: 11px/1.25 Arial, sans-serif !important; }
+      .rtst-series-list-source { color: rgba(244,255,247,.56) !important; font: 9px/1.2 Arial, sans-serif !important; white-space: nowrap !important; }
+
+      @media (max-width: 680px), (hover: none) and (pointer: coarse) {
+        [data-rtst-series-title-row="1"] { gap: 5px !important; }
+        .rtst-series-title-arrow {
+          min-width: 36px !important;
+          width: 36px !important;
+          height: 36px !important;
+          padding: 0 !important;
+          border-radius: 9px !important;
+        }
+        .rtst-series-title-arrow .rtst-series-arrow-number { display: none !important; }
+        .rtst-series-title-arrow .rtst-series-arrow-glyph { font-size: 20px !important; }
+        [data-rtst-series-title-row="1"] > h1[data-rtst-series-title="1"] {
+          line-height: 1.18 !important;
+        }
+        .rtst-modal.rtst-series-modal { width: 100vw !important; max-width: 100vw !important; }
+        .rtst-series-list-row { grid-template-columns: 64px minmax(0,1fr) !important; }
+        .rtst-series-list-source { display: none !important; }
+      }
       
       /* --- ПАНЕЛЬ (ПК) --- */
       .rtst-panel {
@@ -3360,6 +3482,8 @@
     if (dimSearchTrashToggle) dimSearchTrashToggle.checked = Boolean(settings.dimSearchTrash !== false);
     const markWatchedToggle = document.getElementById('rtst-mark-watched');
     if (markWatchedToggle) markWatchedToggle.checked = Boolean(settings.markWatchedVideos !== false);
+    const seriesNavigatorToggle = document.getElementById('rtst-series-navigator');
+    if (seriesNavigatorToggle) seriesNavigatorToggle.checked = Boolean(settings.seriesNavigator !== false);
     const cleanWatch = document.getElementById('rtst-clean-watch');
     if (cleanWatch) cleanWatch.checked = Boolean(settings.cleanWatchPage);
     const disableAutoplay = document.getElementById('rtst-disable-autoplay');
@@ -3417,6 +3541,7 @@
       if (target.id === 'rtst-hide-shorts') { settings.hideShorts = target.checked; saveSettings(); syncRootFlags(); rescanNow(); }
       if (target.id === 'rtst-dim-search-trash') { settings.dimSearchTrash = target.checked; saveSettings(); syncRootFlags(); rescanNow(); }
       if (target.id === 'rtst-mark-watched') { settings.markWatchedVideos = target.checked; saveSettings(); syncRootFlags(); rescanNow(); }
+      if (target.id === 'rtst-series-navigator') { settings.seriesNavigator = target.checked; saveSettings(); if (!target.checked) removeSeriesNavigator(); rescanNow(); }
       if (target.id === 'rtst-clean-watch') { settings.cleanWatchPage = target.checked; saveSettings(); syncRootFlags(); rescanNow(); }
       if (target.id === 'rtst-disable-autoplay') { settings.disableAutoplay = target.checked; saveSettings(); scanAutoplayVideos(); }
       if (target.id === 'rtst-hide-comments') { settings.hideComments = target.checked; saveSettings(); rescanNow(); }
@@ -3427,6 +3552,15 @@
       if (target.id === 'rtst-auto-fullscreen-rotate') { settings.autoFullscreenOnRotate = target.checked; saveSettings(); syncRootFlags(); installAutoFullscreenOnRotate(); if (target.checked) maybeAutoFullscreenOnRotate('settings'); }
       if (target.id === 'rtst-hide-vpn-popup') { settings.hideVpnPopup = target.checked; saveSettings(); syncRootFlags(); installVpnPopupSuppressor(); rescanNow(); }
       if (target.id === 'rtst-import-file' && target.files && target.files[0]) { importSettingsFromFile(target.files[0]); target.value = ''; }
+    }, true);
+
+    document.addEventListener('keydown', (event) => {
+      if (!event || (event.key !== 'Enter' && event.key !== ' ')) return;
+      const actionEl = event.target && event.target.closest && event.target.closest('[data-rtst-action="open-series-modal"]');
+      if (!actionEl) return;
+      event.preventDefault();
+      event.stopPropagation();
+      openSeriesModal();
     }, true);
 
     document.addEventListener('pointerdown', (event) => {
@@ -3488,6 +3622,7 @@
         return;
       }
       if (action === 'open-movie-modal') { event.preventDefault(); event.stopPropagation(); openMovieModal(); return; }
+      if (action === 'open-series-modal') { event.preventDefault(); event.stopPropagation(); openSeriesModal(); return; }
       if (action === 'open-settings-modal') { openSettingsModal(); return; }
       if (action === 'toggle-enabled') {
         event.preventDefault();
@@ -3576,6 +3711,7 @@
             <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-video-info"> скрывать название, описание и информацию о видео</label></div>
 			<div class="rtst-row"><label><input type="checkbox" id="rtst-hide-comments"> скрывать комментарии</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-disable-autoplay"> подавлять автовоспроизведение</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-series-navigator"> навигация по сериям</label></div>
           </div>
 
           <div class="rtst-section">
@@ -4519,8 +4655,833 @@
     } catch (e) {}
 
     const h1 = document.querySelector('h1');
-    const title = h1 ? String(h1.textContent || '').trim() : '';
+    const title = h1 ? String(h1.dataset.rtstSeriesOriginalTitle || h1.textContent || '').trim() : '';
     return (title || document.title || '').slice(0, 240);
+  }
+
+  function findVideoTitleParts() {
+    try {
+      const h1 = document.querySelector(
+        '.wdp-videopage-description-module__title-row h1, ' +
+        'h1[class*="wdp-videopage-description-module__title"], ' +
+        '[class*="videopage-description-module__title-row"] h1'
+      ) || [...document.querySelectorAll('h1')].find((el) => {
+        const text = String(el.textContent || '').trim();
+        if (!text || isRtstUiElement(el) || isInsidePlayer(el)) return false;
+        const r = el.getBoundingClientRect ? el.getBoundingClientRect() : null;
+        return !r || (r.width > 0 && r.height > 0);
+      });
+      if (!h1) return null;
+      const row = h1.closest('[class*="videopage-description-module__title-row"]') || h1.parentElement;
+      if (!row || isRtstUiElement(row) || isInsidePlayer(row)) return null;
+      return { h1, row };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function rememberNativeVideoTitle(h1, videoId = getCurrentVideoId()) {
+    if (!h1) return '';
+    const currentText = String(h1.textContent || '').trim();
+    const oldVideoId = String(h1.dataset.rtstSeriesVideoId || '');
+    const renderedText = String(h1.dataset.rtstSeriesRenderedText || '');
+
+    if (!h1.dataset.rtstSeriesOriginalTitle || oldVideoId !== String(videoId || '')) {
+      h1.dataset.rtstSeriesOriginalTitle = currentText;
+      h1.dataset.rtstSeriesVideoId = String(videoId || '');
+      h1.dataset.rtstSeriesHadTitleAttr = h1.hasAttribute('title') ? '1' : '0';
+      h1.dataset.rtstSeriesOriginalTitleAttr = h1.getAttribute('title') || '';
+      delete h1.dataset.rtstSeriesRenderedText;
+      return currentText;
+    }
+
+    // Если React сам обновил заголовок этого же ролика, не считаем нашу старую
+    // отрисовку новым оригиналом. Это важно для SPA-переходов RUTUBE.
+    if (currentText && renderedText && currentText !== renderedText && currentText !== h1.dataset.rtstSeriesOriginalTitle) {
+      h1.dataset.rtstSeriesOriginalTitle = currentText;
+      delete h1.dataset.rtstSeriesRenderedText;
+    }
+
+    return String(h1.dataset.rtstSeriesOriginalTitle || currentText).trim();
+  }
+
+  function getCurrentVideoTitleForSeries() {
+    try {
+      const parts = findVideoTitleParts();
+      if (parts && parts.h1) return rememberNativeVideoTitle(parts.h1).slice(0, 320);
+    } catch (e) {}
+    return getCurrentVideoTitle();
+  }
+
+  function seriesNumber(value) {
+    const num = Number(value);
+    if (!Number.isFinite(num)) return null;
+    const n = Math.round(num);
+    return n >= 1 && n <= 9999 ? n : null;
+  }
+
+  function findKnownNumericField(root, names, maxDepth = 5) {
+    const wanted = new Set(names.map((name) => String(name).toLowerCase()));
+    const seen = new Set();
+    const queue = [{ value: root, depth: 0 }];
+
+    while (queue.length) {
+      const item = queue.shift();
+      const value = item && item.value;
+      const depth = item ? item.depth : 0;
+      if (!value || typeof value !== 'object' || seen.has(value) || depth > maxDepth) continue;
+      seen.add(value);
+
+      for (const [key, child] of Object.entries(value)) {
+        const lowKey = String(key || '').toLowerCase();
+        if (wanted.has(lowKey)) {
+          const direct = seriesNumber(child);
+          if (direct != null) return direct;
+          if (child && typeof child === 'object') {
+            const nested = seriesNumber(child.number ?? child.num ?? child.value);
+            if (nested != null) return nested;
+          }
+        }
+        if (child && typeof child === 'object') queue.push({ value: child, depth: depth + 1 });
+      }
+    }
+    return null;
+  }
+
+  function normalizeSeriesAlias(value) {
+    return normalize(String(value || ''))
+      .replace(/(?:сериал|serial|series|season|episode|озвучка|озвучке|озвучено|русский|русская|русское|перевод|дубляж)/giu, ' ')
+      .replace(/\b(?:19|20)\d{2}\b/g, ' ')
+      .replace(/\b\d+\s*(?:мин|минут|minutes?)\b/giu, ' ')
+      .replace(/[^a-zа-я0-9]+/giu, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function seriesAliasTokens(value) {
+    const stop = new Set(['the', 'a', 'an', 'и', 'в', 'на', 'из', 'of', 'in', 'on']);
+    return normalizeSeriesAlias(value).split(' ').filter((token) => token.length > 1 && !stop.has(token));
+  }
+
+  function seriesAliasSimilarity(a, b) {
+    const na = normalizeSeriesAlias(a);
+    const nb = normalizeSeriesAlias(b);
+    if (!na || !nb) return 0;
+    if (na === nb) return 1;
+    const aTokens = seriesAliasTokens(na);
+    const bTokens = seriesAliasTokens(nb);
+    if (Math.min(aTokens.length, bTokens.length) >= 2 && Math.min(na.length, nb.length) >= 4 && (na.includes(nb) || nb.includes(na))) return 0.92;
+
+    const aa = new Set(aTokens);
+    const bb = new Set(bTokens);
+    if (!aa.size || !bb.size) return 0;
+    let common = 0;
+    aa.forEach((token) => { if (bb.has(token)) common += 1; });
+    const union = new Set([...aa, ...bb]).size || 1;
+    return common / union;
+  }
+
+  function maxSeriesAliasSimilarity(aList, bList) {
+    let best = 0;
+    for (const a of aList || []) {
+      for (const b of bList || []) best = Math.max(best, seriesAliasSimilarity(a, b));
+    }
+    return best;
+  }
+
+  function stripSeriesTitleNoise(value) {
+    return String(value || '')
+      .replace(/\([^)]*(?:сериал|озвуч|(?:19|20)\d{2})[^)]*\)/giu, ' ')
+      .replace(/\[[^\]]*(?:сериал|озвуч|(?:19|20)\d{2})[^\]]*\]/giu, ' ')
+      .replace(/\b[sS]\s*0*\d{1,3}\s*[._ -]*[eE]\s*0*\d{1,4}\b/g, ' ')
+      .replace(/\b0*\d{1,3}\s*[xх]\s*0*\d{1,4}\b/giu, ' ')
+      .replace(/0*\d{1,3}\s*(?:сезон(?:а|е)?|сез\.?)\s*[,;:.\-—– ]{0,12}0*\d{1,4}\s*(?:сер(?:ия|ии|ию|ий)?|сер\.?|эпизод(?:а|е)?|episode)/giu, ' ')
+      .replace(/(?:сезон(?:а|е)?|сез\.?|season)\s*0*\d{1,3}\s*[,;:.\-—– ]{0,12}(?:сер(?:ия|ии|ию|ий)?|сер\.?|эпизод(?:а|е)?|episode)\s*0*\d{1,4}/giu, ' ')
+      .replace(/0*\d{1,4}\s*(?:сер(?:ия|ии|ию|ий)?|сер\.?|эпизод(?:а|е)?|episode)/giu, ' ')
+      .replace(/(?:сер(?:ия|ии|ию|ий)?|сер\.?|эпизод(?:а|е)?|episode)\s*0*\d{1,4}/giu, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function buildSeriesAliases(title, markerStart = -1) {
+    const raw = String(title || '').trim();
+    const out = [];
+
+    if (markerStart > 0) {
+      const prefix = stripSeriesTitleNoise(raw.slice(0, markerStart)).replace(/[\s\-—–:;,|/]+$/g, '').trim();
+      if (normalizeSeriesAlias(prefix).length >= 2) out.push(prefix);
+    }
+
+    const cleaned = stripSeriesTitleNoise(raw);
+    cleaned.split(/[|/]/).forEach((part) => {
+      const piece = String(part || '')
+        .replace(/^[\s\-—–:;,]+|[\s\-—–:;,]+$/g, '')
+        .replace(/[«“][^»”]{2,80}[»”]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const normalized = normalizeSeriesAlias(piece);
+      if (normalized.length < 2) return;
+      if (!out.some((old) => normalizeSeriesAlias(old) === normalized)) out.push(piece);
+    });
+
+    return out.slice(0, 5);
+  }
+
+  function parseSeriesTitle(title, meta = null, options = {}) {
+    const raw = String(title || '').trim();
+    if (!raw) return null;
+
+    let season = findKnownNumericField(meta, ['season', 'season_number', 'season_num']);
+    let episode = findKnownNumericField(meta, ['episode_number', 'episode_num', 'episode']);
+    let markerStart = -1;
+    let explicitSeason = season != null;
+    let explicitEpisode = episode != null;
+
+    const patterns = [
+      /\b[sS]\s*0*(\d{1,3})\s*[._ -]*[eE]\s*0*(\d{1,4})\b/,
+      /\b0*(\d{1,3})\s*[xх]\s*0*(\d{1,4})\b/iu,
+      /0*(\d{1,3})\s*(?:сезон(?:а|е)?|сез\.?)\s*[,;:.\-—– ]{0,12}0*(\d{1,4})\s*(?:сер(?:ия|ии|ию|ий)?|сер\.?|эпизод(?:а|е)?|episode)/iu,
+      /(?:сезон(?:а|е)?|сез\.?|season)\s*0*(\d{1,3})\s*[,;:.\-—– ]{0,12}(?:сер(?:ия|ии|ию|ий)?|сер\.?|эпизод(?:а|е)?|episode)\s*0*(\d{1,4})/iu
+    ];
+
+    for (const re of patterns) {
+      const match = re.exec(raw);
+      if (!match) continue;
+      markerStart = match.index;
+      if (season == null) season = seriesNumber(match[1]);
+      if (episode == null) episode = seriesNumber(match[2]);
+      explicitSeason = true;
+      explicitEpisode = true;
+      break;
+    }
+
+    if (episode == null && options.allowEpisodeOnly) {
+      const episodePatterns = [
+        /0*(\d{1,4})\s*(?:сер(?:ия|ии|ию|ий)?|сер\.?|эпизод(?:а|е)?|episode)/iu,
+        /(?:сер(?:ия|ии|ию|ий)?|сер\.?|эпизод(?:а|е)?|episode)\s*0*(\d{1,4})/iu
+      ];
+      for (const re of episodePatterns) {
+        const match = re.exec(raw);
+        if (!match) continue;
+        episode = seriesNumber(match[1]);
+        markerStart = match.index;
+        explicitEpisode = true;
+        break;
+      }
+    }
+
+    if (episode == null) return null;
+    if (season == null && options.allowEpisodeOnly) season = seriesNumber(options.fallbackSeason) || 1;
+    if (season == null) return null;
+
+    const aliases = buildSeriesAliases(raw, markerStart);
+    if (!aliases.length) return null;
+
+    return {
+      title: raw,
+      season,
+      episode,
+      aliases,
+      primaryAlias: aliases[0],
+      explicitSeason,
+      explicitEpisode
+    };
+  }
+
+  function isSeriesCategory(meta) {
+    try {
+      const pieces = [];
+      const queue = [{ value: meta, depth: 0 }];
+      const seen = new Set();
+      while (queue.length) {
+        const { value, depth } = queue.shift();
+        if (!value || typeof value !== 'object' || seen.has(value) || depth > 4) continue;
+        seen.add(value);
+        for (const [key, child] of Object.entries(value)) {
+          if (typeof child === 'string' && /category|name|type|content/i.test(key)) pieces.push(child);
+          if (child && typeof child === 'object') queue.push({ value: child, depth: depth + 1 });
+        }
+      }
+      return normalize(pieces.join(' ')).includes('сериал');
+    } catch (e) {
+      return false;
+    }
+  }
+
+  async function fetchRutubeSeriesJson(url, timeoutMs = SERIES_API_TIMEOUT_MS) {
+    const canAbort = typeof AbortController === 'function';
+    const controller = canAbort ? new AbortController() : null;
+    let timer = null;
+    try {
+      const request = fetch(url, {
+        credentials: 'include',
+        cache: 'no-store',
+        headers: { Accept: 'application/json' },
+        signal: controller ? controller.signal : undefined
+      });
+      const response = await new Promise((resolve, reject) => {
+        timer = setTimeout(() => {
+          try { if (controller) controller.abort(); } catch (e) {}
+          reject(new Error('тайм-аут API RUTUBE'));
+        }, timeoutMs);
+        request.then(resolve, reject);
+      });
+      if (!response.ok) throw new Error(`RUTUBE API ${response.status}`);
+      return await response.json();
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
+  async function getRutubeVideoMeta(videoId) {
+    const id = String(videoId || '').trim();
+    if (!id) return null;
+    const cached = seriesRuntime.videoCache.get(id);
+    if (cached && Date.now() - cached.at < 15 * 60 * 1000) return cached.value;
+    try {
+      const value = await fetchRutubeSeriesJson(`/api/video/${encodeURIComponent(id)}/?format=json`);
+      seriesRuntime.videoCache.set(id, { at: Date.now(), value });
+      return value;
+    } catch (e) {
+      seriesRuntime.videoCache.set(id, { at: Date.now(), value: null });
+      return null;
+    }
+  }
+
+  function findDeepValueByKeys(root, names, maxDepth = 5) {
+    const wanted = new Set(names.map((name) => String(name).toLowerCase()));
+    const queue = [{ value: root, depth: 0 }];
+    const seen = new Set();
+    while (queue.length) {
+      const { value, depth } = queue.shift();
+      if (!value || typeof value !== 'object' || seen.has(value) || depth > maxDepth) continue;
+      seen.add(value);
+      for (const [key, child] of Object.entries(value)) {
+        if (wanted.has(String(key || '').toLowerCase())) return child;
+        if (child && typeof child === 'object') queue.push({ value: child, depth: depth + 1 });
+      }
+    }
+    return null;
+  }
+
+  function detectCurrentPlaylistId(meta) {
+    try {
+      const u = new URL(location.href);
+      for (const key of ['playlist', 'playlist_id', 'pl_id']) {
+        const value = u.searchParams.get(key);
+        if (value && /^\d+$/.test(value)) return value;
+      }
+    } catch (e) {}
+
+    try {
+      const ref = new URL(document.referrer || '', location.href);
+      const match = ref.pathname.match(/\/plst\/(\d+)/i);
+      if (match) return match[1];
+    } catch (e) {}
+
+    const value = findDeepValueByKeys(meta, ['playlist_id', 'custom_playlist_id', 'pl_id', 'playlist']);
+    if (value && typeof value === 'object') {
+      const id = value.id ?? value.pk ?? value.value;
+      if (id != null && /^\d+$/.test(String(id))) return String(id);
+    }
+    if (value != null && /^\d+$/.test(String(value))) return String(value);
+    return '';
+  }
+
+  function extractAuthorId(raw) {
+    try {
+      const author = raw && raw.author;
+      if (author && author.id != null) return String(author.id);
+      const value = findDeepValueByKeys(raw, ['author_id', 'uploader_id', 'channel_id']);
+      return value != null ? String(value) : '';
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function videoObjectFromApiItem(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    if (raw.video && typeof raw.video === 'object') return raw.video;
+    if (raw.object && typeof raw.object === 'object') {
+      const obj = raw.object;
+      if (obj.video_url || obj.id || obj.title) return obj;
+    }
+    return raw;
+  }
+
+  function videoUrlFromApiItem(raw, playlistId = '') {
+    const item = videoObjectFromApiItem(raw);
+    if (!item) return '';
+    let url = String(item.video_url || item.url || item.webpage_url || '').trim();
+    const id = String(item.id || extractRutubeVideoIdFromUrl(url) || '').trim();
+    if (!url && /^[a-z0-9]{32}$/i.test(id)) url = `/video/${id}/`;
+    if (!url) return '';
+
+    try {
+      const u = new URL(url, location.origin);
+      if (!/rutube\.ru$/i.test(u.hostname)) return '';
+      if (playlistId && /^\d+$/.test(String(playlistId)) && !u.searchParams.has('playlist')) {
+        u.searchParams.set('playlist', String(playlistId));
+      }
+      return u.pathname + u.search + u.hash;
+    } catch (e) {
+      return url;
+    }
+  }
+
+  async function loadPagedSeriesApi(url, cacheKey, maxPages = 4) {
+    const cached = seriesRuntime.listCache.get(cacheKey);
+    if (cached && Date.now() - cached.at < 10 * 60 * 1000) return cached.items;
+
+    const items = [];
+    let nextUrl = url;
+    for (let page = 0; page < maxPages && nextUrl; page += 1) {
+      let data;
+      try { data = await fetchRutubeSeriesJson(nextUrl); }
+      catch (e) { break; }
+      const results = Array.isArray(data) ? data : (Array.isArray(data && data.results) ? data.results : []);
+      items.push(...results);
+      if (!data || Array.isArray(data) || data.has_next === false || !data.next) break;
+      try {
+        const next = new URL(String(data.next), location.origin);
+        nextUrl = next.pathname + next.search;
+      } catch (e) {
+        nextUrl = String(data.next || '');
+      }
+    }
+    seriesRuntime.listCache.set(cacheKey, { at: Date.now(), items });
+    return items;
+  }
+
+  async function loadPlaylistSeriesItems(playlistId) {
+    if (!playlistId) return [];
+    const id = String(playlistId);
+    return loadPagedSeriesApi(
+      `/api/playlist/custom/${encodeURIComponent(id)}/videos?page=1&format=json`,
+      `playlist:${id}`,
+      SERIES_MAX_PLAYLIST_PAGES
+    );
+  }
+
+  function collectNumericIds(root, maxDepth = 4) {
+    const out = [];
+    const seen = new Set();
+    const queue = [{ value: root, depth: 0 }];
+    while (queue.length && out.length < 6) {
+      const { value, depth } = queue.shift();
+      if (!value || typeof value !== 'object' || seen.has(value) || depth > maxDepth) continue;
+      seen.add(value);
+      if (!Array.isArray(value) && value.id != null && /^\d+$/.test(String(value.id))) {
+        const id = String(value.id);
+        if (!out.includes(id)) out.push(id);
+      }
+      for (const child of Object.values(value)) {
+        if (child && typeof child === 'object') queue.push({ value: child, depth: depth + 1 });
+      }
+    }
+    return out;
+  }
+
+  async function loadNativeTvSeriesItems(videoId, season) {
+    let relation;
+    try {
+      relation = await fetchRutubeSeriesJson(`/api/metainfo/contenttvs/${encodeURIComponent(videoId)}?format=json`);
+    } catch (e) {
+      return [];
+    }
+    const ids = collectNumericIds(relation).slice(0, 2);
+    if (!ids.length) return [];
+
+    for (const tvId of ids) {
+      const url = `/api/metainfo/tv/${encodeURIComponent(tvId)}/video?season=${encodeURIComponent(season)}&sort=series_a&origin__type=rtb,rst&format=json`;
+      const items = await loadPagedSeriesApi(url, `tv:${tvId}:s${season}`, 5);
+      if (items.length) return items.map((item) => ({ __rtstTvId: tvId, ...item }));
+    }
+    return [];
+  }
+
+  async function loadSeriesSearchItems(query) {
+    const clean = String(query || '').trim();
+    if (!clean) return [];
+    const key = `search:${normalize(clean)}`;
+    const cached = seriesRuntime.listCache.get(key);
+    if (cached && Date.now() - cached.at < 8 * 60 * 1000) return cached.items;
+    try {
+      const data = await fetchRutubeSeriesJson(`/api/search/video/?query=${encodeURIComponent(clean)}&page=1&limit=50`);
+      const items = Array.isArray(data) ? data : (Array.isArray(data && data.results) ? data.results : []);
+      seriesRuntime.listCache.set(key, { at: Date.now(), items });
+      return items;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function seriesCandidate(raw, source, current, context = {}) {
+    const item = videoObjectFromApiItem(raw);
+    if (!item) return null;
+    const title = String(item.title || item.name || '').trim();
+    if (!title) return null;
+
+    const fallbackSeason = source === 'tv' || (!current.explicitSeason && (source === 'playlist' || source === 'search')) ? current.season : null;
+    const descriptor = parseSeriesTitle(title, item, {
+      allowEpisodeOnly: Boolean(fallbackSeason),
+      fallbackSeason
+    });
+    if (!descriptor) return null;
+    if (current.season != null && descriptor.season !== current.season) return null;
+
+    const similarity = maxSeriesAliasSimilarity(current.aliases, descriptor.aliases);
+    const currentAuthorId = String(context.authorId || '');
+    const authorId = extractAuthorId(item);
+    const sameAuthor = Boolean(currentAuthorId && authorId && currentAuthorId === authorId);
+    const sourceBonus = source === 'tv' ? 34 : source === 'playlist' ? 26 : 8;
+    const authorBonus = sameAuthor ? 18 : 0;
+    const seasonBonus = descriptor.season === current.season ? 14 : 0;
+
+    if (source === 'playlist' && similarity < 0.43) return null;
+    if (source === 'search' && similarity < 0.62) return null;
+    if (source !== 'tv' && currentAuthorId && authorId && !sameAuthor && similarity < 0.78) return null;
+    if (source === 'tv' && similarity < 0.20 && !raw.__rtstTvId) return null;
+
+    const score = Math.round(sourceBonus + authorBonus + seasonBonus + similarity * 42);
+    const url = videoUrlFromApiItem(item, source === 'playlist' ? context.playlistId : '');
+    const id = String(item.id || extractRutubeVideoIdFromUrl(url) || '').trim();
+    if (!url || !descriptor.episode) return null;
+
+    return {
+      id,
+      url,
+      title,
+      season: descriptor.season,
+      episode: descriptor.episode,
+      aliases: descriptor.aliases,
+      source,
+      sourceLabel: source === 'tv' ? 'RUTUBE-сериал' : source === 'playlist' ? 'плейлист' : 'поиск',
+      score,
+      authorId,
+      duration: Number(item.duration) || 0
+    };
+  }
+
+  function addSeriesCandidates(map, rawItems, source, current, context) {
+    for (const raw of rawItems || []) {
+      const candidate = seriesCandidate(raw, source, current, context);
+      if (!candidate || candidate.id === context.currentVideoId) continue;
+      const key = `${candidate.season}:${candidate.episode}`;
+      const old = map.get(key);
+      if (!old || candidate.score > old.score) map.set(key, candidate);
+    }
+  }
+
+  async function resolveSeriesNavigator(videoId, title) {
+    const videoMeta = await getRutubeVideoMeta(videoId);
+    const playlistId = detectCurrentPlaylistId(videoMeta);
+    const allowEpisodeOnly = Boolean(playlistId || isSeriesCategory(videoMeta) || /(?:сериал|series)/iu.test(title));
+    const current = parseSeriesTitle(title, videoMeta, { allowEpisodeOnly, fallbackSeason: 1 });
+    if (!current) return null;
+
+    current.authorId = extractAuthorId(videoMeta);
+    current.duration = Number(videoMeta && videoMeta.duration) || 0;
+
+    const entries = new Map();
+    entries.set(`${current.season}:${current.episode}`, {
+      id: videoId,
+      url: location.pathname + location.search,
+      title: current.title,
+      season: current.season,
+      episode: current.episode,
+      aliases: current.aliases,
+      source: 'current',
+      sourceLabel: 'сейчас',
+      score: 999,
+      authorId: current.authorId,
+      duration: current.duration
+    });
+
+    const context = {
+      currentVideoId: videoId,
+      authorId: current.authorId,
+      playlistId
+    };
+
+    // 1–2. Родная сериальность RUTUBE и обычный плейлист проверяются параллельно.
+    // Так не ждём один медленный endpoint прежде, чем перейти к другому.
+    const [tvItems, playlistItems] = await Promise.all([
+      loadNativeTvSeriesItems(videoId, current.season),
+      playlistId ? loadPlaylistSeriesItems(playlistId) : Promise.resolve([])
+    ]);
+    addSeriesCandidates(entries, tvItems, 'tv', current, context);
+
+    // В обычном плейлисте порядок может быть произвольным, поэтому номера
+    // сезона/серии вытаскиваем из метаданных и названий и сортируем сами.
+    if (playlistId) addSeriesCandidates(entries, playlistItems, 'playlist', current, context);
+
+    const hasNeighbor = (episode) => entries.has(`${current.season}:${episode}`);
+    const needPrev = current.episode > 1 && !hasNeighbor(current.episode - 1);
+    const needNext = !hasNeighbor(current.episode + 1);
+
+    // 3. Если родной сериал/плейлист не помог, используем поиск RUTUBE и ранжируем
+    // только совпадающие по названию и номеру сезона ролики.
+    if (needPrev || needNext) {
+      const aliases = current.aliases.slice(0, 2);
+      for (const alias of aliases) {
+        const query = current.explicitSeason ? `${alias} ${current.season} сезон` : `${alias} серия`;
+        const searchItems = await loadSeriesSearchItems(query);
+        addSeriesCandidates(entries, searchItems, 'search', current, context);
+        if ((!needPrev || hasNeighbor(current.episode - 1)) && (!needNext || hasNeighbor(current.episode + 1))) break;
+      }
+    }
+
+    // Точечный запасной запрос на соседнюю серию, если широкий поиск её не поднял наверх.
+    const targetEpisodes = [];
+    if (current.episode > 1 && !hasNeighbor(current.episode - 1)) targetEpisodes.push(current.episode - 1);
+    if (!hasNeighbor(current.episode + 1)) targetEpisodes.push(current.episode + 1);
+    for (const episode of targetEpisodes) {
+      const query = current.explicitSeason ? `${current.primaryAlias} ${current.season} сезон ${episode} серия` : `${current.primaryAlias} ${episode} серия`;
+      const searchItems = await loadSeriesSearchItems(query);
+      addSeriesCandidates(entries, searchItems, 'search', current, context);
+    }
+
+    const list = [...entries.values()]
+      .filter((item) => item.season === current.season)
+      .sort((a, b) => a.episode - b.episode || b.score - a.score);
+    const prev = entries.get(`${current.season}:${current.episode - 1}`) || null;
+    const next = entries.get(`${current.season}:${current.episode + 1}`) || null;
+    const sources = [...new Set(list.filter((item) => item.source !== 'current').map((item) => item.sourceLabel))];
+
+    return { current, entries: list, prev, next, playlistId, sources };
+  }
+
+  function cleanSeriesDisplayAlias(value) {
+    return String(value || '')
+      .replace(/^\s*(?:сериал|serial|series)\s*[:\-—–]?\s*/iu, '')
+      .replace(/\s*[\-—–:;,]+\s*$/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function seriesDisplayTitle(current) {
+    if (!current) return '';
+    const aliases = [];
+    for (const raw of current.aliases || [current.primaryAlias]) {
+      const clean = cleanSeriesDisplayAlias(raw);
+      if (!clean) continue;
+      const key = normalizeSeriesAlias(clean);
+      if (!key || aliases.some((item) => normalizeSeriesAlias(item) === key)) continue;
+      aliases.push(clean);
+      if (aliases.length >= 2) break;
+    }
+    const base = aliases.join(' / ') || cleanSeriesDisplayAlias(current.primaryAlias) || String(current.primaryAlias || '').trim();
+    return `${base} · ${current.season} сезон · ${current.episode} серия`;
+  }
+
+  function removeSeriesTitleArrows(row) {
+    if (!row || !row.querySelectorAll) return;
+    row.querySelectorAll('.rtst-series-title-arrow').forEach((el) => el.remove());
+  }
+
+  function restoreSeriesTitleIntegration() {
+    const rows = document.querySelectorAll('[data-rtst-series-title-row="1"]');
+    rows.forEach((row) => {
+      removeSeriesTitleArrows(row);
+      delete row.dataset.rtstSeriesTitleRow;
+      delete row.dataset.rtstSeriesLoading;
+      delete row.dataset.rtstSeriesSignature;
+    });
+
+    document.querySelectorAll('h1[data-rtst-series-title="1"]').forEach((h1) => {
+      const original = String(h1.dataset.rtstSeriesOriginalTitle || '').trim();
+      const rendered = String(h1.dataset.rtstSeriesRenderedText || '').trim();
+      const current = String(h1.textContent || '').trim();
+      if (original && (!rendered || current === rendered)) h1.textContent = original;
+      delete h1.dataset.rtstSeriesTitle;
+      delete h1.dataset.rtstSeriesClickable;
+      delete h1.dataset.rtstAction;
+      delete h1.dataset.rtstSeriesRenderedText;
+      delete h1.dataset.rtstSeriesKey;
+      delete h1.dataset.rtstSeriesOriginalTitle;
+      delete h1.dataset.rtstSeriesVideoId;
+      h1.removeAttribute('role');
+      h1.removeAttribute('tabindex');
+      if (h1.dataset.rtstSeriesHadTitleAttr === '1') h1.setAttribute('title', h1.dataset.rtstSeriesOriginalTitleAttr || '');
+      else h1.removeAttribute('title');
+      delete h1.dataset.rtstSeriesHadTitleAttr;
+      delete h1.dataset.rtstSeriesOriginalTitleAttr;
+    });
+  }
+
+  function removeSeriesNavigator() {
+    const legacy = document.getElementById('rtst-series-nav');
+    if (legacy) legacy.remove();
+    restoreSeriesTitleIntegration();
+  }
+
+  function ensureSeriesTitleShell(current) {
+    const parts = findVideoTitleParts();
+    if (!parts || !parts.h1 || !parts.row) return null;
+    const { h1, row } = parts;
+    rememberNativeVideoTitle(h1);
+    row.dataset.rtstSeriesTitleRow = '1';
+    h1.dataset.rtstSeriesTitle = '1';
+    if (current) h1.dataset.rtstSeriesKey = `${normalizeSeriesAlias(current.primaryAlias)}:${current.season}:${current.episode}`;
+    return { h1, row };
+  }
+
+  function setSeriesVisibleTitle(h1, current) {
+    if (!h1 || !current) return;
+    const text = seriesDisplayTitle(current);
+    if (!text) return;
+    h1.textContent = text;
+    h1.dataset.rtstSeriesRenderedText = text;
+  }
+
+  function seriesArrowHtml(item, direction) {
+    const isPrev = direction === 'prev';
+    const glyph = isPrev ? '←' : '→';
+    if (!item) {
+      return `<span class="rtst-series-title-arrow" data-rtst-series-direction="${direction}" aria-disabled="true"><span class="rtst-series-arrow-glyph">${glyph}</span></span>`;
+    }
+    const inner = isPrev
+      ? `<span class="rtst-series-arrow-glyph">←</span><span class="rtst-series-arrow-number">${escapeHtml(String(item.episode))}</span>`
+      : `<span class="rtst-series-arrow-number">${escapeHtml(String(item.episode))}</span><span class="rtst-series-arrow-glyph">→</span>`;
+    return `<a class="rtst-series-title-arrow" data-rtst-series-direction="${direction}" href="${escapeAttribute(item.url)}" title="${escapeAttribute(`${isPrev ? 'Предыдущая' : 'Следующая'} серия: ${item.episode}`)}">${inner}</a>`;
+  }
+
+  function renderSeriesTitleControls(current, prev = null, next = null, { loading = false, listAvailable = false } = {}) {
+    const shell = ensureSeriesTitleShell(current);
+    if (!shell) return;
+    const { h1, row } = shell;
+    const visibleTitle = seriesDisplayTitle(current);
+    const signature = [
+      normalizeSeriesAlias(current.primaryAlias), current.season, current.episode,
+      prev ? `${prev.id || prev.url}:${prev.episode}` : '-',
+      next ? `${next.id || next.url}:${next.episode}` : '-',
+      loading ? 'loading' : 'ready', listAvailable ? 'list' : 'no-list'
+    ].join('|');
+    const arrowsIntact = row.querySelectorAll('.rtst-series-title-arrow').length === 2;
+    if (row.dataset.rtstSeriesSignature === signature && arrowsIntact && String(h1.textContent || '').trim() === visibleTitle) return;
+
+    row.dataset.rtstSeriesSignature = signature;
+    removeSeriesTitleArrows(row);
+    setSeriesVisibleTitle(h1, current);
+
+    if (loading) row.dataset.rtstSeriesLoading = '1';
+    else delete row.dataset.rtstSeriesLoading;
+
+    if (listAvailable) h1.setAttribute('title', 'Показать найденные серии');
+    else if (h1.dataset.rtstSeriesHadTitleAttr === '1') h1.setAttribute('title', h1.dataset.rtstSeriesOriginalTitleAttr || '');
+    else h1.removeAttribute('title');
+    if (listAvailable) {
+      h1.dataset.rtstSeriesClickable = '1';
+      h1.dataset.rtstAction = 'open-series-modal';
+      h1.setAttribute('role', 'button');
+      h1.setAttribute('tabindex', '0');
+    } else {
+      delete h1.dataset.rtstSeriesClickable;
+      delete h1.dataset.rtstAction;
+      h1.removeAttribute('role');
+      h1.removeAttribute('tabindex');
+    }
+
+    const prevWrap = document.createElement('div');
+    prevWrap.innerHTML = seriesArrowHtml(prev, 'prev');
+    const prevEl = prevWrap.firstElementChild;
+    const nextWrap = document.createElement('div');
+    nextWrap.innerHTML = seriesArrowHtml(next, 'next');
+    const nextEl = nextWrap.firstElementChild;
+
+    if (prevEl) row.insertBefore(prevEl, h1);
+    if (nextEl) {
+      const nativeToggle = row.querySelector('button[aria-label*="описание" i], button[class*="title-toggle"]');
+      row.insertBefore(nextEl, nativeToggle || h1.nextSibling);
+    }
+  }
+
+  function renderSeriesNavigatorLoading(current) {
+    renderSeriesTitleControls(current, null, null, { loading: true, listAvailable: false });
+  }
+
+  function renderSeriesNavigator(result) {
+    if (!result || !result.current) { removeSeriesNavigator(); return; }
+    const listAvailable = Boolean(result.entries && result.entries.length > 1);
+    renderSeriesTitleControls(result.current, result.prev || null, result.next || null, {
+      loading: false,
+      listAvailable
+    });
+  }
+
+  function openSeriesModal() {
+    const result = seriesRuntime.result;
+    if (!result || !result.current || !Array.isArray(result.entries) || result.entries.length < 2) {
+      toast('Список серий пока не найден.');
+      return;
+    }
+
+    closeModal();
+    const currentId = getCurrentVideoId();
+    const rows = result.entries.map((item) => {
+      const isCurrent = item.id === currentId || item.episode === result.current.episode;
+      const inner = `
+        <span class="rtst-series-list-episode">Серия ${escapeHtml(String(item.episode))}</span>
+        <span class="rtst-series-list-title">${escapeHtml(item.title)}</span>
+        <span class="rtst-series-list-source">${escapeHtml(item.sourceLabel || '')}</span>`;
+      return isCurrent
+        ? `<div class="rtst-series-list-row" data-current="1">${inner}</div>`
+        : `<a class="rtst-series-list-row" href="${escapeAttribute(item.url)}">${inner}</a>`;
+    }).join('');
+
+    const modal = document.createElement('div');
+    modal.className = 'rtst-modal-backdrop';
+    modal.innerHTML = `
+      <div class="rtst-modal rtst-series-modal" role="dialog" aria-modal="true">
+        <div class="rtst-modal-head">
+          <div>${modalTitleHtml(`${result.current.primaryAlias} · сезон ${result.current.season}`)}</div>
+          <button type="button" data-rtst-action="close-modal" title="Закрыть">×</button>
+        </div>
+        <div class="rtst-modal-body">
+          <div class="rtst-modal-note">Рутубочист собрал порядок сам: ${escapeHtml((result.sources || []).join(' + ') || 'только текущая серия')}.</div>
+          <div class="rtst-series-list">${rows}</div>
+        </div>
+      </div>`;
+    document.documentElement.appendChild(modal);
+    protectRtstUiFromCleanup(modal);
+    syncPanelIcon();
+    modalOpenedAt = Date.now();
+  }
+
+  function syncSeriesNavigator() {
+    if (!settings.enabled || settings.seriesNavigator === false || !isVideoPage() || isEmbeddedRutubePlayer()) {
+      removeSeriesNavigator();
+      seriesRuntime.currentVideoId = '';
+      seriesRuntime.result = null;
+      return;
+    }
+
+    const videoId = getCurrentVideoId();
+    if (!videoId) return;
+
+    if (seriesRuntime.currentVideoId === videoId) {
+      if (seriesRuntime.result) renderSeriesNavigator(seriesRuntime.result);
+      return;
+    }
+
+    const title = getCurrentVideoTitleForSeries();
+    const quick = parseSeriesTitle(title, null, { allowEpisodeOnly: /(?:сериал|series)/iu.test(title), fallbackSeason: 1 });
+    seriesRuntime.currentVideoId = videoId;
+    seriesRuntime.result = null;
+    const token = ++seriesRuntime.requestToken;
+    if (quick) renderSeriesNavigatorLoading(quick);
+
+    Promise.resolve(resolveSeriesNavigator(videoId, title)).then((result) => {
+      if (token !== seriesRuntime.requestToken || getCurrentVideoId() !== videoId) return;
+      seriesRuntime.result = result;
+      if (result) renderSeriesNavigator(result);
+      else removeSeriesNavigator();
+    }).catch(() => {
+      if (token !== seriesRuntime.requestToken) return;
+      seriesRuntime.result = null;
+      removeSeriesNavigator();
+    });
   }
 
   function viewPieIcon(percent) {
@@ -4761,7 +5722,7 @@
         enabled: settings.enabled, showHidden: settings.showHidden, hideSideMenuPolitics: settings.hideSideMenuPolitics,
         hideShorts: settings.hideShorts, hardRemove: settings.hardRemove, cleanRutubeChrome: settings.cleanRutubeChrome,
         cleanWatchPage: settings.cleanWatchPage, disableAutoplay: settings.disableAutoplay, hideComments: settings.hideComments,
-        hideVideoInfo: settings.hideVideoInfo, stripPlayerAds: settings.stripPlayerAds, unlockContextMenu: settings.unlockContextMenu, swipeVideoVolume: settings.swipeVideoVolume, autoFullscreenOnRotate: settings.autoFullscreenOnRotate, hideVpnPopup: settings.hideVpnPopup, dimSearchTrash: settings.dimSearchTrash, markWatchedVideos: settings.markWatchedVideos,
+        hideVideoInfo: settings.hideVideoInfo, stripPlayerAds: settings.stripPlayerAds, unlockContextMenu: settings.unlockContextMenu, swipeVideoVolume: settings.swipeVideoVolume, autoFullscreenOnRotate: settings.autoFullscreenOnRotate, hideVpnPopup: settings.hideVpnPopup, dimSearchTrash: settings.dimSearchTrash, markWatchedVideos: settings.markWatchedVideos, seriesNavigator: settings.seriesNavigator,
         blockedChannels: allBlockedChannels(), blockedWords: allBlockedWords(), userChannels: settings.userChannels, userWords: settings.userWords
       }
     };
@@ -4790,7 +5751,7 @@
     if (!src || typeof src !== 'object') throw new Error('bad settings json');
     const next = { ...settings };
     for (const key of ['blockedChannels', 'blockedWords', 'userChannels', 'userWords']) { if (Array.isArray(src[key])) next[key] = unique(src[key]); }
-    for (const key of ['enabled', 'showHidden', 'hideSideMenuPolitics', 'hideShorts', 'hardRemove', 'cleanRutubeChrome', 'cleanWatchPage', 'disableAutoplay', 'hideComments', 'hideVideoInfo', 'stripPlayerAds', 'unlockContextMenu', 'swipeVideoVolume', 'autoFullscreenOnRotate', 'hideVpnPopup', 'dimSearchTrash', 'markWatchedVideos']) {
+    for (const key of ['enabled', 'showHidden', 'hideSideMenuPolitics', 'hideShorts', 'hardRemove', 'cleanRutubeChrome', 'cleanWatchPage', 'disableAutoplay', 'hideComments', 'hideVideoInfo', 'stripPlayerAds', 'unlockContextMenu', 'swipeVideoVolume', 'autoFullscreenOnRotate', 'hideVpnPopup', 'dimSearchTrash', 'markWatchedVideos', 'seriesNavigator']) {
       if (typeof src[key] === 'boolean') next[key] = src[key];
     }
     if (typeof src.cleanRutubeChrome === 'boolean' && typeof src.hideSideMenuPolitics !== 'boolean') next.hideSideMenuPolitics = src.cleanRutubeChrome;
@@ -4856,6 +5817,7 @@
 
   function clearAllMarks() {
     hiddenCount = 0; removedCount = 0;
+    if (!settings.enabled || settings.seriesNavigator === false || !isVideoPage()) removeSeriesNavigator();
     if (!settings.enabled || !(settings.cleanRutubeChrome || settings.hideSideMenuPolitics)) restorePrimaryMenu();
     document.querySelectorAll('.rtst-hidden,.rtst-dim,.rtst-chrome-hidden,.rtst-view-hidden,.rtst-player-ad-hidden,.rtst-showcase-banner-hidden,.rtst-search-trash,.rtst-search-shorts-hidden,[data-rtst-search-trash="1"],[data-rtst-search-shorts="1"]').forEach((el) => {
       el.classList.remove('rtst-hidden', 'rtst-dim', 'rtst-view-hidden', 'rtst-chrome-hidden', 'rtst-player-ad-hidden', 'rtst-showcase-banner-hidden', 'rtst-search-trash', 'rtst-search-shorts-hidden');
@@ -4883,7 +5845,7 @@
     if (isRtstUiElement(scope)) nodes.push(scope);
 
     try {
-      nodes.push(...scope.querySelectorAll('#rtst-panel, #rtst-panel *, .rtst-modal-backdrop, .rtst-modal-backdrop *, .rtst-toast, .rtst-popup-close-proxy'));
+      nodes.push(...scope.querySelectorAll('#rtst-panel, #rtst-panel *, #rtst-series-nav, #rtst-series-nav *, .rtst-modal-backdrop, .rtst-modal-backdrop *, .rtst-toast, .rtst-popup-close-proxy'));
     } catch (e) {}
 
     nodes.forEach((el) => {
@@ -5511,6 +6473,10 @@
 
     if (location.href !== lastUrl) {
       lastUrl = location.href;
+      seriesRuntime.requestToken += 1;
+      seriesRuntime.currentVideoId = '';
+      seriesRuntime.result = null;
+      removeSeriesNavigator();
       clearAllMarks();
       suspendScanUntil = Date.now() + 900;
       scheduleScan('route', 120);
@@ -5529,6 +6495,7 @@
 
     addCurrentChannelButton();
     addHomeButtonNearSubscribe();
+    syncSeriesNavigator();
 
     hiddenCount = removedCount;
     scanPlayerAds(document);
