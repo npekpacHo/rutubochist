@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.4.14
+// @version      1.4.15
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki
 // @license      MIT
@@ -24,7 +24,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.4.14';
+  const UI_VERSION = '1.4.15';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -196,7 +196,7 @@
   }
 
   function isRtstUiElement(el) {
-    return Boolean(el && el.closest && el.closest('#rtst-panel, .rtst-modal-backdrop, .rtst-toast, [data-rtst-primary-movie="1"]'));
+    return Boolean(el && el.closest && el.closest('#rtst-panel, .rtst-modal-backdrop, .rtst-toast, [data-rtst-primary-movie="1"], [data-rtst-primary-home="1"]'));
   }
 
   const Dom = {
@@ -2286,6 +2286,14 @@
         }
       }
       .rtst-primary-pruned { display: none !important; }
+
+      /* Нижняя мобильная панель RUTUBE дублирует навигацию и съедает высоту.
+         При включённой очистке вся нужная навигация живёт в боковом меню. */
+      html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] .wdp-mobile-menu-module__mobile-menu {
+        display: none !important;
+      }
+
+      [data-rtst-primary-home="1"] .rtst-primary-home-icon,
       [data-rtst-primary-movie="1"] .rtst-primary-movie-icon {
         -webkit-mask-image: none !important;
         mask-image: none !important;
@@ -2296,6 +2304,7 @@
         justify-content: center !important;
         font: 900 21px/1 Arial, sans-serif !important;
       }
+      [data-rtst-primary-home="1"] .rtst-primary-home-icon::before { content: "⌂"; }
       [data-rtst-primary-movie="1"] .rtst-primary-movie-icon::before { content: "✦"; }
 
       .rtst-search-trash {
@@ -4874,6 +4883,7 @@
   }
 
   const PRIMARY_MENU_ALLOWED_PATHS = ['/', '/feeds/movies-serials/', '/categories/', '/feeds/top/'];
+  const PRIMARY_MENU_CORE_PATHS = ['/feeds/movies-serials/', '/categories/', '/feeds/top/'];
 
   function primaryMenuPath(value) {
     try {
@@ -4884,17 +4894,36 @@
     }
   }
 
+  function isMobileDrawerPrimaryMenuList(list) {
+    if (!list || !list.closest) return false;
+    return Boolean(list.closest('[class*="menu-content-module__content-wrapper"], [class*="menu-content-module__content"], [class*="menu-drawer" i]'));
+  }
+
   function isPrimaryMenuList(list) {
     if (!list || !list.querySelectorAll) return false;
     const className = String(list.className || '');
     const menuContext = /menu/i.test(className) || Boolean(list.closest('[class*="menu" i], nav, aside'));
     if (!menuContext) return false;
+
     const paths = new Set(Array.from(list.querySelectorAll('a[href]')).map((a) => primaryMenuPath(a.getAttribute('href'))));
-    return PRIMARY_MENU_ALLOWED_PATHS.every((path) => paths.has(path));
+    if (PRIMARY_MENU_ALLOWED_PATHS.every((path) => paths.has(path))) return true;
+
+    // В мобильном drawer RUTUBE не кладёт «Главную» в первый список: она живёт
+    // в бесполезной нижней панели. Узнаём этот список по трём стабильным разделам,
+    // а «Главную» добавляем сами.
+    return isMobileDrawerPrimaryMenuList(list) && PRIMARY_MENU_CORE_PATHS.every((path) => paths.has(path));
+  }
+
+  function clearPrimaryMenuActiveState(link) {
+    if (!link) return;
+    link.removeAttribute('aria-current');
+    Array.from(link.classList || []).forEach((name) => {
+      if (/menu-item--active|__active/i.test(name)) link.classList.remove(name);
+    });
   }
 
   function restorePrimaryMenu() {
-    document.querySelectorAll('[data-rtst-primary-movie="1"]').forEach((item) => item.remove());
+    document.querySelectorAll('[data-rtst-primary-movie="1"], [data-rtst-primary-home="1"]').forEach((item) => item.remove());
     document.querySelectorAll('.rtst-primary-pruned').forEach((item) => item.classList.remove('rtst-primary-pruned'));
   }
 
@@ -4902,27 +4931,68 @@
     const cleanOn = Boolean(settings.enabled && (settings.cleanRutubeChrome || settings.hideSideMenuPolitics));
     if (!cleanOn || isEmbeddedRutubePlayer()) { restorePrimaryMenu(); return; }
 
-    document.querySelectorAll('[data-rtst-primary-movie="1"]').forEach((item) => {
+    document.querySelectorAll('[data-rtst-primary-movie="1"], [data-rtst-primary-home="1"]').forEach((item) => {
       if (!isPrimaryMenuList(item.parentElement)) item.remove();
     });
 
     document.querySelectorAll('ul[class*="menu" i], nav ul, aside ul').forEach((list) => {
       if (!isPrimaryMenuList(list)) return;
 
+      const mobileDrawer = isMobileDrawerPrimaryMenuList(list);
+
       Array.from(list.children).forEach((item) => {
-        if (item.dataset && item.dataset.rtstPrimaryMovie === '1') return;
+        if (item.dataset && (item.dataset.rtstPrimaryMovie === '1' || item.dataset.rtstPrimaryHome === '1')) return;
         const link = item.querySelector && item.querySelector('a[href]');
         const keep = link && PRIMARY_MENU_ALLOWED_PATHS.includes(primaryMenuPath(link.getAttribute('href')));
         item.classList.toggle('rtst-primary-pruned', !keep);
       });
 
-      if (list.querySelector(':scope > [data-rtst-primary-movie="1"]')) return;
-      const templateLink = Array.from(list.querySelectorAll('a[href]')).find((a) => primaryMenuPath(a.getAttribute('href')) === '/feeds/top/') || list.querySelector('a[href]');
+      const templateLink = Array.from(list.querySelectorAll('a[href]')).find((a) => primaryMenuPath(a.getAttribute('href')) === '/feeds/movies-serials/')
+        || Array.from(list.querySelectorAll('a[href]')).find((a) => primaryMenuPath(a.getAttribute('href')) === '/feeds/top/')
+        || list.querySelector('a[href]');
       const templateItem = templateLink && templateLink.closest('li, [role="listitem"]');
       if (!templateItem) return;
 
+      // После скрытия нижнего mobile-toolbar возвращаем «Главную» в drawer.
+      if (mobileDrawer && !Array.from(list.querySelectorAll('a[href]')).some((a) => primaryMenuPath(a.getAttribute('href')) === '/')) {
+        if (!list.querySelector(':scope > [data-rtst-primary-home="1"]')) {
+          const homeItem = templateItem.cloneNode(true);
+          homeItem.dataset.rtstPrimaryHome = '1';
+          homeItem.classList.remove('rtst-primary-pruned');
+          const homeLink = homeItem.querySelector('a[href]');
+          if (homeLink) {
+            homeLink.setAttribute('href', '/');
+            homeLink.title = 'На главную RUTUBE';
+            homeLink.setAttribute('aria-label', 'Главная');
+            homeLink.removeAttribute('data-rtst-action');
+            clearPrimaryMenuActiveState(homeLink);
+
+            const homeTitle = homeLink.querySelector('[class*="menu-item-module__menu-item-title"], p, [class*="title" i]');
+            if (homeTitle) homeTitle.textContent = 'Главная';
+
+            const homeIcon = homeLink.querySelector('[class*="menu-icon-module__icon-image"]');
+            const nativeHomeIcon = document.querySelector('a.wdp-mobile-menu-module__mobile-menu-item[href="/"] [class*="menu-icon-module__icon-image"]');
+            if (homeIcon) {
+              const nativeMask = nativeHomeIcon && (nativeHomeIcon.style.maskImage || nativeHomeIcon.style.webkitMaskImage);
+              if (nativeMask) {
+                homeIcon.style.maskImage = nativeMask;
+                homeIcon.style.webkitMaskImage = nativeMask;
+              } else {
+                homeIcon.removeAttribute('style');
+                homeIcon.classList.add('rtst-primary-home-icon');
+              }
+            }
+
+            list.insertBefore(homeItem, list.firstElementChild);
+          }
+        }
+      }
+
+      if (list.querySelector(':scope > [data-rtst-primary-movie="1"]')) return;
+
       const item = templateItem.cloneNode(true);
       item.dataset.rtstPrimaryMovie = '1';
+      item.classList.remove('rtst-primary-pruned');
       const link = item.querySelector('a[href]');
       if (!link) return;
 
@@ -4930,10 +5000,7 @@
       link.dataset.rtstAction = 'open-movie-modal';
       link.title = 'Открыть подборки «Что посмотреть»';
       link.setAttribute('aria-label', 'Что посмотреть');
-      link.removeAttribute('aria-current');
-      Array.from(link.classList || []).forEach((name) => {
-        if (/menu-item--active/i.test(name)) link.classList.remove(name);
-      });
+      clearPrimaryMenuActiveState(link);
 
       const title = link.querySelector('[class*="menu-item-module__menu-item-title"], p, [class*="title" i]');
       if (title) title.textContent = 'Что посмотреть';
