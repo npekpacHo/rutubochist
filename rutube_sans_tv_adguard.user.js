@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.4.15
+// @version      1.4.16
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki
 // @license      MIT
@@ -24,7 +24,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.4.15';
+  const UI_VERSION = '1.4.16';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -2291,6 +2291,14 @@
          При включённой очистке вся нужная навигация живёт в боковом меню. */
       html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] .wdp-mobile-menu-module__mobile-menu {
         display: none !important;
+      }
+
+      /* Верхние вкладки «Главная / Фильмы / Сериалы» на мобильном тоже становятся
+         лишними после переноса навигации в drawer. На ПК их сохраняем. */
+      @media (hover: none) and (pointer: coarse), (max-width: 760px) {
+        html[data-rtst-enabled="1"][data-rtst-clean-chrome="1"] [data-rtst-mobile-top-tabs="1"] {
+          display: none !important;
+        }
       }
 
       [data-rtst-primary-home="1"] .rtst-primary-home-icon,
@@ -6076,8 +6084,35 @@
     ));
   }
 
+  function markMobileTopCategoryTabs() {
+    // RUTUBE оборачивает верхний tablist в отдельный контейнер. Помечаем именно
+    // его, но скрываем CSS-ом только в mobile-контексте. Это сохраняет вкладки на ПК.
+    document.querySelectorAll('[data-rtst-mobile-top-tabs="1"]').forEach((el) => {
+      el.removeAttribute('data-rtst-mobile-top-tabs');
+    });
+
+    if (!(isHomePage() || isHomeFeedPage() || isMoviesSerialsPage())) return;
+
+    document.querySelectorAll('[role="tablist"]').forEach((tablist) => {
+      if (!tablist || isRtstUiElement(tablist)) return;
+
+      const labels = Array.from(tablist.querySelectorAll('button[role="tab"]'))
+        .map((tab) => normalize(tab.textContent || ''))
+        .filter(Boolean);
+
+      if (!['главная', 'фильмы', 'сериалы'].every((label) => labels.includes(label))) return;
+
+      const parent = tablist.parentElement;
+      const target = parent && parent !== document.body && parent !== document.documentElement
+        ? parent
+        : tablist;
+      target.setAttribute('data-rtst-mobile-top-tabs', '1');
+    });
+  }
+
   function cleanRutubeChrome() {
     ensurePrimaryMenu();
+    markMobileTopCategoryTabs();
     const exactItems = ['rutube для блогеров', 'rutube x premier', 'rutube x start', 'rutube x kion', 'rutube х kion', 'rutube x кион', 'rutube х кион', 'активировать промокод', 'по темам', 'детям', 'вопросы и ответы', 'сообщить о проблеме', 'письмо в поддержку', 'поддержка в max', 'help@rutube.ru', 'о rutube', 'направления деятельности', 'пользовательское соглашение', 'конфиденциальность', 'правовая информация', 'рекомендательная система', 'фирменный стиль'];
     const blockHeadings = ['rutube всегда с вами', 'cкачать приложения', 'скачать приложения', 'больше от rutube', 'rutube в других соцсетях'];
 
