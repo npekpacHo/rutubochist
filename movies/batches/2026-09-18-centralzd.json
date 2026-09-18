@@ -1,0 +1,263 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.3",
+  "id": "2026-09-18-centralzd",
+  "title": "Что посмотреть от 18.09.2026",
+  "date": "2026-09-18",
+  "sourceUrl": "https://pikabu.ru/story/novinki_serialov_poyavivshiesya_v_seti_na_18092026_14343486",
+  "extractedAt": "2026-09-18T18:26:20.341Z",
+  "count": 10,
+  "items": [
+    {
+      "id": "gangsterlend-mobland-2-sezon-2025",
+      "title": "Гангстерленд",
+      "originalTitle": "MobLand (2 сезон)",
+      "year": 2025,
+      "query": "Гангстерленд MobLand (2 сезон) 2025",
+      "genres": [
+        "криминал",
+        "драма"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 8.2,
+          "votes": 172228,
+          "percent": 82
+        },
+        "imdb": {
+          "value": 8.3,
+          "votes": 110000,
+          "percent": 83
+        },
+        "rottenTomatoes": {
+          "critics": 100
+        }
+      }
+    },
+    {
+      "id": "medlennye-loshadi-slow-horses-6-sezon-2022",
+      "title": "Медленные лошади",
+      "originalTitle": "Slow Horses (6 сезон)",
+      "year": 2022,
+      "query": "Медленные лошади Slow Horses (6 сезон) 2022",
+      "genres": [
+        "триллер",
+        "драма"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.9,
+          "votes": 43883,
+          "percent": 79
+        },
+        "imdb": {
+          "value": 8.3,
+          "votes": 144000,
+          "percent": 83
+        },
+        "rottenTomatoes": {
+          "critics": 100
+        }
+      }
+    },
+    {
+      "id": "monstr-istoriya-lizzi-borden-monster-the-lizzie-borden-story-4-sezon-2022",
+      "title": "Монстр: История Лиззи Борден",
+      "originalTitle": "Monster: The Lizzie Borden Story (4 сезон)",
+      "year": 2022,
+      "query": "Монстр: История Лиззи Борден Monster: The Lizzie Borden Story (4 сезон) 2022",
+      "genres": [
+        "драма",
+        "история",
+        "криминал",
+        "триллер"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.4,
+          "votes": 100218,
+          "percent": 74
+        },
+        "imdb": {
+          "value": 7.7,
+          "votes": 225034,
+          "percent": 77
+        },
+        "rottenTomatoes": {
+          "critics": 42,
+          "audience": 63
+        }
+      }
+    },
+    {
+      "id": "vavilon-berlin-babylon-berlin-5-sezon-2017",
+      "title": "Вавилон Берлин",
+      "originalTitle": "Babylon Berlin (5 сезон)",
+      "year": 2017,
+      "query": "Вавилон Берлин Babylon Berlin (5 сезон) 2017",
+      "genres": [
+        "триллер",
+        "драма",
+        "криминал"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 8,
+          "votes": 46408,
+          "percent": 80
+        },
+        "imdb": {
+          "value": 8.4,
+          "votes": 33000,
+          "percent": 84
+        },
+        "rottenTomatoes": {
+          "critics": 100,
+          "audience": 90
+        }
+      }
+    },
+    {
+      "id": "osobo-vazhnaya-cel-ohota-na-saddama-high-value-target-the-hunt-for-saddam-1-sezon-2026",
+      "title": "Особо важная цель: Охота на Саддама",
+      "originalTitle": "High Value Target: The Hunt for Saddam (1 сезон)",
+      "year": 2026,
+      "query": "Особо важная цель: Охота на Саддама High Value Target: The Hunt for Saddam (1 сезон) 2026",
+      "genres": [
+        "триллер",
+        "драма",
+        "биография"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.1,
+          "votes": 87,
+          "percent": 61
+        },
+        "rottenTomatoes": {
+          "critics": 100
+        }
+      }
+    },
+    {
+      "id": "ar-dzhey-deker-rj-decker-2-sezon-2026",
+      "title": "Ар-Джей Декер",
+      "originalTitle": "RJ Decker (2 сезон)",
+      "year": 2026,
+      "query": "Ар-Джей Декер RJ Decker (2 сезон) 2026",
+      "genres": [
+        "боевик",
+        "криминал"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.6,
+          "votes": 1226,
+          "percent": 66
+        },
+        "imdb": {
+          "value": 7,
+          "votes": 646,
+          "percent": 70
+        },
+        "rottenTomatoes": {
+          "critics": 80,
+          "audience": 73
+        }
+      }
+    },
+    {
+      "id": "zolotaya-sekira-golden-axe-1-sezon-2026",
+      "title": "Золотая секира",
+      "originalTitle": "Golden Axe (1 сезон)",
+      "year": 2026,
+      "query": "Золотая секира Golden Axe (1 сезон) 2026",
+      "genres": [
+        "мультфильм",
+        "фэнтези",
+        "боевик",
+        "комедия",
+        "приключения"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7,
+          "votes": 86,
+          "percent": 70
+        }
+      }
+    },
+    {
+      "id": "nili-neagley-1-sezon-2026",
+      "title": "Нили",
+      "originalTitle": "Neagley (1 сезон)",
+      "year": 2026,
+      "query": "Нили Neagley (1 сезон) 2026",
+      "genres": [
+        "боевик",
+        "триллер",
+        "драма",
+        "криминал",
+        "детектив"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.6,
+          "votes": 1300,
+          "percent": 76
+        },
+        "rottenTomatoes": {
+          "critics": 91,
+          "audience": 89
+        }
+      }
+    },
+    {
+      "id": "yuzhnyy-park-south-park-29-sezon-1997",
+      "title": "Южный Парк",
+      "originalTitle": "South Park (29 сезон)",
+      "year": 1997,
+      "query": "Южный Парк South Park (29 сезон) 1997",
+      "genres": [
+        "мультфильм",
+        "комедия"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 8.2,
+          "votes": 292788,
+          "percent": 82
+        },
+        "imdb": {
+          "value": 8.7,
+          "votes": 442000,
+          "percent": 87
+        }
+      }
+    },
+    {
+      "id": "chuzhestranka-krov-ot-krovi-moey-outlander-blood-of-my-blood-2-sezon-2025",
+      "title": "Чужестранка: Кровь от крови моей",
+      "originalTitle": "Outlander: Blood of My Blood (2 сезон)",
+      "year": 2025,
+      "query": "Чужестранка: Кровь от крови моей Outlander: Blood of My Blood (2 сезон) 2025",
+      "genres": [
+        "драма",
+        "мелодрама",
+        "история"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 8,
+          "votes": 4533,
+          "percent": 80
+        },
+        "imdb": {
+          "value": 8.1,
+          "votes": 7200,
+          "percent": 81
+        }
+      }
+    }
+  ]
+}
