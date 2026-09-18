@@ -1,7 +1,15 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-12",
+  "updatedAt": "2026-09-18",
   "batches": [
+    {
+  "id": "2026-09-18-centralzd",
+  "title": "Что посмотреть от 18.09.2026",
+  "date": "2026-09-18",
+  "sourceUrl": "https://pikabu.ru/story/novinki_serialov_poyavivshiesya_v_seti_na_18092026_14343486",
+  "file": "batches/2026-09-18-centralzd.json",
+  "count": 10
+},
     {
   "id": "2026-09-12-centralzd",
   "title": "Что посмотреть от 12.09.2026",
