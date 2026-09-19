@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.4.20
+// @version      1.4.23
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki / npekpacHo
 // @license      MIT
@@ -39,7 +39,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.4.20';
+  const UI_VERSION = '1.4.23';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -2538,6 +2538,10 @@
         .rtst-modal.rtst-series-modal { width: 100vw !important; max-width: 100vw !important; }
         .rtst-series-list-row { grid-template-columns: 64px minmax(0,1fr) !important; }
         .rtst-series-list-source { display: none !important; }
+        .rtst-modal .rtst-movie-row > .rtst-movie-genre-ghosts { right: 8px !important; top: 9px !important; bottom: 9px !important; }
+        .rtst-modal .rtst-movie-row > .rtst-movie-genre-ghosts > .rtst-movie-genre-ghost { flex-basis: 44px !important; width: 44px !important; font-size: 26px !important; opacity: .20 !important; }
+        .rtst-movie-badges { gap: 3px !important; }
+        .rtst-movie-badge { padding: 1px 5px !important; font-size: 9px !important; }
       }
       
       /* --- ПАНЕЛЬ (ПК) --- */
@@ -2740,7 +2744,7 @@
       .rtst-movie-list { display: flex !important; flex-direction: column !important; gap: 4px !important; margin: 0 !important; }
       .rtst-modal .rtst-movie-row {
         display: block !important; position: relative !important; overflow: hidden !important; isolation: isolate !important; width: 100% !important; min-height: 0 !important;
-        margin: 0 !important; padding: 6px 8px !important; border: 1px solid rgba(255,255,255,.10) !important; border-radius: 8px !important;
+        margin: 0 !important; padding: 11px 10px 12px !important; border: 1px solid rgba(255,255,255,.10) !important; border-radius: 8px !important;
         background: rgba(255,255,255,.055) !important;
         color: #f4fff7 !important; cursor: pointer !important; text-align: left !important; box-shadow: none !important; font: 12px/1.35 Arial, sans-serif !important;
       }
@@ -2749,10 +2753,44 @@
         background: var(--rtst-movie-rating-fill, linear-gradient(90deg, rgba(138, 196, 154, .22), rgba(138, 196, 154, .22))) !important;
         opacity: .94 !important; pointer-events: none !important; z-index: 0 !important;
       }
+      .rtst-modal .rtst-movie-row::after {
+        content: '' !important; position: absolute !important; left: 8px !important; right: 8px !important; top: 3px !important; bottom: 3px !important;
+        background:
+          repeating-linear-gradient(90deg, rgba(205,195,226,.38) 0 12px, rgba(205,195,226,.10) 12px 14px, transparent 14px 20px) top left / 100% 5px no-repeat,
+          repeating-linear-gradient(90deg, rgba(205,195,226,.38) 0 12px, rgba(205,195,226,.10) 12px 14px, transparent 14px 20px) bottom left / 100% 5px no-repeat,
+          linear-gradient(90deg, rgba(205,195,226,.14), rgba(205,195,226,.14)) top 8px left / 100% 1px no-repeat,
+          linear-gradient(90deg, rgba(205,195,226,.14), rgba(205,195,226,.14)) bottom 8px left / 100% 1px no-repeat,
+          repeating-linear-gradient(to left, transparent 0 51px, rgba(205,195,226,.13) 51px 52px) center / 100% calc(100% - 16px) no-repeat !important;
+        opacity: .78 !important; pointer-events: none !important; z-index: 0 !important;
+      }
       .rtst-modal .rtst-movie-row:hover { background: rgba(255,255,255,.09) !important; filter: none !important; }
       .rtst-modal .rtst-movie-row:hover::before { opacity: 1 !important; filter: saturate(1.08) brightness(1.08) !important; }
+      .rtst-modal .rtst-movie-row:hover::after { opacity: .98 !important; filter: saturate(1.05) brightness(1.08) !important; }
       .rtst-modal .rtst-movie-row > span { position: relative !important; z-index: 1 !important; }
-      .rtst-movie-title-line { display: block !important; color: #f4fff7 !important; font-weight: 800 !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+      .rtst-modal .rtst-movie-row > .rtst-movie-genre-ghosts {
+        position: absolute !important; right: 8px !important; top: 9px !important; bottom: 9px !important; left: auto !important; z-index: 0 !important;
+        display: flex !important; flex-direction: row-reverse !important; align-items: stretch !important; justify-content: flex-start !important; gap: 0 !important; max-width: none !important;
+        pointer-events: none !important; opacity: 1 !important; transform: none !important;
+      }
+      .rtst-modal .rtst-movie-row > .rtst-movie-genre-ghosts > .rtst-movie-genre-ghost {
+        display: inline-flex !important; align-items: center !important; justify-content: center !important;
+        flex: 0 0 52px !important; width: 52px !important; height: 100% !important; box-sizing: border-box !important;
+        border-left: 1px solid rgba(205,195,226,.11) !important;
+        background: rgba(255,255,255,.010) !important;
+        font: 30px/1 Arial, sans-serif !important;
+        opacity: .22 !important; filter: grayscale(.55) saturate(.48) brightness(1.05) !important; text-shadow: 0 1px 0 rgba(0,0,0,.28) !important;
+      }
+      .rtst-modal .rtst-movie-row > .rtst-movie-genre-ghosts > .rtst-movie-genre-ghost:first-child { border-right: 1px solid rgba(205,195,226,.11) !important; }
+      .rtst-movie-title-line { display: flex !important; align-items: center !important; gap: 6px !important; min-width: 0 !important; color: #f4fff7 !important; font-weight: 800 !important; }
+      .rtst-movie-title-text { flex: 1 1 auto !important; min-width: 0 !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+      .rtst-movie-badges { display: inline-flex !important; align-items: center !important; gap: 4px !important; flex: 0 0 auto !important; }
+      .rtst-movie-badge {
+        display: inline-flex !important; align-items: center !important; min-height: 18px !important; padding: 1px 6px !important; border-radius: 999px !important;
+        border: 1px solid rgba(255,255,255,.14) !important; background: rgba(255,255,255,.09) !important; color: rgba(244,255,247,.92) !important;
+        font: 700 10px/1.1 Arial, sans-serif !important; white-space: nowrap !important;
+      }
+      .rtst-movie-badge-series { background: rgba(191,169,226,.14) !important; border-color: rgba(191,169,226,.30) !important; }
+      .rtst-movie-badge-season { background: rgba(154,190,223,.12) !important; border-color: rgba(154,190,223,.28) !important; }
       .rtst-movie-meta-line { display: flex !important; flex-wrap: wrap !important; gap: 4px 12px !important; margin-top: 6px !important; color: rgba(244,255,247,.76) !important; font-size: 11px !important; }
       .rtst-movie-meta-line span { display: inline-flex !important; align-items: center !important; white-space: nowrap !important; }
       .rtst-movie-rating-line { display: flex !important; align-items: center !important; flex-wrap: wrap !important; gap: 4px 10px !important; margin-top: 5px !important; color: rgba(223,255,230,.90) !important; font: 800 11px/1.3 Arial, sans-serif !important; }
@@ -3784,7 +3822,8 @@
     const title = formatMovieBatchTitle(batch.title || (entry && entry.title) || 'Подборка фильмов');
     const sourceUrl = batch.sourceUrl || (entry && entry.sourceUrl) || '';
     const sourceLink = sourceUrl ? `<button type="button" class="rtst-movie-source-btn" data-rtst-action="movie-source" data-rtst-url="${escapeAttribute(sourceUrl)}">пост на Пикабу</button>` : '';
-    const rows = items.length ? items.map(renderMovieRow).join('') : '<div class="rtst-movie-empty">В этой подборке пусто.</div>';
+    const movieContext = { batch, entry };
+    const rows = items.length ? items.map((movie) => renderMovieRow(movie, movieContext)).join('') : '<div class="rtst-movie-empty">В этой подборке пусто.</div>';
     return {
       toolbar: `
         <div class="rtst-movie-toolbar">
@@ -3826,21 +3865,26 @@
     return '/search/?' + params.toString();
   }
 
-  function renderMovieRow(movie) {
+  function renderMovieRow(movie, context = null) {
     const query = movie && (movie.query || buildMovieQuery(movie));
     const title = movieTitleLine(movie);
     const genresHtml = renderMovieGenres(movie && movie.genres);
     const ratingsHtml = renderMovieRatings(movie && movie.ratings);
     const ratingPercent = movieRatingPercent(movie && movie.ratings);
     const ratingFill = movieGenreRatingFill(movie && movie.genres);
+    const seriesMeta = describeMovieSeries(movie, context);
+    const isSeries = seriesMeta.isSeries;
+    const seriesBadges = renderMovieSeriesBadges(seriesMeta);
+    const genreGhosts = renderMovieGenreGhosts(movie && movie.genres);
     const googleOk = isExternalSearchAvailable();
     const rutubeSearchUrl = buildRutubeMovieSearchUrl(query, false) || 'https://rutube.ru/search/';
     const googleTitle = googleOk
       ? `Искать через Google: ${query} · site:rutube.ru · без обзоров/трейлеров`
       : 'Google-поиск доступен только когда база/интернет доступны.';
     return `
-      <div class="rtst-movie-row" data-rtst-query="${escapeAttribute(query)}" style="--rtst-movie-rating-pct: ${escapeAttribute(String(ratingPercent))}%; --rtst-movie-rating-fill: ${escapeAttribute(ratingFill)};">
-        <span class="rtst-movie-title-line">${escapeHtml(title)}</span>
+      <div class="rtst-movie-row" data-rtst-query="${escapeAttribute(query)}" data-rtst-series="${isSeries ? '1' : '0'}" style="--rtst-movie-rating-pct: ${escapeAttribute(String(ratingPercent))}%; --rtst-movie-rating-fill: ${escapeAttribute(ratingFill)};">
+        ${genreGhosts ? `<span class="rtst-movie-genre-ghosts" aria-hidden="true">${genreGhosts}</span>` : ''}
+        <span class="rtst-movie-title-line"><span class="rtst-movie-title-text">${escapeHtml(title)}</span>${seriesBadges}</span>
         <span class="rtst-movie-meta-line">${genresHtml || '<span>жанры не указаны</span>'}</span>
         ${ratingsHtml ? `<span class="rtst-movie-rating-line">${ratingsHtml}</span>` : '<span class="rtst-movie-rating-line"><span>рейтингов пока нет</span></span>'}
         <span class="rtst-movie-search-line">
@@ -3849,6 +3893,55 @@
           <button type="button" class="rtst-movie-search-btn rtst-movie-google-btn" data-rtst-action="movie-search-google" data-rtst-query="${escapeAttribute(query)}" data-state="${googleOk ? 'ok' : 'bad'}" title="${escapeAttribute(googleTitle)}" ${googleOk ? '' : 'disabled'}>🔎 Google</button>
         </span>
       </div>`;
+  }
+
+  function isMovieSeriesEntry(movie, batch = null, entry = null) {
+    if (!movie || typeof movie !== 'object') return false;
+
+    // Если сборщик когда-нибудь начнёт отдавать явный тип, используем его первым.
+    const explicitType = normalize([
+      movie.type, movie.kind, movie.mediaType, movie.contentType, movie.format
+    ].filter(Boolean).join(' '));
+    if (/(сериал|series|tv series|episode)/iu.test(explicitType)) return true;
+
+    // Числовые поля сезона/серии тоже считаем сильным признаком сериальности.
+    if (movie.season != null || movie.seasonNumber != null || movie.episode != null || movie.episodeNumber != null) return true;
+
+    const movieText = [movie.title, movie.originalTitle, movie.query]
+      .filter(Boolean)
+      .map((value) => String(value))
+      .join(' ');
+    const normalizedMovieText = normalize(movieText);
+
+    const strongSeriesPatterns = [
+      /(?:^|[\s,.;:()\[\]/_-])сериал(?:ы|а|е|ом|у)?(?=$|[\s,.;:()\[\]/_-])/iu,
+      /мини[-\s]?сериал/iu,
+      /(?:^|[\s,.;:()\[\]/_-])сезон\s*№?\s*\d{1,2}(?=$|[\s,.;:()\[\]/_-])/iu,
+      /(?:^|[\s,.;:()\[\]/_-])\d{1,2}\s*(?:-?й\s*)?сезон(?:а|е|ом)?(?=$|[\s,.;:()\[\]/_-])/iu,
+      /(?:^|[\s,.;:()\[\]/_-])(?:сер(?:ия|ии|ию|ией)|эпизод(?:а|е|ом)?)\s*№?\s*\d{1,3}(?=$|[\s,.;:()\[\]/_-])/iu,
+      /(?:^|[\s,.;:()\[\]/_-])\d{1,3}\s*(?:-?я\s*)?(?:сер(?:ия|ии)|эпизод)(?=$|[\s,.;:()\[\]/_-])/iu,
+      /\bs\d{1,2}\s*e\d{1,3}\b/iu,
+      /\b\d{1,2}\s*x\s*\d{1,3}\b/iu,
+      /\bseason\s*#?\s*\d{1,2}\b/iu,
+      /\bepisode\s*#?\s*\d{1,3}\b/iu,
+      /\bep\.?\s*#?\s*\d{1,3}\b/iu
+    ];
+    if (strongSeriesPatterns.some((re) => re.test(normalizedMovieText))) return true;
+
+    // У CentralZD посты с сериалами хорошо различимы по адресу Pikabu
+    // (например novinki_serialov_...). Если вся подборка сериальная, маркируем
+    // каждый её элемент, даже когда конкретное название не содержит номер сезона.
+    const batchText = [
+      batch && batch.title, batch && batch.sourceUrl, batch && batch.id,
+      entry && entry.title, entry && entry.sourceUrl, entry && entry.id
+    ].filter(Boolean).join(' ').toLowerCase();
+
+    if (/(новинки[ _-]*сериал|novinki[ _-]*serial|serialov|serialy|serials)/iu.test(batchText)) return true;
+
+    const genres = Array.isArray(movie.genres) ? movie.genres.map((genre) => normalize(genre)).join(' ') : '';
+    if (/(сериал|series)/iu.test(genres)) return true;
+
+    return false;
   }
 
   function movieTitleLine(movie) {
@@ -3870,6 +3963,62 @@
     const rest = genres.length - shown.length;
     if (rest > 0) shown.push(`<span>+${rest}</span>`);
     return shown.join('');
+  }
+
+  function movieSeasonNumberFromText(value) {
+    const text = String(value || '');
+    if (!text) return null;
+    const patterns = [
+      /(?:^|[^0-9])0*(\d{1,3})\s*(?:-?й\s*)?сезон(?:а|е|ом)?(?=$|[^а-яa-z0-9])/iu,
+      /(?:сезон(?:а|е)?|сез\.?|season)\s*№?\s*0*(\d{1,3})/iu,
+      /\b[sS]\s*0*(\d{1,3})\s*[._ -]*[eE]\s*0*\d{1,4}\b/,
+      /\b0*(\d{1,3})\s*[xх]\s*0*\d{1,4}\b/iu
+    ];
+    for (const re of patterns) {
+      const match = re.exec(text);
+      if (!match) continue;
+      const number = seriesNumber(match[1]);
+      if (number != null) return number;
+    }
+    return null;
+  }
+
+  function describeMovieSeries(movie, context = null) {
+    const isSeries = isMovieSeriesEntry(movie, context && context.batch, context && context.entry);
+    if (!isSeries) return { isSeries: false, season: null, episode: null, parsed: null };
+
+    let season = findKnownNumericField(movie, ['season', 'seasonNumber', 'season_number', 'seasonNum', 'season_num']);
+    let episode = findKnownNumericField(movie, ['episode', 'episodeNumber', 'episode_number', 'episodeNum', 'episode_num']);
+    const pieces = [movie && movie.title, movie && movie.originalTitle, movie && movie.query].filter(Boolean).map(String);
+    const seriesText = pieces.join(' / ');
+    if (season == null) season = movieSeasonNumberFromText(seriesText);
+    const parsed = parseSeriesTitle(seriesText, movie, { allowEpisodeOnly: true, fallbackSeason: season || 1 });
+
+    if (season == null && parsed && parsed.season != null) season = parsed.season;
+    if (episode == null && parsed && parsed.episode != null) episode = parsed.episode;
+
+    return { isSeries: true, season, episode, parsed };
+  }
+
+  function renderMovieSeriesBadges(seriesMeta) {
+    if (!seriesMeta || !seriesMeta.isSeries) return '';
+    const badges = ['<span class="rtst-movie-badge rtst-movie-badge-series">сериал</span>'];
+    if (seriesMeta.season != null) badges.push(`<span class="rtst-movie-badge rtst-movie-badge-season">${escapeHtml(String(seriesMeta.season))} сезон</span>`);
+    return `<span class="rtst-movie-badges">${badges.join('')}</span>`;
+  }
+
+  function renderMovieGenreGhosts(genres) {
+    if (!Array.isArray(genres) || !genres.length) return '';
+    const seen = new Set();
+    const icons = [];
+    for (const genre of genres) {
+      const icon = movieGenreIcon(genre);
+      if (!icon || seen.has(icon)) continue;
+      seen.add(icon);
+      icons.push(icon);
+      if (icons.length >= 5) break;
+    }
+    return icons.map((icon) => `<span class="rtst-movie-genre-ghost">${escapeHtml(icon)}</span>`).join('');
   }
 
   function movieGenreIcon(genre) {
