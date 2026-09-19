@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.4.19
+// @version      1.4.20
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki / npekpacHo
 // @license      MIT
@@ -39,7 +39,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.4.19';
+  const UI_VERSION = '1.4.20';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -3210,63 +3210,33 @@
     if (chromeOn) {
       parts.push(`
         /* Рутубочист: глобальная зачистка интерфейса. */
-        .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] .wdp-popup-module__popup[class*="onboardings-inventory-modal"],
-        .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] [class*="onboardings-inventory-modal-module__popup"] {
-          transform: scale(.72) !important;
-          transform-origin: center center !important;
-          max-width: min(92vw, 520px) !important;
-          max-height: 78vh !important;
+
+        /* Нижняя служебная панель desktop используется RUTUBE в основном для
+           ситуационных уведомлений. В чистом интерфейсе убираем её целиком. */
+        [class*="bottom-bar-components-module__bottomBar"][class*="application-module__desktopBottomBar"],
+        .bottom-bar-components-module__bottomBar.application-module__desktopBottomBar {
+          display: none !important;
+          visibility: hidden !important;
+          pointer-events: none !important;
         }
-        .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] button[aria-label="Закрыть попап"],
-        .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] [class*="onboardings-inventory-modal-module__closeIcon"] {
-          width: 180px !important;
-          height: 180px !important;
-          min-width: 180px !important;
-          min-height: 180px !important;
-          padding: 0 !important;
-          border-radius: 24px !important;
-          background: rgba(0,0,0,.88) !important;
-          color: #fff !important;
-          box-shadow: 0 10px 34px rgba(0,0,0,.78) !important;
-          display: inline-flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          z-index: 2147483646 !important;
-          position: absolute !important;
-          top: 10px !important;
-          right: 10px !important;
-          opacity: 1 !important;
-          filter: none !important;
+
+        /* Промо/onboarding popup'ы RUTUBE не уменьшаем и не украшаем крестиком,
+           а подавляем целиком. :has() нужен, чтобы скрыть именно overlay и не
+           оставить затемнение/перехват кликов поверх страницы. */
+        @supports selector(:has(*)) {
+          .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"]:has([class*="onboardings-inventory-modal-module__popup"]),
+          [data-testid="overlay-popup"]:has([class*="onboardings-inventory-modal-module__popup"]) {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+          }
         }
-        .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] button[aria-label="Закрыть попап"] svg,
-        .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] [class*="onboardings-inventory-modal-module__closeIcon"] svg,
-        .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] .svg-icon--IconDsMainClose {
-          --rutube-icon-custom-size: 108px !important;
-          width: 108px !important;
-          height: 108px !important;
-          min-width: 108px !important;
-          min-height: 108px !important;
-        }
-        @media (max-width: 680px) {
-          .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] .wdp-popup-module__popup[class*="onboardings-inventory-modal"],
-          .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] [class*="onboardings-inventory-modal-module__popup"] {
-            transform: scale(.68) !important;
-            max-height: 74vh !important;
-          }
-          .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] button[aria-label="Закрыть попап"],
-          .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] [class*="onboardings-inventory-modal-module__closeIcon"] {
-            width: 196px !important;
-            height: 196px !important;
-            min-width: 196px !important;
-            min-height: 196px !important;
-          }
-          .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] button[aria-label="Закрыть попап"] svg,
-          .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] [class*="onboardings-inventory-modal-module__closeIcon"] svg,
-          .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"] .svg-icon--IconDsMainClose {
-            --rutube-icon-custom-size: 118px !important;
-            width: 118px !important;
-            height: 118px !important;
-          }
+        [class*="onboardings-inventory-modal-module__popup"] {
+          display: none !important;
+          visibility: hidden !important;
+          opacity: 0 !important;
+          pointer-events: none !important;
         }
 
         .wdp-onboardings-inventory-banner-module__wrapper-section,
@@ -6257,6 +6227,69 @@
     }
   }
 
+  function isOnboardingInventoryPopup(el) {
+    if (!el || isRtstUiElement(el)) return false;
+
+    try {
+      const node = (el.closest && el.closest(
+        '.wdp-popup-overlay-module__overlay[data-testid="overlay-popup"], ' +
+        '[data-testid="overlay-popup"], ' +
+        '[data-testid="popup"]'
+      )) || el;
+      const cls = `${String(node.className || '')} ${String(el.className || '')}`;
+      return /onboardings-inventory-modal-module__/i.test(cls) || Boolean(
+        node.querySelector && node.querySelector('[class*="onboardings-inventory-modal-module__popup"]')
+      );
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function hideOnboardingInventoryPopups(root = document) {
+    if (!settings.enabled || !(settings.cleanRutubeChrome || settings.hideSideMenuPolitics)) return;
+
+    const scope = root && root.querySelectorAll ? root : document;
+    const candidates = [];
+
+    try {
+      if (isOnboardingInventoryPopup(scope)) candidates.push(scope);
+      candidates.push(...scope.querySelectorAll(
+        '.wdp-popup-overlay-module__overlay[data-testid="overlay-popup"], ' +
+        '[data-testid="overlay-popup"], ' +
+        '[data-testid="popup"], ' +
+        '[class*="onboardings-inventory-modal-module__popup"]'
+      ));
+    } catch (e) {}
+
+    for (const el of candidates) {
+      if (!isOnboardingInventoryPopup(el)) continue;
+
+      const overlay = (el.closest && el.closest(
+        '.wdp-popup-overlay-module__overlay[data-testid="overlay-popup"], [data-testid="overlay-popup"]'
+      )) || el;
+      if (!overlay || isRtstUiElement(overlay)) continue;
+
+      /* Сначала просим React закрыть popup штатно, чтобы он снял собственные
+         блокировки прокрутки/фокуса. CSS-класс ниже — страховка от вспышки. */
+      try {
+        const closeBtn = overlay.querySelector(
+          'button[aria-label*="Закрыть попап" i], ' +
+          'button[aria-label*="Закрыть" i], ' +
+          '[class*="onboardings-inventory-modal-module__closeIcon"]'
+        );
+        if (closeBtn && closeBtn.dataset.rtstClicked !== '1') {
+          closeBtn.dataset.rtstClicked = '1';
+          closeBtn.click();
+        }
+      } catch (e) {}
+
+      if (overlay.dataset.rtstOnboardingHidden !== '1') hiddenCount += 1;
+      overlay.dataset.rtstOnboardingHidden = '1';
+      overlay.dataset.rtstReason = 'промо-попап RUTUBE';
+      overlay.classList.add('rtst-chrome-hidden');
+    }
+  }
+
   function scanPlayerAds(root = document) {
     if (!settings.enabled || settings.stripPlayerAds === false) return;
 
@@ -6488,6 +6521,7 @@
     protectRtstUiFromCleanup(document);
     syncRutubePopupCloseProxy();
     hideBackgroundModeSubscriptionPopup(document);
+    hideOnboardingInventoryPopups(document);
     if (isEmbeddedRutubePlayer()) return;
     refreshLegacyControls();
 
@@ -6500,6 +6534,7 @@
     hiddenCount = removedCount;
     scanPlayerAds(document);
     hideBackgroundModeSubscriptionPopup(document);
+    hideOnboardingInventoryPopups(document);
     scanShowcaseBanners(document);
 
     if (isMyPage()) {
@@ -7095,6 +7130,22 @@
   function cleanRutubeChrome() {
     ensurePrimaryMenu();
     markMobileTopCategoryTabs();
+    hideOnboardingInventoryPopups(document);
+
+    document.querySelectorAll(
+      '[class*="bottom-bar-components-module__bottomBar"][class*="application-module__desktopBottomBar"], ' +
+      '.bottom-bar-components-module__bottomBar.application-module__desktopBottomBar'
+    ).forEach((bar) => {
+      if (!isRtstUiElement(bar)) forceHideChromeElement(bar, 'нижний desktop toolbar RUTUBE');
+    });
+
+    /* Fallback на случай очередного переименования CSS-module: если контейнер
+       уведомлений уже есть, поднимаемся только до компактного bottom bar. */
+    document.querySelectorAll('[aria-label="список оповещений" i]').forEach((messages) => {
+      if (isRtstUiElement(messages)) return;
+      const bar = messages.closest('[class*="bottom-bar" i], [class*="bottomBar" i]');
+      if (bar) forceHideChromeElement(bar, 'нижний desktop toolbar RUTUBE');
+    });
     const exactItems = ['rutube для блогеров', 'rutube x premier', 'rutube x start', 'rutube x kion', 'rutube х kion', 'rutube x кион', 'rutube х кион', 'активировать промокод', 'по темам', 'детям', 'вопросы и ответы', 'сообщить о проблеме', 'письмо в поддержку', 'поддержка в max', 'help@rutube.ru', 'о rutube', 'направления деятельности', 'пользовательское соглашение', 'конфиденциальность', 'правовая информация', 'рекомендательная система', 'фирменный стиль'];
     const blockHeadings = ['rutube всегда с вами', 'cкачать приложения', 'скачать приложения', 'больше от rutube', 'rutube в других соцсетях'];
 
