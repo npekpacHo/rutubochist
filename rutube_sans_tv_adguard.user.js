@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.4.23
+// @version      1.4.24
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki / npekpacHo
 // @license      MIT
@@ -39,7 +39,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.4.23';
+  const UI_VERSION = '1.4.24';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -110,6 +110,7 @@
 
   let settings = loadSettings();
   let scanTimer = null;
+  let scanMaxTimer = null;
   let observer = null;
   let lastUrl = location.href;
   let hiddenCount = 0;
@@ -121,6 +122,7 @@
   let autoplayGuardInstalled = false;
   let modalOpenedAt = 0; 
   let panelSleepTimer = null;
+  let lastVideoContextId = '';
 
   const MOVIE_DB_BASE_URLS = [
     'https://npekpacho.github.io/rutubochist/movies/',
@@ -593,6 +595,8 @@
         window.__rtstPlayOptionsHistory.unshift(summary);
         window.__rtstPlayOptionsHistory = window.__rtstPlayOptionsHistory.slice(0, 8);
       } catch (e) {}
+
+      try { notifyVideoContextChange(summary.apiVideoId, 'play-options'); } catch (e) {}
 
       return summary;
     }
@@ -4757,14 +4761,42 @@
     }
   }
 
+  function notifyVideoContextChange(videoId, source = 'unknown') {
+    const cleanId = String(videoId || '').trim();
+    if (!cleanId || cleanId === lastVideoContextId) return;
+    lastVideoContextId = cleanId;
+
+    // Переход по серии внутри штатного плейлиста RUTUBE может происходить без
+    // обычной перезагрузки страницы и даже до обновления location.href. Поэтому
+    // новый /api/play/options/<video-id> считаем надёжным сигналом смены ролика.
+    seriesRuntime.requestToken += 1;
+    seriesRuntime.currentVideoId = '';
+    seriesRuntime.result = null;
+    removeSeriesNavigator();
+    syncRootFlags();
+
+    scheduleScan(`video-context:${source}`, 35);
+    setTimeout(() => scheduleScan(`video-context-followup:${source}`, 80), 360);
+    setTimeout(() => scheduleScan(`video-context-settled:${source}`, 120), 1200);
+  }
+
   function getCurrentVideoId() {
     const fromPage = extractRutubeVideoIdFromUrl(location.href);
-    if (fromPage) return fromPage;
+    let fromApi = '';
     try {
       const last = window.__rtstLastPlayOptionsSummary;
-      if (last && last.apiVideoId) return String(last.apiVideoId);
+      if (last && last.apiVideoId) fromApi = String(last.apiVideoId);
     } catch (e) {}
-    return '';
+
+    // В режиме playlist URL у RUTUBE иногда остаётся привязан к ролику, с которого
+    // открыли плейлист, тогда как сам плеер уже показывает следующую серию.
+    // play/options в этом случае точнее адресной строки.
+    try {
+      const u = new URL(location.href);
+      if (u.searchParams.has('playlist') && fromApi) return fromApi;
+    } catch (e) {}
+
+    return fromPage || fromApi || '';
   }
 
   function getCurrentVideoTitle() {
@@ -5915,18 +5947,32 @@
     updatePanelRouteState();
   }
 
+  function isUrgentScanReason(reason) {
+    return /^(?:route|video-context|video-loadedmetadata|video-playing)/.test(String(reason || ''));
+  }
+
+  function runScheduledScan(reason) {
+    if (scanTimer) { clearTimeout(scanTimer); scanTimer = null; }
+    if (scanMaxTimer) { clearTimeout(scanMaxTimer); scanMaxTimer = null; }
+    scanPage(reason);
+  }
+
   function scheduleScan(reason = 'scheduled', delayMs = 180) {
     if (scanTimer) clearTimeout(scanTimer);
 
-    const delay = Math.max(
-      Number(delayMs) || 0,
-      suspendScanUntil > Date.now() ? suspendScanUntil - Date.now() + 120 : 0
-    );
+    const urgent = isUrgentScanReason(reason);
+    const suspendedFor = suspendScanUntil > Date.now() ? suspendScanUntil - Date.now() + 120 : 0;
+    const delay = urgent ? Math.max(0, Number(delayMs) || 0) : Math.max(Number(delayMs) || 0, suspendedFor);
 
-    scanTimer = setTimeout(() => {
-      scanTimer = null;
-      scanPage(reason);
-    }, delay);
+    scanTimer = setTimeout(() => runScheduledScan(reason), delay);
+
+    // MutationObserver раньше работал как чистый debounce: при непрерывных
+    // перестройках React таймер мог отодвигаться бесконечно. Жёсткий дедлайн
+    // гарантирует хотя бы один проход даже во время шумного SPA-перехода.
+    if (!scanMaxTimer) {
+      const maxDelay = urgent ? Math.max(220, delay) : Math.max(650, delay);
+      scanMaxTimer = setTimeout(() => runScheduledScan(`max-latency:${reason}`), maxDelay);
+    }
   }
 
   function rescanNow() {
@@ -6651,17 +6697,24 @@
 
   function scanPage(reason = 'manual') {
     if (!document.body) return;
-    if (Date.now() < suspendScanUntil) { scheduleScan('suspended', 120); return; }
 
-    if (location.href !== lastUrl) {
+    const urlChanged = location.href !== lastUrl;
+    if (urlChanged) {
       lastUrl = location.href;
       seriesRuntime.requestToken += 1;
       seriesRuntime.currentVideoId = '';
       seriesRuntime.result = null;
       removeSeriesNavigator();
+
+      // Сбрасываем старые карточные метки, но тут же продолжаем этот же проход.
+      // Раньше после clearAllMarks() следовала ещё одна пауза, и именно в ней
+      // интерфейс RUTUBE успевал остаться полностью «неочищенным».
       clearAllMarks();
-      suspendScanUntil = Date.now() + 900;
-      scheduleScan('route', 120);
+      suspendScanUntil = 0;
+    }
+
+    if (!urlChanged && Date.now() < suspendScanUntil && !isUrgentScanReason(reason)) {
+      scheduleScan('suspended', 120);
       return;
     }
 
@@ -7704,6 +7757,26 @@
 
     window.addEventListener('popstate', notify, true);
     window.addEventListener('hashchange', notify, true);
+
+    // Chromium Navigation API может использоваться SPA независимо от прямых
+    // history.pushState/replaceState. Подписываемся и на него, если доступен.
+    try {
+      if (window.navigation && typeof window.navigation.addEventListener === 'function') {
+        window.navigation.addEventListener('navigate', notify);
+        window.navigation.addEventListener('navigatesuccess', notify);
+      }
+    } catch (e) {}
+
+    // Даже если URL вообще не поменялся (характерно для переходов внутри playlist),
+    // новое видео обязано пройти loadedmetadata/playing. Это дополнительная страховка
+    // к сигналу из /api/play/options.
+    document.addEventListener('loadedmetadata', (event) => {
+      if (event && event.target && event.target.tagName === 'VIDEO') scheduleScan('video-loadedmetadata', 45);
+    }, true);
+    document.addEventListener('playing', (event) => {
+      if (event && event.target && event.target.tagName === 'VIDEO') scheduleScan('video-playing', 70);
+    }, true);
+
     window.addEventListener('focus', () => scheduleScan('focus', 260), true);
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) scheduleScan('visible', 220);
@@ -7838,6 +7911,7 @@
     bindEvents();
     installRouteWatcher();
     installDomObserver();
+    try { lastVideoContextId = getCurrentVideoId() || lastVideoContextId; } catch (e) {}
 
     loadMovieDbFromLocalCache();
     setTimeout(checkGithubAvailability, 1500);
