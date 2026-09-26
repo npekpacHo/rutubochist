@@ -1,0 +1,238 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.3",
+  "id": "2026-09-26-centralzd",
+  "title": "Что посмотреть от 26.09.2026",
+  "date": "2026-09-26",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_26092026_14366825",
+  "extractedAt": "2026-09-26T06:56:12.740Z",
+  "count": 10,
+  "items": [
+    {
+      "id": "unabomber-unabomber-2026",
+      "title": "Унабомбер",
+      "originalTitle": "Unabomber",
+      "year": 2026,
+      "query": "Унабомбер Unabomber 2026",
+      "genres": [
+        "триллер",
+        "драма",
+        "криминал"
+      ],
+      "ratings": {
+        "rottenTomatoes": {
+          "critics": 31
+        }
+      }
+    },
+    {
+      "id": "500-mil-500-miles-2026",
+      "title": "500 миль",
+      "originalTitle": "500 miles",
+      "year": 2026,
+      "query": "500 миль 500 miles 2026",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.3,
+          "votes": 516,
+          "percent": 73
+        },
+        "rottenTomatoes": {
+          "critics": 67
+        }
+      }
+    },
+    {
+      "id": "pridurki-idiots-2026",
+      "title": "Придурки",
+      "originalTitle": "Idiots",
+      "year": 2026,
+      "query": "Придурки Idiots 2026",
+      "genres": [
+        "комедия",
+        "криминал"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 5.5,
+          "votes": 1445,
+          "percent": 55
+        },
+        "imdb": {
+          "value": 6.4,
+          "votes": 95,
+          "percent": 64
+        },
+        "rottenTomatoes": {
+          "critics": 64,
+          "audience": 58
+        }
+      }
+    },
+    {
+      "id": "gipoteza-lyubvi-the-love-hypothesis-2026",
+      "title": "Гипотеза любви",
+      "originalTitle": "The Love Hypothesis",
+      "year": 2026,
+      "query": "Гипотеза любви The Love Hypothesis 2026",
+      "genres": [
+        "мелодрама",
+        "комедия"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.4,
+          "votes": 1597,
+          "percent": 74
+        },
+        "imdb": {
+          "value": 7.1,
+          "votes": 6700,
+          "percent": 71
+        },
+        "rottenTomatoes": {
+          "critics": 72,
+          "audience": 79
+        }
+      }
+    },
+    {
+      "id": "devichnik-v-spa-spa-weekend-2026",
+      "title": "Девичник в спа",
+      "originalTitle": "Spa Weekend",
+      "year": 2026,
+      "query": "Девичник в спа Spa Weekend 2026",
+      "genres": [
+        "комедия"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 5.5,
+          "votes": 265,
+          "percent": 55
+        },
+        "imdb": {
+          "value": 5.2,
+          "votes": 1900,
+          "percent": 52
+        },
+        "rottenTomatoes": {
+          "critics": 29,
+          "audience": 73
+        }
+      }
+    },
+    {
+      "id": "elektricheskiy-poceluy-la-v-nus-lectrique-the-electric-kiss-2026",
+      "title": "Электрический поцелуй",
+      "originalTitle": "La Vénus électrique (The Electric Kiss)",
+      "year": 2026,
+      "query": "Электрический поцелуй La Vénus électrique (The Electric Kiss) 2026",
+      "genres": [
+        "мелодрама",
+        "комедия"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.4,
+          "votes": 368,
+          "percent": 74
+        },
+        "imdb": {
+          "value": 6.7,
+          "votes": 474,
+          "percent": 67
+        },
+        "rottenTomatoes": {
+          "critics": 52
+        }
+      }
+    },
+    {
+      "id": "koshachiy-krik-ma-ji-krik-cat-s-cry-2024",
+      "title": "Кошачий крик",
+      "originalTitle": "Mačji Krik (Cat's Cry)",
+      "year": 2024,
+      "query": "Кошачий крик Mačji Krik (Cat's Cry) 2024",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.6,
+          "votes": 57,
+          "percent": 76
+        }
+      }
+    },
+    {
+      "id": "moshenniki-2026",
+      "title": "Мошенники",
+      "year": 2026,
+      "query": "Мошенники 2026",
+      "genres": [
+        "драма",
+        "криминал"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 8.1,
+          "votes": 73984,
+          "percent": 81
+        }
+      }
+    },
+    {
+      "id": "amerikanskiy-zalozhnik-american-hostage-1-sezon-2026",
+      "title": "Американский заложник",
+      "originalTitle": "American Hostage (1 сезон)",
+      "year": 2026,
+      "query": "Американский заложник American Hostage (1 сезон) 2026",
+      "genres": [
+        "триллер",
+        "драма",
+        "криминал"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.2,
+          "votes": 376,
+          "percent": 72
+        },
+        "rottenTomatoes": {
+          "critics": 93
+        }
+      }
+    },
+    {
+      "id": "amerikanskaya-istoriya-uzhasov-american-horror-story-13-sezon-2011",
+      "title": "Американская история ужасов",
+      "originalTitle": "American Horror Story (13 сезон)",
+      "year": 2011,
+      "query": "Американская история ужасов American Horror Story (13 сезон) 2011",
+      "genres": [
+        "ужасы",
+        "триллер",
+        "драма"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.9,
+          "votes": 291645,
+          "percent": 79
+        },
+        "imdb": {
+          "value": 7.9,
+          "votes": 361000,
+          "percent": 79
+        },
+        "rottenTomatoes": {
+          "audience": 38
+        }
+      }
+    }
+  ]
+}
