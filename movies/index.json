@@ -1,7 +1,15 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-19",
+  "updatedAt": "2026-09-26",
   "batches": [
+    {
+  "id": "2026-09-26-centralzd",
+  "title": "Что посмотреть от 26.09.2026",
+  "date": "2026-09-26",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_26092026_14366825",
+  "file": "batches/2026-09-26-centralzd.json",
+  "count": 10
+},
     {
   "id": "2026-09-19-centralzd",
   "title": "Что посмотреть от 19.09.2026",
