@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист: сборщик фильмов с Пикабу
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      0.1.3
+// @version      0.1.5
 // @description  Извлекает из постов CentralZD названия фильмов, жанры и рейтинги в JSON-батч для Рутубочиста.
 // @author       elekt_riki
 // @license      MIT
@@ -13,9 +13,75 @@
 (function () {
   'use strict';
 
-  const UI_VERSION = '0.1.3';
+  const UI_VERSION = '0.1.5';
   const BUTTON_ID = 'rtpm-extract-btn';
   const MODAL_ID = 'rtpm-modal';
+  const STYLE_ID = 'rtpm-style';
+  const WEEKDAY_GUARD_STYLE_ID = 'rtpm-weekday-guard';
+
+  function isForcedRun() {
+    try {
+      return new URLSearchParams(location.search).get('rtpm') === '1';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function isSaturday() {
+    return new Date().getDay() === 6;
+  }
+
+  function removeExtractorUi() {
+    document.getElementById(BUTTON_ID)?.remove();
+    document.getElementById(MODAL_ID)?.remove();
+    document.getElementById(STYLE_ID)?.remove();
+    document.querySelectorAll('.rtpm-toast').forEach((el) => el.remove());
+  }
+
+  function installWeekdayGuard() {
+    const apply = () => {
+      removeExtractorUi();
+
+      // Даже если в AdGuard случайно осталась включена старая версия скрипта,
+      // её плавающая кнопка и модалка на неделе не должны появиться.
+      if (!document.getElementById(WEEKDAY_GUARD_STYLE_ID)) {
+        const style = document.createElement('style');
+        style.id = WEEKDAY_GUARD_STYLE_ID;
+        style.textContent = `
+          #${BUTTON_ID},
+          #${MODAL_ID},
+          .rtpm-toast {
+            display: none !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+          }
+        `;
+        (document.documentElement || document.head || document.body)?.appendChild(style);
+      }
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', apply, { once: true });
+    } else {
+      apply();
+    }
+
+    // BFCache: браузер способен вернуть уже готовую страницу вместе со старой кнопкой.
+    window.addEventListener('pageshow', apply);
+
+    // Пара коротких повторов ловит старый userscript, если он выполняется позже этого.
+    setTimeout(apply, 250);
+    setTimeout(apply, 1500);
+  }
+
+  // В обычные дни скрипт заканчивает работу здесь. ?rtpm=1 — ручной запуск.
+  if (!isSaturday() && !isForcedRun()) {
+    installWeekdayGuard();
+    return;
+  }
+
+  // Если страницу открыли в субботу после сохранённого состояния, снимаем защиту.
+  document.getElementById(WEEKDAY_GUARD_STYLE_ID)?.remove();
 
   const GENRE_ALIASES = {
     'мелодрама': 'мелодрама',
@@ -50,10 +116,10 @@
   const META_LINE_RE = new RegExp(`^${META_LABEL_SOURCE}\\s*[:：]`, 'i');
 
   function addStyle() {
-    if (document.getElementById('rtpm-style')) return;
+    if (document.getElementById(STYLE_ID)) return;
 
     const style = document.createElement('style');
-    style.id = 'rtpm-style';
+    style.id = STYLE_ID;
     style.textContent = `
       #${BUTTON_ID} {
         position: fixed !important;
