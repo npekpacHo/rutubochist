@@ -1,0 +1,216 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.5",
+  "id": "2026-10-03-centralzd",
+  "title": "Что посмотреть от 03.10.2026",
+  "date": "2026-10-03",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_03102026_14388218",
+  "extractedAt": "2026-10-03T16:33:43.739Z",
+  "count": 9,
+  "items": [
+    {
+      "id": "kur-er-runner-2026",
+      "title": "Курьер",
+      "originalTitle": "Runner",
+      "year": 2026,
+      "query": "Курьер Runner 2026",
+      "genres": [
+        "боевик",
+        "триллер"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.6,
+          "votes": 3435,
+          "percent": 66
+        },
+        "imdb": {
+          "value": 6.7,
+          "votes": 3305,
+          "percent": 67
+        },
+        "rottenTomatoes": {
+          "critics": 77,
+          "audience": 90
+        }
+      }
+    },
+    {
+      "id": "vosstavshiy-the-uprising-2026",
+      "title": "Восставший",
+      "originalTitle": "The Uprising",
+      "year": 2026,
+      "query": "Восставший The Uprising 2026",
+      "genres": [
+        "боевик",
+        "драма",
+        "военный",
+        "история"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.5,
+          "votes": 2197,
+          "percent": 65
+        },
+        "imdb": {
+          "value": 6.2,
+          "votes": 4027,
+          "percent": 62
+        },
+        "rottenTomatoes": {
+          "critics": 56,
+          "audience": 65
+        }
+      }
+    },
+    {
+      "id": "zhivya-na-zemle-zhit-na-zemle-living-the-land-sheng-xi-zhi-di-2025",
+      "title": "Живя на земле (Жить на земле)",
+      "originalTitle": "Living the Land (Sheng xi zhi di)",
+      "year": 2025,
+      "query": "Живя на земле (Жить на земле) Living the Land (Sheng xi zhi di) 2025",
+      "genres": [
+        "драма",
+        "история"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.9,
+          "votes": 233,
+          "percent": 69
+        },
+        "rottenTomatoes": {
+          "critics": 100,
+          "audience": 65
+        }
+      }
+    },
+    {
+      "id": "k-vostoku-ot-edema-east-of-eden-1-sezon-2026",
+      "title": "К востоку от Эдема",
+      "originalTitle": "East of Eden (1 сезон)",
+      "year": 2026,
+      "query": "К востоку от Эдема East of Eden (1 сезон) 2026",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.5,
+          "votes": 689,
+          "percent": 75
+        },
+        "rottenTomatoes": {
+          "critics": 85,
+          "audience": 71
+        }
+      }
+    },
+    {
+      "id": "klinika-scrubs-2-sezon-2025",
+      "title": "Клиника",
+      "originalTitle": "Scrubs (2 сезон)",
+      "year": 2025,
+      "query": "Клиника Scrubs (2 сезон) 2025",
+      "genres": [
+        "комедия",
+        "драма"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 8.7,
+          "votes": 19,
+          "percent": 87
+        },
+        "imdb": {
+          "value": 8.4,
+          "votes": 284000,
+          "percent": 84
+        }
+      }
+    },
+    {
+      "id": "yaga-yaga-1-sezon-2026",
+      "title": "Яга",
+      "originalTitle": "Yaga (1 сезон)",
+      "year": 2026,
+      "query": "Яга Yaga (1 сезон) 2026",
+      "genres": [
+        "ужасы",
+        "фэнтези",
+        "триллер",
+        "драма",
+        "детектив"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 8.5,
+          "votes": 122,
+          "percent": 85
+        }
+      }
+    },
+    {
+      "id": "voyna-war-1-sezon-2026",
+      "title": "Война",
+      "originalTitle": "War (1 сезон)",
+      "year": 2026,
+      "query": "Война War (1 сезон) 2026",
+      "genres": [
+        "триллер",
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.7,
+          "votes": 89,
+          "percent": 67
+        },
+        "rottenTomatoes": {
+          "critics": 84
+        }
+      }
+    },
+    {
+      "id": "ubit-dzheki-kill-jackie-1-sezon-2026",
+      "title": "Убить Джеки",
+      "originalTitle": "Kill Jackie (1 сезон)",
+      "year": 2026,
+      "query": "Убить Джеки Kill Jackie (1 сезон) 2026",
+      "genres": [
+        "триллер",
+        "драма",
+        "криминал"
+      ],
+      "ratings": {
+        "rottenTomatoes": {
+          "critics": 55
+        }
+      }
+    },
+    {
+      "id": "simpsony-the-simpsons-38-sezon-1989",
+      "title": "Симпсоны",
+      "originalTitle": "The Simpsons (38 сезон)",
+      "year": 1989,
+      "query": "Симпсоны The Simpsons (38 сезон) 1989",
+      "genres": [
+        "мультфильм",
+        "комедия"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 8.4,
+          "votes": 339480,
+          "percent": 84
+        },
+        "imdb": {
+          "value": 8.6,
+          "votes": 470675,
+          "percent": 86
+        }
+      }
+    }
+  ]
+}
