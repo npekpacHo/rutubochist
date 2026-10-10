@@ -1,0 +1,286 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.5",
+  "id": "2026-10-10-centralzd",
+  "title": "Что посмотреть от 10.10.2026",
+  "date": "2026-10-10",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_10102026_14410040",
+  "extractedAt": "2026-10-10T09:29:50.363Z",
+  "count": 12,
+  "items": [
+    {
+      "id": "chelovek-pauk-novyy-den-spider-man-brand-new-day-2026",
+      "title": "Человек-паук: Новый день",
+      "originalTitle": "Spider-Man: Brand New Day",
+      "year": 2026,
+      "query": "Человек-паук: Новый день Spider-Man: Brand New Day 2026",
+      "genres": [
+        "фантастика",
+        "фэнтези",
+        "боевик",
+        "приключения"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 8,
+          "votes": 531648,
+          "percent": 80
+        },
+        "imdb": {
+          "value": 8.1,
+          "votes": 155671,
+          "percent": 81
+        },
+        "rottenTomatoes": {
+          "critics": 90,
+          "audience": 97
+        }
+      }
+    },
+    {
+      "id": "zhivotnye-animals-2026",
+      "title": "Животные",
+      "originalTitle": "Animals",
+      "year": 2026,
+      "query": "Животные Animals 2026",
+      "genres": [
+        "боевик",
+        "триллер",
+        "драма",
+        "криминал"
+      ],
+      "ratings": {
+        "rottenTomatoes": {
+          "critics": 38
+        }
+      }
+    },
+    {
+      "id": "vyshka-2-fall-2-deadpoint-2026",
+      "title": "Вышка 2",
+      "originalTitle": "Fall 2: Deadpoint",
+      "year": 2026,
+      "query": "Вышка 2 Fall 2: Deadpoint 2026",
+      "genres": [
+        "драма",
+        "приключения",
+        "триллер"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6,
+          "votes": 20937,
+          "percent": 60
+        },
+        "imdb": {
+          "value": 5.6,
+          "votes": 482,
+          "percent": 56
+        },
+        "rottenTomatoes": {
+          "critics": 53,
+          "audience": 63
+        }
+      }
+    },
+    {
+      "id": "astral-6-oni-uzhe-zdes-insidious-out-of-the-further-2026",
+      "title": "Астрал 6: Они уже здесь",
+      "originalTitle": "Insidious: Out of the Further",
+      "year": 2026,
+      "query": "Астрал 6: Они уже здесь Insidious: Out of the Further 2026",
+      "genres": [
+        "ужасы"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.2,
+          "votes": 11548,
+          "percent": 62
+        },
+        "imdb": {
+          "value": 6.1,
+          "votes": 18355,
+          "percent": 61
+        },
+        "rottenTomatoes": {
+          "critics": 57,
+          "audience": 68
+        }
+      }
+    },
+    {
+      "id": "natisk-onslaught-2026",
+      "title": "Натиск",
+      "originalTitle": "Onslaught",
+      "year": 2026,
+      "query": "Натиск Onslaught 2026",
+      "genres": [
+        "ужасы",
+        "фантастика",
+        "боевик",
+        "триллер"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 5.6,
+          "votes": 2801,
+          "percent": 56
+        },
+        "imdb": {
+          "value": 6,
+          "votes": 3227,
+          "percent": 60
+        },
+        "rottenTomatoes": {
+          "critics": 60,
+          "audience": 61
+        }
+      }
+    },
+    {
+      "id": "okrug-yunion-union-county-2026",
+      "title": "Округ Юнион",
+      "originalTitle": "Union County",
+      "year": 2026,
+      "query": "Округ Юнион Union County 2026",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.6,
+          "votes": 117,
+          "percent": 66
+        },
+        "rottenTomatoes": {
+          "critics": 95
+        }
+      }
+    },
+    {
+      "id": "pozdnyaya-slava-late-fame-2025",
+      "title": "Поздняя слава",
+      "originalTitle": "Late Fame",
+      "year": 2025,
+      "query": "Поздняя слава Late Fame 2025",
+      "genres": [
+        "драма",
+        "комедия"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.8,
+          "votes": 512,
+          "percent": 68
+        },
+        "rottenTomatoes": {
+          "critics": 93,
+          "audience": 65
+        }
+      }
+    },
+    {
+      "id": "i-synov-ya-sons-and-sons-2025",
+      "title": "И сыновья",
+      "originalTitle": "& Sons (And Sons)",
+      "year": 2025,
+      "query": "И сыновья & Sons (And Sons) 2025",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.4,
+          "votes": 237,
+          "percent": 64
+        },
+        "rottenTomatoes": {
+          "critics": 50
+        }
+      }
+    },
+    {
+      "id": "odin-god-v-shkole-un-anno-di-scuola-2025",
+      "title": "Один год в школе",
+      "originalTitle": "Un anno di scuola",
+      "year": 2025,
+      "query": "Один год в школе Un anno di scuola 2025",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.6,
+          "votes": 82,
+          "percent": 66
+        }
+      }
+    },
+    {
+      "id": "drama-sem-i-bagger-bagger-drama-2024",
+      "title": "Драма семьи Баггер",
+      "originalTitle": "Bagger Drama",
+      "year": 2024,
+      "query": "Драма семьи Баггер Bagger Drama 2024",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.4,
+          "votes": 79,
+          "percent": 74
+        }
+      }
+    },
+    {
+      "id": "posledniy-pervyy-zimniy-k2-the-last-first-winter-k2-2026",
+      "title": "Последний первый: Зимний К2",
+      "originalTitle": "The Last First: Winter K2",
+      "year": 2026,
+      "query": "Последний первый: Зимний К2 The Last First: Winter K2 2026",
+      "genres": [
+        "документальный",
+        "спорт"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 8.2,
+          "votes": 49,
+          "percent": 82
+        },
+        "rottenTomatoes": {
+          "critics": 100
+        }
+      }
+    },
+    {
+      "id": "kerri-carrie-1-sezon-2026",
+      "title": "Кэрри",
+      "originalTitle": "Carrie (1 сезон)",
+      "year": 2026,
+      "query": "Кэрри Carrie (1 сезон) 2026",
+      "genres": [
+        "ужасы",
+        "драма"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.3,
+          "votes": 1560,
+          "percent": 73
+        },
+        "imdb": {
+          "value": 7.8,
+          "votes": 4900,
+          "percent": 78
+        },
+        "rottenTomatoes": {
+          "critics": 84,
+          "audience": 83
+        }
+      }
+    }
+  ]
+}
