@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.4.24
+// @version      1.4.26
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki / npekpacHo
 // @license      MIT
@@ -39,7 +39,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.4.24';
+  const UI_VERSION = '1.4.26';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -3253,6 +3253,32 @@
       parts.push(`
         /* Рутубочист: глобальная зачистка интерфейса. */
 
+        /* ERID — рекламный идентификатор. Саму ссылку гасим сразу, ещё до JS-скана,
+           чтобы новая рекламная карточка не успевала мелькнуть на странице. */
+        a[href*="erid=" i],
+        area[href*="erid=" i],
+        form[action*="erid=" i],
+        [data-href*="erid=" i],
+        [data-url*="erid=" i] {
+          display: none !important;
+          visibility: hidden !important;
+          pointer-events: none !important;
+        }
+
+        @supports selector(:has(*)) {
+          .wdp-slider-module__slide:has(a[href*="erid=" i]),
+          [data-testid*="banner" i]:has(a[href*="erid=" i]),
+          [data-testid*="advert" i]:has(a[href*="erid=" i]),
+          [class*="banner" i]:has(a[href*="erid=" i]),
+          [class*="advert" i]:has(a[href*="erid=" i]),
+          [class*="adfox" i]:has(a[href*="erid=" i]),
+          [class*="promo" i]:has(a[href*="erid=" i]) {
+            display: none !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+          }
+        }
+
         /* Нижняя служебная панель desktop используется RUTUBE в основном для
            ситуационных уведомлений. В чистом интерфейсе убираем её целиком. */
         [class*="bottom-bar-components-module__bottomBar"][class*="application-module__desktopBottomBar"],
@@ -3326,6 +3352,9 @@
             display: none !important;
           }
           .wdp-showcase-module__wdp-showcase:has(a[href="/tags/video/5989/"]),
+          html[data-rtst-page="home"] .wdp-slider-module__root:has(img[src*="/promoitem/"]),
+          html[data-rtst-page="home"] .wdp-slider-module__root:has([class*="wdp-slider-item-module__banner"] img[src*="/promoitem/"]),
+          html[data-rtst-page="home"] .wdp-slider-module__root:has(a[href*="erid="]),
           .wdp-video-carousel-module__outer:has(img[src*="/promoitem/"]),
           .wdp-video-carousel-module__outer:has([data-slide*="промобаннер" i]),
           .wdp-video-carousel-module__outer:has(a[href*="utm_medium=banner"]),
@@ -3531,6 +3560,104 @@
     updateCounter();
   }
 
+  function hasEridMarker(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return false;
+    // Обычный query-параметр и его URL-encoded варианты.
+    return /(?:[?&]|%3f|%26)erid(?:=|%3d)/i.test(raw) || /(?:^|[?&])erid=/i.test(raw);
+  }
+
+  function eridHrefFromElement(el) {
+    if (!el) return '';
+    try {
+      return String(
+        (el.getAttribute && (el.getAttribute('href') || el.getAttribute('action') || el.getAttribute('data-href') || el.getAttribute('data-url'))) ||
+        el.href || el.action || ''
+      );
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function shouldBlockEridLink(linkEl) {
+    if (!settings.enabled || !(settings.cleanRutubeChrome || settings.hideSideMenuPolitics) || !linkEl || isRtstUiElement(linkEl)) return false;
+    return hasEridMarker(eridHrefFromElement(linkEl));
+  }
+
+  function findEridAdTarget(el) {
+    if (!el || isRtstUiElement(el)) return null;
+
+    const exact = el.closest && el.closest(
+      '[data-testid*="advert" i], [data-testid*="banner" i], ' +
+      '[class*="advert" i], [class*="adfox" i], [class*="promo" i], [class*="banner" i], [class*="sponsor" i], ' +
+      '.wdp-slider-module__slide, [role="listitem"], article, li'
+    );
+    if (exact && exact !== document.body && exact !== document.documentElement && !isRtstUiElement(exact)) return exact;
+
+    // Для неизвестной разметки поднимаемся только по компактным обёрткам. Не трогаем
+    // main/section/nav целиком: один рекламный линк не должен унести половину страницы.
+    let node = el;
+    for (let i = 0; i < 4 && node && node.parentElement; i++) {
+      const parent = node.parentElement;
+      if (!parent || parent === document.body || parent === document.documentElement || isRtstUiElement(parent)) break;
+      const tag = (parent.tagName || '').toLowerCase();
+      if (['main', 'section', 'nav', 'header', 'footer', 'aside'].includes(tag)) break;
+      const links = parent.querySelectorAll ? parent.querySelectorAll('a[href]').length : 0;
+      const eridLinks = parent.querySelectorAll ? parent.querySelectorAll('a[href*="erid=" i]').length : 0;
+      const children = parent.children ? parent.children.length : 0;
+      if (eridLinks >= 1 && links <= 4 && children <= 8) node = parent;
+      else break;
+    }
+    return node || el;
+  }
+
+  function markEridAdHidden(target) {
+    if (!target || isRtstUiElement(target)) return false;
+    if (target.dataset && target.dataset.rtstChromeHidden === '1') return false;
+    try {
+      target.classList.add('rtst-chrome-hidden');
+      target.dataset.rtstChromeHidden = '1';
+      target.dataset.rtstReason = 'скрыто, реклама ERID';
+      hiddenCount += 1;
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function hideEridAds(root = document) {
+    if (!settings.enabled || !(settings.cleanRutubeChrome || settings.hideSideMenuPolitics)) return;
+    const scope = root && root.querySelectorAll ? root : document;
+    if (scope !== document && isRtstUiElement(scope)) return;
+
+    const candidates = [];
+    try {
+      if (scope.matches && (
+        (scope.matches('a[href], area[href], form[action], [data-href], [data-url]') && hasEridMarker(eridHrefFromElement(scope)))
+      )) candidates.push(scope);
+
+      candidates.push(...scope.querySelectorAll(
+        'a[href*="erid=" i], area[href*="erid=" i], form[action*="erid=" i], [data-href*="erid=" i], [data-url*="erid=" i]'
+      ));
+    } catch (e) {}
+
+    const seen = new Set();
+    for (const el of candidates) {
+      if (!el || isRtstUiElement(el) || !hasEridMarker(eridHrefFromElement(el))) continue;
+      let target = findEridAdTarget(el) || el;
+
+      // Не скрываем целиком header/nav, даже если RUTUBE однажды завернёт рекламную
+      // ссылку прямо туда. В таком случае достаточно уничтожить сам рекламный узел.
+      const tag = (target.tagName || '').toLowerCase();
+      if (['html', 'body', 'main', 'header', 'nav', 'footer', 'aside', 'section'].includes(tag)) target = el;
+      if (!target || seen.has(target)) continue;
+      seen.add(target);
+
+      if (isInsidePlayer(target)) markPlayerAdHidden(target);
+      else markEridAdHidden(target);
+    }
+  }
+
   function shouldBlockRutubeSportLink(linkEl) {
     if (!settings.enabled || !settings.cleanRutubeChrome || !linkEl) return false;
     const href = String(linkEl.getAttribute('href') || linkEl.href || '').trim();
@@ -3585,6 +3712,15 @@
 
     document.addEventListener('click', (event) => {
       const linkEl = event.target && event.target.closest && event.target.closest('a[href]');
+      if (linkEl && shouldBlockEridLink(linkEl)) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        const target = findEridAdTarget(linkEl) || linkEl;
+        if (isInsidePlayer(target)) markPlayerAdHidden(target);
+        else markEridAdHidden(target);
+        toast('Рекламная ссылка ERID заблокирована.');
+        return;
+      }
       if (linkEl && shouldBlockRutubeSportLink(linkEl)) {
         event.preventDefault();
         event.stopPropagation();
@@ -6724,6 +6860,7 @@
     syncRutubePopupCloseProxy();
     hideBackgroundModeSubscriptionPopup(document);
     hideOnboardingInventoryPopups(document);
+    hideEridAds(document);
     if (isEmbeddedRutubePlayer()) return;
     refreshLegacyControls();
 
@@ -7330,6 +7467,7 @@
   }
 
   function cleanRutubeChrome() {
+    hideEridAds(document);
     ensurePrimaryMenu();
     markMobileTopCategoryTabs();
     hideOnboardingInventoryPopups(document);
@@ -7354,6 +7492,17 @@
     document.querySelectorAll('.wdp-onboardings-inventory-banner-module__wrapper-section, section[class*="onboardings-inventory-banner-module__wrapper-section"]').forEach((banner) => {
       if (!isRtstUiElement(banner)) forceHideChromeElement(banner, 'баннер rutube');
     });
+
+    if (currentRutubePageType() === 'home') {
+      document.querySelectorAll('.wdp-slider-module__root').forEach((slider) => {
+        if (isRtstUiElement(slider)) return;
+        const promoImages = slider.querySelectorAll('img[src*="/promoitem/"]');
+        const hasPromoBanner = Boolean(slider.querySelector('[class*="wdp-slider-item-module__banner"] img[src*="/promoitem/"]'));
+        const hasAdMarker = Boolean(slider.querySelector('a[href*="erid="], [data-slide*="промобаннер" i]'));
+        if (!(promoImages.length >= 1 && (hasPromoBanner || hasAdMarker || promoImages.length >= 2))) return;
+        forceHideChromeElement(slider, 'рекламная карусель на главной');
+      });
+    }
 
     document.querySelectorAll('.wdp-video-carousel-module__outer').forEach((carousel) => {
       if (isRtstUiElement(carousel)) return;
