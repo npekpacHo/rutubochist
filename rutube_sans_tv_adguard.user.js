@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.4.26
+// @version      1.5.0
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki / npekpacHo
 // @license      MIT
@@ -39,7 +39,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.4.26';
+  const UI_VERSION = '1.5.0';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -103,7 +103,8 @@
   const SETTINGS_DEFAULTS = {
     enabled: true, showHidden: false, hideSideMenuPolitics: true, hideShorts: true, hardRemove: false,
     cleanRutubeChrome: true, cleanWatchPage: true, disableAutoplay: true, hideComments: false, hideVideoInfo: false,
-    stripPlayerAds: true, unlockContextMenu: true, swipeVideoVolume: true, autoFullscreenOnRotate: false, hideVpnPopup: true, dimSearchTrash: true, markWatchedVideos: true, seriesNavigator: true,
+    stripPlayerAds: true, unlockContextMenu: true, swipeVideoVolume: true, autoFullscreenOnRotate: false, hideVpnPopup: true, dimSearchTrash: true, markWatchedVideos: true, seriesNavigator: true, personalHome: true,
+    useCommunityFilter: true, contributeCommunitySignals: false,
     safeRouterPatch060: true, safeDelayedScan070: true,
     blockedChannels: DEFAULT_BLOCKED_CHANNELS, blockedWords: DEFAULT_BLOCKED_WORDS, userChannels: [], userWords: []
   };
@@ -135,6 +136,29 @@
   const MOVIE_DB_UPDATE_INTERVAL_MS = 3 * 24 * 60 * 60 * 1000;
   const MOVIE_DB_SUNDAY_CHECK_HOUR = 12;
   const MOVIE_DB_REQUEST_TIMEOUT_MS = 20 * 1000;
+
+  // Коллективный фильтр. Пока WordPress-плагин ещё не доработан, клиент уже
+  // умеет жить с недельным snapshot-кэшем и очередью явных пользовательских
+  // сигналов. Старый кэш всегда остаётся рабочим при недоступном сервере.
+  const COMMUNITY_SNAPSHOT_URLS = [
+    'https://npekpacho.ru/rutube/community/snapshot.json',
+    'https://npekpacho.ru/wp-json/rutubochist/v1/snapshot'
+  ];
+  const COMMUNITY_SIGNAL_URL = 'https://npekpacho.ru/wp-json/rutubochist/v1/signal';
+  const COMMUNITY_CACHE_KEY = 'rtstCommunityCache:v1';
+  const COMMUNITY_QUEUE_KEY = 'rtstCommunitySignalQueue:v1';
+  const COMMUNITY_CHECK_KEY = 'rtstCommunityCheck:v1';
+  const COMMUNITY_CLIENT_KEY = 'rtstCommunityClient:v1';
+  const VIDEO_INTEREST_KEY = 'rtstVideoInterest:v1';
+  const COMMUNITY_UPDATE_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
+  const COMMUNITY_REQUEST_TIMEOUT_MS = 10 * 1000;
+  const COMMUNITY_QUEUE_MAX = 800;
+  const VIDEO_INTEREST_MAX = 3000;
+
+  const communityCache = {
+    version: 0, savedAt: 0, generatedAt: '', source: '',
+    channels: [], channelIds: [], words: [], videoInterest: {}
+  };
   const PANEL_ICON_CACHE_KEY = 'rtstPanelIconCache:v1';
   const PANEL_ICON_MAX_CACHE_BYTES = 260 * 1024;
   const PANEL_ICON_CACHE_TTL_MS = 14 * 24 * 60 * 60 * 1000;
@@ -146,6 +170,15 @@
   ];
   const PROJECT_URL = 'https://github.com/npekpacHo/rutubochist';
   const movieCache = { index: null, batches: new Map(), currentIndex: 0, currentBatch: null, source: 'none', savedAt: 0 };
+  const MOVIE_SMART_SEARCH_CACHE_TTL_MS = 30 * 60 * 1000;
+  const MOVIE_SMART_RESULTS_LIMIT = 5;
+  const MOVIE_SMART_DETAIL_LIMIT = 5;
+  const MOVIE_SMART_MIN_MATCH = 0.46;
+  const movieSmartRuntime = {
+    seq: 0,
+    entries: new Map(),
+    resolved: new Map()
+  };
   let githubState = { state: 'unknown', checkedAt: 0, message: '' };
   let movieDbLastRemoteSource = 'none';
   let panelIconCache = { src: '', source: 'fallback', savedAt: 0 };
@@ -160,6 +193,244 @@
     videoCache: new Map(),
     listCache: new Map()
   };
+
+  const PERSONAL_HOME_REFRESH_MS = 12 * 60 * 1000;
+  const PERSONAL_HOME_HISTORY_SEEDS = 8;
+  const PERSONAL_HOME_RELATED_SEEDS = 4;
+  const PERSONAL_HOME_FEED_RESOURCES = 6;
+  const personalHomeRuntime = {
+    seq: 0, loading: false, builtAt: 0, html: '', mount: null, error: '', profile: null
+  };
+
+  // Единый тонкий слой доступа к публичным same-origin API RUTUBE.
+  // Идея отделить API-интерфейс от потребителей подсмотрена у Rupoop/ApiInterfaces.kt;
+  // реализация здесь своя и не требует внешних сервисов или библиотек.
+  const rutubeApiRuntime = { cache: new Map() };
+  const RutubeApi = Object.freeze({
+    request: (url, options = {}) => rutubeApiRequest(url, options),
+    video: (videoId) => rutubeApiRequest(`/api/video/${encodeURIComponent(String(videoId || '').trim())}/?format=json`, {
+      cacheKey: `video:${String(videoId || '').trim()}`, cacheTtlMs: 15 * 60 * 1000
+    }),
+    searchVideos: async (query, options = {}) => {
+      const clean = String(query || '').trim();
+      if (!clean) return [];
+      const page = Math.max(1, Number(options.page) || 1);
+      const limit = Math.min(50, Math.max(1, Number(options.limit) || 20));
+      const params = new URLSearchParams({ query: clean, page: String(page), limit: String(limit) });
+      const key = `search:${normalize(clean)}:${page}:${limit}`;
+      const data = await rutubeApiRequest(`/api/search/video/?${params.toString()}`, {
+        cacheKey: key, cacheTtlMs: options.cacheTtlMs == null ? 8 * 60 * 1000 : Number(options.cacheTtlMs)
+      });
+      return rutubeApiList(data);
+    },
+    related: async (videoId, options = {}) => {
+      const id = String(videoId || '').trim();
+      if (!id) return [];
+      const page = Math.max(1, Number(options.page) || 1);
+      const limit = Math.min(50, Math.max(1, Number(options.limit) || 20));
+      const data = await rutubeApiRequest(`/api/video/${encodeURIComponent(id)}/related/?page=${page}&limit=${limit}`, {
+        cacheKey: `related:${id}:${page}:${limit}`, cacheTtlMs: 10 * 60 * 1000
+      });
+      return rutubeApiList(data);
+    },
+    playlistVideos: async (playlistId, options = {}) => {
+      const id = String(playlistId || '').trim();
+      if (!id) return [];
+      const page = Math.max(1, Number(options.page) || 1);
+      const data = await rutubeApiRequest(`/api/playlist/custom/${encodeURIComponent(id)}/videos?page=${page}&format=json`, {
+        cacheKey: `playlist:${id}:${page}`, cacheTtlMs: 10 * 60 * 1000
+      });
+      return rutubeApiList(data);
+    },
+    feed: async (slug = 'new_main_page') => {
+      const clean = String(slug || 'new_main_page').replace(/[^a-z0-9_-]/gi, '') || 'new_main_page';
+      return rutubeApiRequest(`/api/feeds/${encodeURIComponent(clean)}?format=json`, {
+        cacheKey: `feed:${clean}`, cacheTtlMs: 12 * 60 * 1000
+      });
+    },
+    resource: async (resourceUrl, options = {}) => {
+      const url = normalizeRutubeApiResourceUrl(resourceUrl, options.limit || 24);
+      if (!url) return [];
+      const data = await rutubeApiRequest(url, {
+        cacheKey: `resource:${url}`, cacheTtlMs: options.cacheTtlMs == null ? 10 * 60 * 1000 : Number(options.cacheTtlMs)
+      });
+      return rutubeApiList(data);
+    }
+  });
+
+
+  // Общий слой нормализации и оценки кандидатов RUTUBE. Он намеренно ничего
+  // не знает о конкретном UI: сериализатор, «Что посмотреть?» и будущие
+  // рекомендации передают только контекст и веса. Идея разделить получение
+  // кандидатов и их ранжирование навеяна RelatedVideoRecommendationStrategy /
+  // RecommendationUtils из Rupoop; формулы и реализация здесь собственные.
+  const RUTUBE_SOURCE_LABELS = Object.freeze({
+    tv: 'RUTUBE-сериал',
+    playlist: 'плейлист',
+    related: 'похожие RUTUBE',
+    search: 'поиск',
+    feed: 'витрина RUTUBE',
+    history: 'история'
+  });
+
+  const RutubeCandidateScorer = Object.freeze({
+    normalize(raw, options = {}) {
+      const item = videoObjectFromApiItem(raw);
+      if (!item) return null;
+      const url = options.url || videoUrlFromApiItem(item, options.playlistId || '');
+      const id = movieCandidateId(item, url);
+      const title = String(item.title || item.name || '').trim();
+      if (!title || !url) return null;
+      const source = String(options.source || '').trim();
+      const thumbnailCandidates = movieCandidateThumbnailCandidates(item, raw);
+      return {
+        raw,
+        item,
+        id,
+        url,
+        title,
+        authorId: extractAuthorId(item),
+        author: movieCandidateAuthorName(item),
+        duration: movieCandidateDurationSeconds(item),
+        year: movieCandidateYear(item),
+        season: movieCandidateSeason(item),
+        episode: movieCandidateEpisode(item),
+        views: movieCandidateViews(item),
+        likes: movieCandidateLikes(item),
+        publishedAt: movieCandidatePublishedAt(item),
+        thumbnail: thumbnailCandidates[0] || '',
+        thumbnailCandidates,
+        sources: source ? [source] : [],
+        queryKeys: options.queryKey ? [normalize(options.queryKey)] : []
+      };
+    },
+
+    blockedChannel(candidate) {
+      if (!candidate) return '';
+      const authorId = String(candidate.authorId || '').trim();
+      if (settings.useCommunityFilter !== false && authorId && communityCache.channelIds.includes(authorId)) return `id:${authorId}`;
+      const names = [candidate.author, candidate.item && candidate.item.author && candidate.item.author.name]
+        .filter(Boolean).join(' ');
+      return names ? (containsBlocked(names, allBlockedChannels()) || '') : '';
+    },
+
+    interest(candidate) {
+      const id = candidate && candidate.id ? String(candidate.id) : '';
+      const personal = id ? getVideoInterest(id) : null;
+      const community = id ? getCommunityVideoInterest(id) : null;
+      const personalScore = personal ? Math.max(-1, Math.min(1, Number(personal.signal) || 0)) : 0;
+      const communityScore = community ? Math.max(-1, Math.min(1, Number(community.score) || 0)) : 0;
+      return { personal, community, personalScore, communityScore };
+    },
+
+    history(candidate) {
+      if (!candidate || !candidate.id) return null;
+      const item = loadViewHistory()[candidate.id];
+      if (!item || typeof item !== 'object') return null;
+      return {
+        percent: Math.max(0, Math.min(100, Number(item.percent) || 0)),
+        status: String(item.status || ''),
+        updatedAt: item.updatedAt || item.completedAt || ''
+      };
+    },
+
+    sourceSupport(sources, queryKeys = []) {
+      const uniqueSources = unique((sources || []).filter((x) => x && x !== 'current'));
+      const uniqueQueries = unique((queryKeys || []).filter(Boolean));
+      const sourceWeights = { tv: 1, playlist: 0.88, related: 0.68, feed: 0.52, search: 0.42, history: 0.35 };
+      let sourceEvidence = 0;
+      for (const source of uniqueSources) sourceEvidence += sourceWeights[source] || 0.25;
+      const sourceConfidence = uniqueSources.length
+        ? Math.min(1, Math.max(...uniqueSources.map((source) => sourceWeights[source] || 0.25)) + Math.max(0, sourceEvidence - Math.max(...uniqueSources.map((source) => sourceWeights[source] || 0.25))) * 0.38)
+        : 0;
+      const queryConfidence = uniqueQueries.length <= 1 ? 0 : Math.min(1, 0.45 + (uniqueQueries.length - 1) * 0.22);
+      return {
+        sources: uniqueSources,
+        queryKeys: uniqueQueries,
+        sourceConfidence,
+        queryConfidence,
+        confidence: Math.max(sourceConfidence, queryConfidence),
+        seriesBonus: uniqueSources.length <= 1 ? 0 : Math.min(14, 5 + (uniqueSources.length - 1) * 4 + (uniqueSources.includes('tv') ? 2 : 0) + (uniqueSources.includes('playlist') ? 1 : 0)),
+        movieBonus: Math.min(0.055, Math.max(0, uniqueQueries.length - 1) * 0.018 + Math.max(0, uniqueSources.length - 1) * 0.012)
+      };
+    },
+
+    mergeEvidence(base, incoming) {
+      if (!base) return incoming;
+      if (!incoming) return base;
+      const chooseIncoming = Number(incoming.baseScore ?? incoming.score ?? 0) > Number(base.baseScore ?? base.score ?? 0);
+      const chosen = chooseIncoming ? incoming : base;
+      const support = this.sourceSupport(
+        [...(base.sources || (base.source ? [base.source] : [])), ...(incoming.sources || (incoming.source ? [incoming.source] : []))],
+        [...(base.queryKeys || []), ...(incoming.queryKeys || [])]
+      );
+      const thumbnailCandidates = unique([
+        ...(chosen.thumbnailCandidates || (chosen.thumbnail ? [chosen.thumbnail] : [])),
+        ...(base.thumbnailCandidates || (base.thumbnail ? [base.thumbnail] : [])),
+        ...(incoming.thumbnailCandidates || (incoming.thumbnail ? [incoming.thumbnail] : []))
+      ].filter(Boolean));
+      return {
+        ...chosen,
+        thumbnail: thumbnailCandidates[0] || chosen.thumbnail || '',
+        thumbnailCandidates,
+        sources: support.sources,
+        queryKeys: support.queryKeys,
+        support
+      };
+    },
+
+    qualityAdjustment(candidate) {
+      return movieCandidateQualityAdjustment(candidate && candidate.item ? candidate.item : candidate);
+    },
+
+    freshness(candidate) {
+      return movieFreshnessScore(candidate && candidate.publishedAt instanceof Date ? candidate.publishedAt : movieCandidatePublishedAt(candidate && candidate.item ? candidate.item : candidate));
+    },
+
+    movieRank(candidate, stats = {}) {
+      const likesNorm = logRelative(candidate.likes, stats.maxLikes || 0);
+      const viewsNorm = logRelative(candidate.views, stats.maxViews || 0);
+      const likeRate = candidate.likes != null && candidate.views
+        ? Math.max(0, Math.min(1, (Number(candidate.likes) / Math.max(1, Number(candidate.views))) / 0.05))
+        : 0.35;
+      const freshness = this.freshness(candidate);
+      const quality = this.qualityAdjustment(candidate);
+      const support = this.sourceSupport(candidate.sources, candidate.queryKeys);
+      const history = this.history(candidate);
+      const interest = this.interest(candidate);
+      const watchedPenalty = history && /^(?:complete|watched)$/i.test(history.status) ? 0.025 : 0;
+      // Явная личная оценка сильнее коллективной. Общий рейтинг лишь помогает
+      // ранжировать варианты и никогда сам по себе не превращается в запрет.
+      const interestAdjustment = interest.personalScore * 0.085 + interest.communityScore * 0.045;
+      const rankScore = Math.max(0, Math.min(1,
+        Number(candidate.score || 0) * 0.71 +
+        likesNorm * 0.09 + viewsNorm * 0.05 + likeRate * 0.05 + freshness * 0.055 +
+        support.movieBonus + quality + interestAdjustment - watchedPenalty
+      ));
+      return { rankScore, support, history, interest };
+    },
+
+    homeRank(candidate, profile = {}, stats = {}) {
+      if (!candidate) return { rankScore: 0, interest: { personalScore: 0, communityScore: 0 }, history: null };
+      const interest = this.interest(candidate);
+      const history = this.history(candidate);
+      const likesNorm = logRelative(candidate.likes, stats.maxLikes || 0);
+      const viewsNorm = logRelative(candidate.views, stats.maxViews || 0);
+      const freshness = this.freshness(candidate);
+      const quality = this.qualityAdjustment(candidate);
+      const authorAffinity = homeAuthorAffinity(candidate, profile);
+      const topicAffinity = homeTopicAffinity(candidate, profile);
+      const watchedPenalty = history && /^(?:complete|watched)$/i.test(history.status) ? 0.22 : 0;
+      const partialPenalty = history && history.percent > 0 && history.percent < 80 ? 0.04 : 0;
+      const interestAdjustment = interest.personalScore * 0.20 + interest.communityScore * 0.075;
+      const rankScore = Math.max(0, Math.min(1,
+        0.18 + authorAffinity * 0.20 + topicAffinity * 0.24 +
+        likesNorm * 0.08 + viewsNorm * 0.045 + freshness * 0.075 +
+        quality + interestAdjustment - watchedPenalty - partialPenalty
+      ));
+      return { rankScore, interest, history, authorAffinity, topicAffinity };
+    }
+  });
 
   function loadSettings() {
     try {
@@ -223,7 +494,7 @@
   }
 
   function isRtstUiElement(el) {
-    return Boolean(el && el.closest && el.closest('#rtst-panel, .rtst-modal-backdrop, .rtst-toast, #rtst-series-nav, .rtst-series-modal, [data-rtst-primary-movie="1"], [data-rtst-primary-home="1"]'));
+    return Boolean(el && el.closest && el.closest('#rtst-panel, .rtst-modal-backdrop, .rtst-toast, #rtst-series-nav, .rtst-series-modal, #rtst-personal-home, .rtst-interest-controls, [data-rtst-primary-movie="1"], [data-rtst-primary-home="1"]'));
   }
 
   const Dom = {
@@ -656,6 +927,8 @@
           dimSearchTrash: Boolean(settings && settings.dimSearchTrash !== false),
           markWatchedVideos: Boolean(settings && settings.markWatchedVideos !== false),
           seriesNavigator: Boolean(settings && settings.seriesNavigator !== false),
+          useCommunityFilter: Boolean(settings && settings.useCommunityFilter !== false),
+          contributeCommunitySignals: Boolean(settings && settings.contributeCommunitySignals === true),
           cleanWatchPage: Boolean(settings && settings.cleanWatchPage),
           disableAutoplay: Boolean(settings && settings.disableAutoplay)
         },
@@ -2173,11 +2446,314 @@
 
 
   function allBlockedChannels() {
-    return unique([...settings.blockedChannels, ...settings.userChannels]);
+    const community = settings.useCommunityFilter !== false ? communityCache.channels : [];
+    return unique([...settings.blockedChannels, ...community, ...settings.userChannels]);
   }
 
   function allBlockedWords() {
-    return unique([...settings.blockedWords, ...settings.userWords]);
+    const community = settings.useCommunityFilter !== false ? communityCache.words : [];
+    return unique([...settings.blockedWords, ...community, ...settings.userWords]);
+  }
+
+  function communityStringValue(value, keys = []) {
+    if (typeof value === 'string' || typeof value === 'number') return String(value).trim();
+    if (!value || typeof value !== 'object') return '';
+    for (const key of keys) {
+      if (value[key] != null && String(value[key]).trim()) return String(value[key]).trim();
+    }
+    return '';
+  }
+
+  function normalizeCommunitySnapshot(raw) {
+    const envelope = raw && typeof raw === 'object' ? raw : {};
+    const data = envelope.data && typeof envelope.data === 'object' ? envelope.data : envelope;
+    const blacklist = data.blacklist && typeof data.blacklist === 'object' ? data.blacklist : data;
+    const channelRows = Array.isArray(blacklist.channels) ? blacklist.channels : [];
+    const wordRows = Array.isArray(blacklist.words) ? blacklist.words : (Array.isArray(blacklist.phrases) ? blacklist.phrases : []);
+    const channels = unique(channelRows.map((row) => communityStringValue(row, ['name', 'title', 'channel_name', 'channelName', 'value'])).filter(Boolean));
+    const channelIds = unique(channelRows.map((row) => communityStringValue(row, ['id', 'channel_id', 'channelId', 'author_id', 'authorId'])).filter(Boolean));
+    const words = unique(wordRows.map((row) => communityStringValue(row, ['word', 'phrase', 'text', 'value', 'name'])).filter(Boolean));
+
+    const interestRoot = (data.interest && data.interest.videos) || (data.signals && data.signals.videos) || data.videoInterest || {};
+    const videoInterest = {};
+    const putInterest = (id, row) => {
+      const cleanId = String(id || '').trim();
+      if (!cleanId) return;
+      const obj = row && typeof row === 'object' ? row : { score: row };
+      let up = Number(obj.up ?? obj.likes ?? obj.interesting ?? obj.positive ?? 0) || 0;
+      let down = Number(obj.down ?? obj.dislikes ?? obj.uninteresting ?? obj.negative ?? 0) || 0;
+      let score = Number(obj.score);
+      if (!Number.isFinite(score)) score = (up - down) / Math.max(4, up + down + 4);
+      if (score > 1 && score <= 100) score /= 100;
+      score = Math.max(-1, Math.min(1, Number.isFinite(score) ? score : 0));
+      videoInterest[cleanId] = { score, up: Math.max(0, up), down: Math.max(0, down), count: Math.max(0, Number(obj.count) || (up + down)) };
+    };
+    if (Array.isArray(interestRoot)) {
+      interestRoot.forEach((row) => putInterest(communityStringValue(row, ['video_id', 'videoId', 'id']), row));
+    } else if (interestRoot && typeof interestRoot === 'object') {
+      Object.entries(interestRoot).forEach(([id, row]) => putInterest(id, row));
+    }
+
+    return {
+      version: Number(data.version) || 0,
+      generatedAt: String(data.generated || data.generatedAt || data.updated_at || data.updatedAt || ''),
+      channels, channelIds, words, videoInterest
+    };
+  }
+
+  function applyCommunitySnapshot(snapshot, meta = {}) {
+    const clean = normalizeCommunitySnapshot(snapshot);
+    communityCache.version = clean.version;
+    communityCache.generatedAt = clean.generatedAt;
+    communityCache.channels = clean.channels;
+    communityCache.channelIds = clean.channelIds;
+    communityCache.words = clean.words;
+    communityCache.videoInterest = clean.videoInterest;
+    communityCache.savedAt = Number(meta.savedAt) || Date.now();
+    communityCache.source = String(meta.source || 'remote');
+    personalHomeRuntime.builtAt = 0;
+    personalHomeRuntime.html = '';
+  }
+
+  function loadCommunityCacheFromLocal() {
+    try {
+      const raw = localStorage.getItem(COMMUNITY_CACHE_KEY);
+      if (!raw) return false;
+      const data = JSON.parse(raw);
+      if (!data || !data.snapshot) return false;
+      applyCommunitySnapshot(data.snapshot, { savedAt: data.savedAt, source: data.source || 'local' });
+      return true;
+    } catch (e) {
+      console.warn('[Рутубочист] Не удалось прочитать общий фильтр:', e);
+      return false;
+    }
+  }
+
+  function saveCommunityCache(snapshot, source) {
+    try {
+      localStorage.setItem(COMMUNITY_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), source: source || 'remote', snapshot }));
+    } catch (e) {}
+    applyCommunitySnapshot(snapshot, { savedAt: Date.now(), source: source || 'remote' });
+  }
+
+  async function fetchCommunityJson(url, options = {}) {
+    const timeoutMs = Number(options.timeoutMs) || COMMUNITY_REQUEST_TIMEOUT_MS;
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    let timer = null;
+    try {
+      timer = setTimeout(() => { try { if (controller) controller.abort(); } catch (e) {} }, timeoutMs);
+      const response = await fetch(url, {
+        method: options.method || 'GET',
+        cache: 'no-store',
+        credentials: 'omit',
+        headers: options.headers || undefined,
+        body: options.body || undefined,
+        keepalive: Boolean(options.keepalive),
+        signal: controller ? controller.signal : undefined
+      });
+      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+      const text = await response.text();
+      return text ? JSON.parse(text) : {};
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
+  async function refreshCommunitySnapshot(options = {}) {
+    if (settings.useCommunityFilter === false && !options.force) return false;
+    let lastError = null;
+    for (const base of COMMUNITY_SNAPSHOT_URLS) {
+      const url = base + (base.includes('?') ? '&' : '?') + 'rtst=' + Date.now();
+      try {
+        const json = await fetchCommunityJson(url);
+        const clean = normalizeCommunitySnapshot(json);
+        // Пустой snapshot допустим только при явной версии: так HTML-404 или
+        // случайный ответ сервера не затрёт уже полезный локальный кэш.
+        if (!clean.version && !clean.channels.length && !clean.words.length && !Object.keys(clean.videoInterest).length) throw new Error('пустой snapshot');
+        saveCommunityCache(json, new URL(base).hostname);
+        syncPanel();
+        rescanNow();
+        if (!options.silent) toast(`Общий фильтр обновлён: каналов ${communityCache.channels.length}, фраз ${communityCache.words.length}.`);
+        return true;
+      } catch (e) { lastError = e; }
+    }
+    if (!options.silent) toast(communityCache.savedAt ? 'Общий фильтр не обновился — оставлена сохранённая копия.' : 'Общий фильтр пока недоступен.');
+    if (lastError) console.warn('[Рутубочист] Общий фильтр:', lastError);
+    return false;
+  }
+
+  function communityLastCheckAt() {
+    try { return Number(localStorage.getItem(COMMUNITY_CHECK_KEY)) || 0; } catch (e) { return 0; }
+  }
+
+  function saveCommunityLastCheckAt(value = Date.now()) {
+    try { localStorage.setItem(COMMUNITY_CHECK_KEY, String(Number(value) || Date.now())); } catch (e) {}
+  }
+
+  function maybeUpdateCommunityInBackground() {
+    if (settings.useCommunityFilter === false) return;
+    if (!communityCache.savedAt) loadCommunityCacheFromLocal();
+    const lastAttempt = Math.max(communityCache.savedAt || 0, communityLastCheckAt());
+    if (lastAttempt && Date.now() - lastAttempt < COMMUNITY_UPDATE_INTERVAL_MS) return;
+    // Даже неудачная автоматическая проверка считается попыткой. Иначе до запуска
+    // серверной части каждый новый визит на RUTUBE долбил бы WordPress снова.
+    saveCommunityLastCheckAt();
+    refreshCommunitySnapshot({ silent: true }).catch(() => {});
+  }
+
+  function communityStatusText() {
+    if (settings.useCommunityFilter === false) return 'Общий фильтр выключен.';
+    if (!communityCache.savedAt) return 'Общий фильтр: локальной копии пока нет.';
+    const date = formatDateTime(new Date(communityCache.savedAt));
+    const ratings = Object.keys(communityCache.videoInterest || {}).length;
+    return `Общий фильтр: ${communityCache.channels.length} каналов · ${communityCache.words.length} фраз · ${ratings} оценок · обновлён ${date}.`;
+  }
+
+  function loadVideoInterestStore() {
+    try {
+      const raw = localStorage.getItem(VIDEO_INTEREST_KEY);
+      const data = raw ? JSON.parse(raw) : {};
+      return data && typeof data === 'object' && !Array.isArray(data) ? data : {};
+    } catch (e) { return {}; }
+  }
+
+  function saveVideoInterestStore(store) {
+    try {
+      const entries = Object.entries(store || {}).sort((a, b) => (Date.parse(b[1] && b[1].updatedAt || '') || 0) - (Date.parse(a[1] && a[1].updatedAt || '') || 0)).slice(0, VIDEO_INTEREST_MAX);
+      localStorage.setItem(VIDEO_INTEREST_KEY, JSON.stringify(Object.fromEntries(entries)));
+    } catch (e) {}
+  }
+
+  function clearVideoInterest() {
+    const store = loadVideoInterestStore();
+    for (const [videoId, item] of Object.entries(store)) {
+      queueCommunitySignal({
+        type: 'video_interest', video_id: videoId, value: 0,
+        title: item && item.title ? String(item.title).slice(0, 240) : '',
+        channel_id: item && item.channelId ? String(item.channelId).slice(0, 120) : '',
+        channel_name: item && item.channel ? String(item.channel).slice(0, 120) : ''
+      });
+    }
+    try { localStorage.removeItem(VIDEO_INTEREST_KEY); } catch (e) {}
+    movieSmartRuntime.resolved.clear();
+    syncInterestControls(getCurrentVideoId());
+    document.querySelectorAll('[data-rtst-action="rate-card-video"]').forEach((btn) => { btn.dataset.active = '0'; btn.setAttribute('aria-pressed', 'false'); });
+    toast('Личные оценки интереса очищены.');
+  }
+
+  function getVideoInterest(videoId) {
+    const id = String(videoId || '').trim();
+    if (!id) return null;
+    const item = loadVideoInterestStore()[id];
+    return item && typeof item === 'object' ? item : null;
+  }
+
+  function getCommunityVideoInterest(videoId) {
+    if (settings.useCommunityFilter === false) return null;
+    const id = String(videoId || '').trim();
+    return id && communityCache.videoInterest ? (communityCache.videoInterest[id] || null) : null;
+  }
+
+  function communityClientId() {
+    try {
+      let value = localStorage.getItem(COMMUNITY_CLIENT_KEY);
+      if (!value) {
+        value = (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') ? globalThis.crypto.randomUUID() : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+        localStorage.setItem(COMMUNITY_CLIENT_KEY, value);
+      }
+      return value;
+    } catch (e) { return ''; }
+  }
+
+  async function communityClientHash() {
+    const value = communityClientId();
+    if (!value) return '';
+    try {
+      if (globalThis.crypto && globalThis.crypto.subtle && typeof TextEncoder === 'function') {
+        const digest = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(`rutubochist:${value}`));
+        return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');
+      }
+    } catch (e) {}
+    return value;
+  }
+
+  function loadCommunitySignalQueue() {
+    try {
+      const raw = localStorage.getItem(COMMUNITY_QUEUE_KEY);
+      const data = raw ? JSON.parse(raw) : [];
+      return Array.isArray(data) ? data : [];
+    } catch (e) { return []; }
+  }
+
+  function saveCommunitySignalQueue(queue) {
+    try { localStorage.setItem(COMMUNITY_QUEUE_KEY, JSON.stringify((queue || []).slice(-COMMUNITY_QUEUE_MAX))); } catch (e) {}
+  }
+
+  function queueCommunitySignal(signal) {
+    if (settings.contributeCommunitySignals !== true || !signal || typeof signal !== 'object') return;
+    const queue = loadCommunitySignalQueue();
+    let entityKey = '';
+    if (signal.type === 'video_interest') entityKey = String(signal.video_id || '').trim();
+    else if (signal.type === 'block_channel') entityKey = String(signal.channel_id || '').trim() || normalize(signal.channel_name || '');
+    else if (signal.type === 'block_word') entityKey = normalize(signal.value || '');
+    else entityKey = String(signal.video_id || signal.channel_id || normalize(signal.value || signal.title || '')).trim();
+    const key = `${signal.type || 'signal'}|${entityKey}`;
+    const row = { ...signal, key, at: new Date().toISOString() };
+    const existing = queue.findIndex((x) => x && x.key === key);
+    if (existing >= 0) queue.splice(existing, 1);
+    queue.push(row);
+    saveCommunitySignalQueue(queue);
+    setTimeout(() => flushCommunitySignalQueue(), 300);
+  }
+
+  async function flushCommunitySignalQueue() {
+    if (settings.contributeCommunitySignals !== true) return false;
+    const queue = loadCommunitySignalQueue();
+    if (!queue.length) return true;
+    const row = queue[0];
+    try {
+      const clientHash = await communityClientHash();
+      await fetchCommunityJson(COMMUNITY_SIGNAL_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...row, client_hash: clientHash, client_version: UI_VERSION }),
+        keepalive: true
+      });
+      queue.shift();
+      saveCommunitySignalQueue(queue);
+      if (queue.length) setTimeout(() => flushCommunitySignalQueue(), 220);
+      return true;
+    } catch (e) {
+      // Серверная часть может ещё не быть готова. Сигнал остаётся в очереди.
+      return false;
+    }
+  }
+
+  function setVideoInterest(videoId, signal, meta = {}) {
+    const id = String(videoId || '').trim();
+    const cleanSignal = Number(signal) > 0 ? 1 : Number(signal) < 0 ? -1 : 0;
+    if (!id) return;
+    const store = loadVideoInterestStore();
+    if (!cleanSignal) delete store[id];
+    else store[id] = {
+      signal: cleanSignal,
+      title: String(meta.title || '').slice(0, 240),
+      channel: String(meta.channel || '').slice(0, 120),
+      channelId: String(meta.channelId || '').slice(0, 120),
+      updatedAt: new Date().toISOString()
+    };
+    saveVideoInterestStore(store);
+    queueCommunitySignal({
+      type: 'video_interest', video_id: id, value: cleanSignal,
+      title: String(meta.title || '').slice(0, 240),
+      channel_id: String(meta.channelId || '').slice(0, 120),
+      channel_name: String(meta.channel || '').slice(0, 120)
+    });
+    syncInterestControls(id);
+    movieSmartRuntime.resolved.clear();
+    personalHomeRuntime.builtAt = 0;
+    toast(cleanSignal > 0 ? 'Отмечено: интересно.' : cleanSignal < 0 ? 'Отмечено: неинтересно.' : 'Оценка интереса снята.');
+    if (isHomePage() || isHomeFeedPage()) setTimeout(() => syncPersonalHome(true), 0);
   }
 
   function containsBlocked(text, list) {
@@ -2416,8 +2992,79 @@
         box-shadow: 0 1px 2px rgba(255,255,255,.18), 0 2px 7px rgba(0,0,0,.34) !important;
         text-decoration: none !important; user-select: none !important; vertical-align: middle !important; flex: 0 0 auto !important;
       }
+      .rtst-block-btn svg { width: 16px !important; height: 16px !important; display: block !important; flex: 0 0 auto !important; }
       .rtst-block-btn:hover { background: #f2f2f2 !important; border-color: rgba(0,0,0,.45) !important; color: #111 !important; }
       .rtst-block-btn:active { transform: scale(.96) !important; }
+      .rtst-interest-controls { display: inline-flex !important; align-items: center !important; gap: 3px !important; margin-left: 5px !important; vertical-align: middle !important; }
+      .rtst-interest-btn {
+        display: inline-flex !important; align-items: center !important; justify-content: center !important;
+        width: 24px !important; height: 24px !important; min-width: 24px !important; min-height: 24px !important; padding: 0 !important;
+        border: 1px solid rgba(255,255,255,.28) !important; border-radius: 6px !important; background: rgba(18,18,18,.72) !important;
+        color: rgba(255,255,255,.70) !important; cursor: pointer !important; font: 13px/1 Arial, sans-serif !important; box-shadow: none !important;
+      }
+      .rtst-interest-btn:hover { background: rgba(255,255,255,.15) !important; color: #fff !important; }
+      .rtst-interest-btn svg, .rtst-current-interest svg { width: 16px !important; height: 16px !important; display: block !important; flex: 0 0 auto !important; }
+      .rtst-current-interest .rtst-quick-btn { display: inline-flex !important; align-items: center !important; justify-content: center !important; gap: 6px !important; }
+      .rtst-interest-btn[data-signal="1"][data-active="1"] svg, .rtst-current-interest .rtst-quick-btn[data-signal="1"][data-active="1"] svg { fill: currentColor !important; }
+      .rtst-interest-btn[data-active="1"] { background: rgba(189,242,200,.18) !important; border-color: rgba(189,242,200,.55) !important; color: #e8ffed !important; }
+      .rtst-interest-btn[data-signal="-1"][data-active="1"] { background: rgba(255,176,168,.16) !important; border-color: rgba(255,176,168,.50) !important; color: #ffe5e2 !important; }
+      .rtst-current-interest { display: grid !important; grid-template-columns: repeat(2,minmax(0,1fr)) !important; gap: 6px !important; }
+      .rtst-panel .rtst-current-interest .rtst-quick-btn[data-active="1"] { border-color: rgba(189,242,200,.55) !important; background: rgba(189,242,200,.15) !important; }
+      .rtst-panel .rtst-current-interest .rtst-quick-btn[data-signal="-1"][data-active="1"] { border-color: rgba(255,176,168,.50) !important; background: rgba(255,176,168,.13) !important; }
+      /* --- ПЕРСОНАЛЬНАЯ ГЛАВНАЯ --- */
+      html[data-rtst-personal-home="1"] .rtst-native-home-hidden,
+      html[data-rtst-personal-home="1"] main > :not(#rtst-personal-home),
+      html[data-rtst-personal-home="1"] [role="main"] > :not(#rtst-personal-home) { display: none !important; }
+      html[data-rtst-personal-home="1"][data-rtst-page="home"] #rtst-panel { display: none !important; }
+      #rtst-personal-home {
+        display: block !important; width: 100% !important; max-width: 1880px !important; margin: 0 auto !important;
+        padding: 14px 18px 42px !important; box-sizing: border-box !important; color: var(--rt-text-primary, #f4fff7) !important;
+      }
+      #rtst-personal-home .rtst-ph-head { display: flex !important; align-items: center !important; justify-content: flex-end !important; gap: 10px !important; margin: 2px 0 18px !important; }
+      #rtst-personal-home .rtst-ph-controls { display: inline-flex !important; align-items: center !important; gap: 8px !important; flex-wrap: wrap !important; }
+      #rtst-personal-home .rtst-ph-refresh,
+      #rtst-personal-home .rtst-ph-settings {
+        flex: 0 0 auto !important; min-height: 36px !important; padding: 0 14px !important; border: 1px solid rgba(255,255,255,.13) !important;
+        border-radius: 999px !important; background: rgba(255,255,255,.07) !important; color: #f4fff7 !important; cursor: pointer !important; font: 700 12px/1 Arial, sans-serif !important;
+      }
+      #rtst-personal-home .rtst-ph-refresh:hover,
+      #rtst-personal-home .rtst-ph-settings:hover { background: rgba(255,255,255,.13) !important; }
+      #rtst-personal-home .rtst-ph-section { margin: 0 0 24px !important; }
+      #rtst-personal-home .rtst-ph-section-head { display: flex !important; align-items: center !important; justify-content: space-between !important; margin: 0 0 12px !important; }
+      #rtst-personal-home .rtst-ph-section-title { font: 800 18px/1.2 Arial, sans-serif !important; }
+      #rtst-personal-home .rtst-ph-grid { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)) !important; gap: 16px 14px !important; }
+      #rtst-personal-home .rtst-ph-card {
+        position: relative !important; min-width: 0 !important; border-radius: 12px !important; overflow: hidden !important; background: rgba(255,255,255,.035) !important;
+        border: 1px solid rgba(255,255,255,.075) !important; transition: background-color .12s ease, border-color .12s ease !important; transform: none !important;
+        contain: paint !important;
+      }
+      #rtst-personal-home .rtst-ph-card:hover { background: rgba(255,255,255,.07) !important; border-color: rgba(255,255,255,.14) !important; transform: none !important; }
+      #rtst-personal-home .rtst-ph-card-main { display: block !important; color: inherit !important; text-decoration: none !important; }
+      #rtst-personal-home .rtst-ph-thumb { position: relative !important; width: 100% !important; aspect-ratio: 16 / 9 !important; overflow: hidden !important; background: rgba(255,255,255,.055) !important; }
+      #rtst-personal-home .rtst-ph-thumb img { display: block !important; width: 100% !important; height: 100% !important; object-fit: cover !important; }
+      #rtst-personal-home .rtst-ph-thumb-empty { display: flex !important; align-items: center !important; justify-content: center !important; width: 100% !important; height: 100% !important; color: rgba(244,255,247,.28) !important; font-size: 30px !important; }
+      #rtst-personal-home .rtst-ph-duration, #rtst-personal-home .rtst-ph-progress {
+        position: absolute !important; right: 6px !important; bottom: 6px !important; padding: 3px 6px !important; border-radius: 999px !important; background: rgba(0,0,0,.72) !important; color: #fff !important; font: 700 10px/1 Arial, sans-serif !important;
+      }
+      #rtst-personal-home .rtst-ph-progress { left: 6px !important; right: auto !important; background: rgba(33,91,59,.82) !important; }
+      #rtst-personal-home .rtst-ph-card-body { padding: 10px 10px 5px !important; }
+      #rtst-personal-home .rtst-ph-card-title { display: -webkit-box !important; overflow: hidden !important; -webkit-box-orient: vertical !important; -webkit-line-clamp: 2 !important; min-height: 34px !important; color: #f4fff7 !important; font: 700 13px/1.35 Arial, sans-serif !important; }
+      #rtst-personal-home .rtst-ph-card-meta { display: flex !important; flex-wrap: wrap !important; gap: 4px 8px !important; margin-top: 7px !important; color: rgba(244,255,247,.57) !important; font: 10px/1.35 Arial, sans-serif !important; }
+      #rtst-personal-home .rtst-ph-card-actions { display: flex !important; align-items: center !important; justify-content: flex-end !important; gap: 5px !important; padding: 3px 8px 8px !important; }
+      #rtst-personal-home .rtst-interest-btn,
+      #rtst-personal-home .rtst-block-btn { position: relative !important; z-index: 2 !important; margin: 0 !important; }
+      #rtst-personal-home .rtst-ph-card-actions .rtst-block-btn { margin-right: auto !important; }
+      #rtst-personal-home .rtst-ph-empty, #rtst-personal-home .rtst-ph-loading { padding: 18px 4px !important; color: rgba(244,255,247,.62) !important; font: 12px/1.4 Arial, sans-serif !important; }
+      #rtst-personal-home .rtst-ph-score { color: rgba(244,255,247,.38) !important; }
+      @media (max-width: 1080px) { #rtst-personal-home { padding: 12px 12px 34px !important; } #rtst-personal-home .rtst-ph-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)) !important; } }
+      @media (max-width: 680px) {
+        #rtst-personal-home { padding: 10px 8px 28px !important; }
+        #rtst-personal-home .rtst-ph-head { margin-bottom: 14px !important; }
+        #rtst-personal-home .rtst-ph-grid { grid-template-columns: repeat(2,minmax(0,1fr)) !important; gap: 11px 8px !important; }
+        #rtst-personal-home .rtst-ph-card-title { font-size: 11px !important; min-height: 30px !important; }
+        #rtst-personal-home .rtst-ph-card-meta { font-size: 9px !important; }
+      }
+
       .rtst-home-link {
         display: inline-flex !important; align-items: center !important; justify-content: center !important;
         min-height: 36px !important; min-width: 0 !important; margin: 0 8px 0 0 !important; text-decoration: none !important;
@@ -2621,6 +3268,16 @@
 
       .rtst-panel-body { padding: 8px 12px 12px !important; }
       .rtst-row { display: flex !important; gap: 6px !important; align-items: center !important; flex-wrap: wrap !important; margin: 4px 0 !important; }
+      .rtst-modal .rtst-row { width: 100% !important; max-width: 100% !important; min-width: 0 !important; box-sizing: border-box !important; overflow: visible !important; }
+      .rtst-modal .rtst-row > label {
+        display: grid !important; grid-template-columns: 18px minmax(0,1fr) !important; align-items: center !important; gap: 8px !important;
+        width: 100% !important; max-width: 100% !important; min-width: 0 !important; box-sizing: border-box !important; margin: 0 !important; cursor: pointer !important;
+        white-space: normal !important; overflow-wrap: anywhere !important;
+      }
+      .rtst-modal .rtst-row input[type="checkbox"] {
+        display: block !important; position: static !important; width: 16px !important; height: 16px !important; min-width: 16px !important; max-width: 16px !important;
+        margin: 0 !important; padding: 0 !important; transform: none !important; accent-color: #bdf2c8 !important; justify-self: start !important;
+      }
       .rtst-panel label { display: flex !important; gap: 6px !important; align-items: center !important; cursor: pointer !important; font-size: 11px !important;}
       .rtst-panel input[type="text"],
       .rtst-modal input[type="text"] {
@@ -2817,7 +3474,35 @@
       .rtst-modal .rtst-movie-search-btn:hover { filter: none !important; background: rgba(255,255,255,.17) !important; }
       .rtst-modal .rtst-movie-rutube-btn,
       .rtst-modal .rtst-movie-google-btn[data-state="ok"] { border-color: rgba(83,255,124,.36) !important; background: rgba(83,255,124,.10) !important; }
+      .rtst-modal .rtst-movie-rutube-btn[data-state="loading"] { opacity: .70 !important; cursor: wait !important; }
+      .rtst-modal .rtst-movie-rutube-btn[data-state="found"] { border-color: rgba(119,226,255,.44) !important; background: rgba(119,226,255,.12) !important; }
       .rtst-modal .rtst-movie-google-btn:disabled { opacity: .42 !important; cursor: not-allowed !important; filter: grayscale(1) !important; }
+      .rtst-modal.rtst-movie-results-modal { width: 720px !important; max-width: calc(100vw - 24px) !important; }
+      .rtst-movie-results-note { margin-top: 2px !important; color: rgba(244,255,247,.66) !important; font: 11px/1.35 Arial, sans-serif !important; }
+      .rtst-movie-results-list { display: flex !important; flex-direction: column !important; gap: 6px !important; }
+      .rtst-movie-result {
+        position: relative !important; display: grid !important; grid-template-columns: 96px minmax(0,1fr) auto !important; gap: 10px !important; align-items: center !important;
+        min-height: 70px !important; padding: 7px 9px !important; border: 1px solid rgba(255,255,255,.11) !important; border-radius: 9px !important;
+        background: rgba(255,255,255,.055) !important; color: #f4fff7 !important; text-decoration: none !important; overflow: hidden !important;
+      }
+      .rtst-movie-result:hover { background: rgba(255,255,255,.10) !important; border-color: rgba(255,255,255,.20) !important; }
+      .rtst-movie-result[data-favorite="1"] { border-color: rgba(238,211,124,.54) !important; background: linear-gradient(90deg, rgba(238,211,124,.10), rgba(255,255,255,.055) 55%) !important; }
+      .rtst-movie-result-thumb { width: 96px !important; height: 54px !important; object-fit: cover !important; border-radius: 6px !important; background: rgba(255,255,255,.06) !important; }
+      .rtst-movie-result-thumb-placeholder { display: flex !important; align-items: center !important; justify-content: center !important; color: rgba(244,255,247,.34) !important; font-size: 20px !important; }
+      .rtst-movie-result-main { min-width: 0 !important; }
+      .rtst-movie-result-title { display: block !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; font: 800 12px/1.3 Arial, sans-serif !important; color: #f4fff7 !important; }
+      .rtst-movie-result-author { display: block !important; margin-top: 2px !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; color: rgba(244,255,247,.62) !important; font: 10px/1.25 Arial, sans-serif !important; }
+      .rtst-movie-result-meta { display: flex !important; flex-wrap: wrap !important; gap: 3px 9px !important; margin-top: 5px !important; color: rgba(244,255,247,.76) !important; font: 10px/1.25 Arial, sans-serif !important; }
+      .rtst-movie-result-side { display: flex !important; flex-direction: column !important; align-items: flex-end !important; justify-content: center !important; gap: 5px !important; min-width: 82px !important; }
+      .rtst-movie-result-favorite { display: inline-flex !important; align-items: center !important; gap: 4px !important; padding: 2px 7px !important; border-radius: 999px !important; border: 1px solid rgba(238,211,124,.40) !important; background: rgba(238,211,124,.11) !important; color: #ffe9a7 !important; font: 800 9px/1.2 Arial, sans-serif !important; white-space: nowrap !important; }
+      .rtst-movie-result-rank { color: rgba(244,255,247,.58) !important; font: 9px/1.2 Arial, sans-serif !important; white-space: nowrap !important; }
+      .rtst-movie-results-footer { display: flex !important; justify-content: flex-end !important; gap: 6px !important; margin-top: 10px !important; }
+      @media (max-width: 680px) {
+        .rtst-modal.rtst-movie-results-modal { width: 100vw !important; max-width: 100vw !important; }
+        .rtst-movie-result { grid-template-columns: 82px minmax(0,1fr) !important; gap: 8px !important; }
+        .rtst-movie-result-thumb { width: 82px !important; height: 46px !important; }
+        .rtst-movie-result-side { grid-column: 2 !important; flex-direction: row !important; align-items: center !important; justify-content: flex-start !important; min-width: 0 !important; }
+      }
       .rtst-movie-loading, .rtst-movie-error, .rtst-movie-empty { padding: 10px !important; border: 1px solid rgba(255,255,255,.10) !important; border-radius: 8px !important; background: rgba(255,255,255,.055) !important; color: rgba(244,255,247,.82) !important; font: 12px/1.4 Arial, sans-serif !important; }
       .rtst-movie-error { color: #ffd6d2 !important; }
       .rtst-toast { position: fixed !important; right: 14px !important; bottom: 14px !important; z-index: 2147483647 !important; max-width: calc(100vw - 28px) !important; padding: 8px 10px !important; border-radius: 8px !important; background: rgba(0,0,0,.86) !important; color: #fff !important; font: 12px/1.3 Arial, sans-serif !important; box-shadow: 0 8px 30px rgba(0,0,0,.3) !important; }
@@ -3107,18 +3792,14 @@
   function refreshLegacyControls() {
     document.querySelectorAll('.rtst-block-btn[data-rtst-action="block-card-channel"]').forEach((btn) => {
       if (isWatchPage()) { btn.remove(); return; }
-      btn.textContent = '⊘';
-      if (!btn.getAttribute('aria-label')) {
-        const channel = btn.dataset.rtstChannel || 'канал';
-        btn.setAttribute('aria-label', `Скрыть канал: ${channel}`);
-      }
+      btn.innerHTML = pooIconSvg();
+      const channel = btn.dataset.rtstChannel || 'канал';
+      btn.title = `Скрыть канал: ${channel}`;
+      btn.setAttribute('aria-label', `Скрыть канал: ${channel}`);
     });
 
     const current = document.getElementById('rtst-current-channel-btn');
-    if (current) {
-      if (isWatchPage()) current.remove();
-      else current.textContent = '⊘ скрыть канал';
-    }
+    if (current) current.remove();
   }
 
   function createPanel() {
@@ -3143,7 +3824,7 @@
       <div class="rtst-panel-head" data-rtst-action="toggle-panel" title="Открыть Рутубочист">
         <div class="rtst-panel-main">
           <div class="rtst-panel-title">Рутубочист</div>
-          <div class="rtst-panel-subtitle">фильтр интерфейса RUTUBE</div>
+          <div class="rtst-panel-subtitle">персональная лента и фильтр RUTUBE</div>
           <div class="rtst-panel-counter" id="rtst-counter" hidden></div>
         </div>
         <div class="rtst-panel-compact" aria-hidden="true">
@@ -3157,19 +3838,23 @@
       <div class="rtst-panel-body">
         <div class="rtst-quick-actions" id="rtst-quick-actions" hidden>
           <div class="rtst-quick-nav" id="rtst-quick-nav">
-            <a href="/" class="rtst-quick-btn" id="rtst-quick-channel" title="Перейти на канал автора">в Канал</a>
-            <a href="/" class="rtst-quick-btn" title="На главную RUTUBE">на Главную</a>
+            <a href="/" class="rtst-quick-btn" id="rtst-quick-channel" title="Перейти на канал автора">На канал</a>
+            <a href="/" class="rtst-quick-btn" title="На главную RUTUBE">На главную</a>
           </div>
-          <button type="button" class="rtst-quick-btn rtst-quick-movie" data-rtst-action="open-movie-modal">Что посмотреть</button>
+          <div class="rtst-current-interest" id="rtst-current-interest">
+            <button type="button" class="rtst-quick-btn" data-rtst-action="rate-current-video" data-signal="1">${interestIconSvg(1)}<span>интересно</span></button>
+            <button type="button" class="rtst-quick-btn" data-rtst-action="rate-current-video" data-signal="-1">${interestIconSvg(-1)}<span>неинтересно</span></button>
+          </div>
+          <button type="button" class="rtst-quick-btn rtst-quick-movie" data-rtst-action="open-movie-modal">Что посмотреть?</button>
         </div>
         <div class="rtst-movie-cta">
           <button type="button" class="rtst-movie-cta-btn" data-rtst-action="open-movie-modal">Что посмотреть?</button>
           <div class="rtst-movie-cta-caption">подборки от CentralZD</div>
         </div>
         <div class="rtst-panel-footer">
-          <div class="rtst-small">Кнопка «⊘» скрывает канал.<br>©2026 npekpacHo<br><span class="rtst-version" id="rtst-version">Версия ${UI_VERSION}</span></div>
+          <div class="rtst-small">©2026 npekpacHo<br><span class="rtst-version" id="rtst-version">Версия ${UI_VERSION}</span></div>
           <button type="button" class="rtst-github-link" id="rtst-github-link" data-rtst-action="open-project" title="Открыть страницу проекта на GitHub"><span class="rtst-app-icon rtst-app-icon-footer" data-rtst-app-icon="1" aria-hidden="true">🪠</span></button>
-          <span class="rtst-network-status" id="rtst-network-status" data-state="unknown" title="Доступ к интернету ещё не проверялся">⚪ сеть</span>
+          <span class="rtst-network-status" id="rtst-network-status" data-state="unknown" title="GitHub ещё не проверялся">⚪ GitHub</span>
         </div>
       </div>
     `;
@@ -3222,6 +3907,7 @@
     root.dataset.rtstHideVideoInfo = (settings.enabled && settings.hideVideoInfo) ? '1' : '0';
     root.dataset.rtstHideComments = (settings.enabled && settings.hideComments) ? '1' : '0';
     root.dataset.rtstMarkWatched = (settings.enabled && settings.markWatchedVideos !== false) ? '1' : '0';
+    root.dataset.rtstPersonalHome = (settings.enabled && settings.personalHome !== false && safePage === 'home') ? '1' : '0';
     updateDynamicCleanupStyle(cleanChromeOn);
   }
 
@@ -3496,6 +4182,9 @@
       channelLink.hidden = true;
       if (quickNav) quickNav.dataset.hasChannel = '0';
     }
+    const interestWrap = document.getElementById('rtst-current-interest');
+    if (interestWrap) interestWrap.hidden = !visible;
+    if (visible) syncInterestControls(getCurrentVideoId());
   }
 
   function syncPanel() {
@@ -3523,8 +4212,16 @@
     if (dimSearchTrashToggle) dimSearchTrashToggle.checked = Boolean(settings.dimSearchTrash !== false);
     const markWatchedToggle = document.getElementById('rtst-mark-watched');
     if (markWatchedToggle) markWatchedToggle.checked = Boolean(settings.markWatchedVideos !== false);
+    const personalHomeToggle = document.getElementById('rtst-personal-home-toggle');
+    if (personalHomeToggle) personalHomeToggle.checked = Boolean(settings.personalHome !== false);
     const seriesNavigatorToggle = document.getElementById('rtst-series-navigator');
     if (seriesNavigatorToggle) seriesNavigatorToggle.checked = Boolean(settings.seriesNavigator !== false);
+    const communityFilterToggle = document.getElementById('rtst-community-filter');
+    if (communityFilterToggle) communityFilterToggle.checked = Boolean(settings.useCommunityFilter !== false);
+    const communityContributeToggle = document.getElementById('rtst-community-contribute');
+    if (communityContributeToggle) communityContributeToggle.checked = Boolean(settings.contributeCommunitySignals === true);
+    const communityStatus = document.getElementById('rtst-community-status');
+    if (communityStatus) communityStatus.textContent = communityStatusText();
     const cleanWatch = document.getElementById('rtst-clean-watch');
     if (cleanWatch) cleanWatch.checked = Boolean(settings.cleanWatchPage);
     const disableAutoplay = document.getElementById('rtst-disable-autoplay');
@@ -3553,6 +4250,7 @@
     const versionEl = document.getElementById('rtst-version');
     if (versionEl) versionEl.textContent = `Версия ${UI_VERSION}`;
     syncGithubBadge();
+    syncSettingsIndicators();
     syncPanelIcon();
     syncQuickActions();
     syncRootFlags();
@@ -3679,8 +4377,11 @@
       if (target.id === 'rtst-hide-menu') { settings.hideSideMenuPolitics = target.checked; settings.cleanRutubeChrome = target.checked; saveSettings(); syncRootFlags(); rescanNow(); }
       if (target.id === 'rtst-hide-shorts') { settings.hideShorts = target.checked; saveSettings(); syncRootFlags(); rescanNow(); }
       if (target.id === 'rtst-dim-search-trash') { settings.dimSearchTrash = target.checked; saveSettings(); syncRootFlags(); rescanNow(); }
-      if (target.id === 'rtst-mark-watched') { settings.markWatchedVideos = target.checked; saveSettings(); syncRootFlags(); rescanNow(); }
+      if (target.id === 'rtst-mark-watched') { settings.markWatchedVideos = target.checked; saveSettings(); syncRootFlags(); personalHomeRuntime.builtAt = 0; rescanNow(); }
+      if (target.id === 'rtst-personal-home-toggle') { settings.personalHome = target.checked; saveSettings(); personalHomeRuntime.builtAt = 0; if (!target.checked) removePersonalHome(); syncRootFlags(); rescanNow(); }
       if (target.id === 'rtst-series-navigator') { settings.seriesNavigator = target.checked; saveSettings(); if (!target.checked) removeSeriesNavigator(); rescanNow(); }
+      if (target.id === 'rtst-community-filter') { settings.useCommunityFilter = target.checked; personalHomeRuntime.builtAt = 0; personalHomeRuntime.html = ''; saveSettings(); if (target.checked) { loadCommunityCacheFromLocal(); maybeUpdateCommunityInBackground(); } syncPanel(); rescanNow(); }
+      if (target.id === 'rtst-community-contribute') { settings.contributeCommunitySignals = target.checked; saveSettings(); if (target.checked) setTimeout(() => flushCommunitySignalQueue(), 0); syncPanel(); }
       if (target.id === 'rtst-clean-watch') { settings.cleanWatchPage = target.checked; saveSettings(); syncRootFlags(); rescanNow(); }
       if (target.id === 'rtst-disable-autoplay') { settings.disableAutoplay = target.checked; saveSettings(); scanAutoplayVideos(); }
       if (target.id === 'rtst-hide-comments') { settings.hideComments = target.checked; saveSettings(); rescanNow(); }
@@ -3736,7 +4437,8 @@
       if (linkEl && !linkEl.closest('#rtst-panel')) suspendScanUntil = Date.now() + 1400;
       
       if (event.target && event.target.classList && event.target.classList.contains('rtst-modal-backdrop')) {
-        if (Date.now() - modalOpenedAt < 400) return; 
+        if (Date.now() - modalOpenedAt < 400) return;
+        if (event.target.classList.contains('rtst-movie-results-backdrop')) { event.target.remove(); return; }
         closeModal(); return;
       }
 
@@ -3757,7 +4459,7 @@
       if (action === 'block-card-channel') {
         event.preventDefault(); event.stopPropagation();
         const channel = actionEl.dataset.rtstChannel || '';
-        if (channel) blockChannel(channel);
+        if (channel) blockChannel(channel, { channelId: actionEl.dataset.rtstChannelId || '' });
         const card = actionEl.closest('[data-rtst-card="1"]');
         if (card) hideElement(card, `канал: ${channel}`);
         return;
@@ -3769,6 +4471,26 @@
         else toast('Канал не определён.');
         return;
       }
+      if (action === 'rate-current-video') {
+        event.preventDefault(); event.stopPropagation();
+        const videoId = getCurrentVideoId();
+        if (!videoId) { toast('Видео не определено.'); return; }
+        const current = getVideoInterest(videoId);
+        const requested = Number(actionEl.dataset.signal) > 0 ? 1 : -1;
+        const signal = current && Number(current.signal) === requested ? 0 : requested;
+        setVideoInterest(videoId, signal, { title: getCurrentVideoTitle(), channel: detectCurrentPageChannel(), channelId: extractChannelIdFromUrl(detectCurrentVideoChannelUrl()) });
+        return;
+      }
+      if (action === 'rate-card-video') {
+        event.preventDefault(); event.stopPropagation();
+        const videoId = actionEl.dataset.rtstVideoId || '';
+        const requested = Number(actionEl.dataset.signal) > 0 ? 1 : -1;
+        const current = getVideoInterest(videoId);
+        const signal = current && Number(current.signal) === requested ? 0 : requested;
+        setVideoInterest(videoId, signal, { title: actionEl.dataset.rtstTitle || '', channel: actionEl.dataset.rtstChannel || '', channelId: actionEl.dataset.rtstChannelId || '' });
+        return;
+      }
+      if (action === 'update-community-filter') { event.preventDefault(); event.stopPropagation(); saveCommunityLastCheckAt(); refreshCommunitySnapshot({ silent: false, force: true }); return; }
       if (action === 'open-movie-modal') { event.preventDefault(); event.stopPropagation(); openMovieModal(); return; }
       if (action === 'open-series-modal') { event.preventDefault(); event.stopPropagation(); openSeriesModal(); return; }
       if (action === 'open-settings-modal') { openSettingsModal(); return; }
@@ -3787,7 +4509,10 @@
       if (action === 'movie-newer') { switchMovieBatch(-1); return; }
       if (action === 'movie-older') { switchMovieBatch(1); return; }
       if (action === 'movie-refresh') { refreshMovieNavigator(actionEl); return; }
+      if (action === 'personal-home-refresh') { event.preventDefault(); event.stopPropagation(); personalHomeRuntime.builtAt = 0; void syncPersonalHome(true); return; }
       if (action === 'movie-random') { openRandomMovieSearch(); return; }
+      if (action === 'movie-smart-search') { event.preventDefault(); event.stopPropagation(); void openSmartRutubeMovie(actionEl); return; }
+      if (action === 'close-movie-results') { event.preventDefault(); event.stopPropagation(); const backdrop = actionEl.closest('.rtst-movie-results-backdrop'); if (backdrop) backdrop.remove(); return; }
       if (action === 'movie-search') { event.preventDefault(); event.stopPropagation(); openRutubeMovieSearch(actionEl.dataset.rtstQuery || '', actionEl.dataset.rtstTrailer === '1'); return; }
       if (action === 'movie-search-google') { event.preventDefault(); event.stopPropagation(); openGoogleMovieSearch(actionEl.dataset.rtstQuery || ''); return; }
       if (action === 'movie-source') { event.preventDefault(); event.stopPropagation(); openExternalMovieSource(actionEl.dataset.rtstUrl || ''); return; }
@@ -3809,13 +4534,17 @@
         return;
       }
       if (action === 'reset-user') {
+        for (const value of settings.userChannels) queueCommunitySignal({ type: 'block_channel', value: 0, channel_name: value });
+        for (const value of settings.userWords) queueCommunitySignal({ type: 'block_word', active: 0, value });
         settings.userChannels = []; settings.userWords = []; saveSettings(); syncPanel();
-        toast('Пользовательские списки очищены.'); rescanNow();
+        toast('Личные списки очищены.'); rescanNow();
         return;
       }
+      if (action === 'reset-interest') { clearVideoInterest(); return; }
       if (action === 'reset-view-history') { clearViewHistory(); return; }
       if (action === 'export-settings') { exportSettings(); return; }
       if (action === 'copy-player-diagnostics') { copyPlayerDiagnostics(); return; }
+      if (action === 'check-github-now') { void checkGithubAvailability(); return; }
       if (action === 'import-settings') { const input = document.getElementById('rtst-import-file'); if (input) input.click(); }
     }, true);
   }
@@ -3836,21 +4565,13 @@
         </div>
         <div class="rtst-modal-body">
           <div class="rtst-section">
-            <div class="rtst-section-title">Что посмотреть</div>
-            <div class="rtst-small" id="rtst-movie-cache-status">${escapeHtml(movieCacheStatusText())}</div>
-            <div class="rtst-small" id="rtst-movie-auto-status">${escapeHtml(movieAutoUpdateStatusText())}</div>
-            <div class="rtst-actions">
-              <button type="button" class="rtst-mini-btn" data-rtst-action="update-movie-db">Обновить вручную</button>
-            </div>
-          </div>
-
-          <div class="rtst-section">
             <div class="rtst-section-title">Лента и меню</div>
-            <div class="rtst-row"><label><input type="checkbox" id="rtst-show-hidden"> показывать скрытые карточки бледным</label></div>
-            <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-menu"> чистить боковое меню, шапку и промо-блоки</label></div>
-            <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-shorts"> скрывать Шортсы</label></div>
-            <div class="rtst-row"><label><input type="checkbox" id="rtst-dim-search-trash"> помечать мусор в поиске</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-show-hidden"> показывать скрытые карточки полупрозрачными</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-menu"> очищать боковое меню, шапку и промо-блоки</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-shorts"> скрывать Shorts</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-dim-search-trash"> помечать нежелательные результаты в поиске</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-mark-watched"> помечать просмотренные видео</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-personal-home-toggle"> персональная главная по интересам</label></div>
           </div>
 
           <div class="rtst-section">
@@ -3858,40 +4579,70 @@
             <div class="rtst-row"><label><input type="checkbox" id="rtst-clean-watch"> скрывать рекомендации справа и под видео</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-video-info"> скрывать название, описание и информацию о видео</label></div>
 			<div class="rtst-row"><label><input type="checkbox" id="rtst-hide-comments"> скрывать комментарии</label></div>
-            <div class="rtst-row"><label><input type="checkbox" id="rtst-disable-autoplay"> подавлять автовоспроизведение</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-disable-autoplay"> отключать автовоспроизведение</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-series-navigator"> навигация по сериям</label></div>
           </div>
 
           <div class="rtst-section">
             <div class="rtst-section-title">Плеер</div>
-            <div class="rtst-row"><label><input type="checkbox" id="rtst-strip-player-ads"> пытаться убирать рекламу</label></div>
-            <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-vpn-popup"> подавлять VPN/прокси-плашку</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-strip-player-ads"> убирать рекламу в плеере (по возможности)</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-vpn-popup"> скрывать VPN/прокси-плашку</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-unlock-context-menu"> включить системное меню по правой кнопке</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-swipe-video-volume"> управлять громкостью свайпом по нижней трети плеера</label></div>
-            <div class="rtst-row"><label><input type="checkbox" id="rtst-auto-fullscreen-rotate"> fullscreen при повороте после касания плеера</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-auto-fullscreen-rotate"> полный экран при повороте после касания плеера</label></div>
           </div>
 
           <div class="rtst-section">
-            <div class="rtst-section-title">Добавить в Чёрный список</div>
-            <input type="text" id="rtst-add-input" placeholder="слово или фраза">
+            <div class="rtst-section-title">Общий фильтр</div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-community-filter"> использовать общий фильтр и рейтинг интереса</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-community-contribute"> участвовать в общем фильтре: передавать явные блокировки и оценки</label></div>
+            <div class="rtst-small">Передаются только явные действия: блокировка канала или фразы и оценки «интересно / неинтересно». История просмотров и поисковые запросы не отправляются.</div>
             <div class="rtst-actions">
-              <button type="button" class="rtst-mini-btn" data-rtst-action="add-channel">Добавить в каналы</button>
-              <button type="button" class="rtst-mini-btn" data-rtst-action="add-word">Добавить к фразам</button>
+              <button type="button" class="rtst-mini-btn" data-rtst-action="update-community-filter">Обновить общий фильтр</button>
+              <button type="button" class="rtst-mini-btn" data-rtst-action="reset-interest">Очистить мои оценки</button>
             </div>
           </div>
 
           <div class="rtst-section">
-            <div class="rtst-section-title">Списки и резервная копия</div>
+            <div class="rtst-section-title">Добавить в личный чёрный список</div>
+            <input type="text" id="rtst-add-input" placeholder="слово или фраза">
+            <div class="rtst-actions">
+              <button type="button" class="rtst-mini-btn" data-rtst-action="add-channel">Добавить канал</button>
+              <button type="button" class="rtst-mini-btn" data-rtst-action="add-word">Добавить фразу</button>
+            </div>
+          </div>
+
+          <div class="rtst-section">
+            <div class="rtst-section-title">Личные списки и резервная копия</div>
             <div class="rtst-actions rtst-backup-actions">
               <button type="button" class="rtst-mini-btn" data-rtst-action="open-list-modal" data-rtst-list="channels" title="Открыть список каналов">Каналы <span class="rtst-count" id="rtst-channel-count"></span></button>
               <button type="button" class="rtst-mini-btn" data-rtst-action="open-list-modal" data-rtst-list="words" title="Открыть список фраз">Фразы <span class="rtst-count" id="rtst-word-count"></span></button>
               <div class="rtst-icon-actions" aria-label="Импорт, экспорт и очистка списков">
                 <button type="button" class="rtst-mini-btn rtst-mini-icon-btn" data-rtst-action="export-settings" title="Экспортировать настройки и списки">💾</button>
                 <button type="button" class="rtst-mini-btn rtst-mini-icon-btn" data-rtst-action="import-settings" title="Импортировать настройки и списки">📂</button>
-                <button type="button" class="rtst-mini-btn rtst-mini-icon-btn rtst-danger" data-rtst-action="reset-user" title="Очистить пользовательские списки">🗑</button>
-				<button type="button" class="rtst-title-icon-btn" data-rtst-action="reset-view-history" title="Сбросить кэш просмотров">👁️‍🗨️</button>
+                <button type="button" class="rtst-mini-btn rtst-mini-icon-btn rtst-danger" data-rtst-action="reset-user" title="Очистить личные списки">🗑</button>
+				<button type="button" class="rtst-title-icon-btn" data-rtst-action="reset-view-history" title="Очистить историю просмотров">👁️‍🗨️</button>
               </div>
               <input type="file" id="rtst-import-file" accept="application/json,.json">
+            </div>
+          </div>
+
+          <div class="rtst-section">
+            <div class="rtst-section-title">База «Что посмотреть?»</div>
+            <div class="rtst-small" id="rtst-movie-cache-status">${escapeHtml(movieCacheStatusText())}</div>
+            <div class="rtst-small" id="rtst-movie-auto-status">${escapeHtml(movieAutoUpdateStatusText())}</div>
+            <div class="rtst-actions">
+              <button type="button" class="rtst-mini-btn" data-rtst-action="update-movie-db">Обновить базу</button>
+            </div>
+          </div>
+
+          <div class="rtst-section">
+            <div class="rtst-section-title">Состояние и связь</div>
+            <div class="rtst-small">Версия ${UI_VERSION}</div>
+            <div class="rtst-small" id="rtst-status-github">${escapeHtml(githubAvailabilityText())}</div>
+            <div class="rtst-small" id="rtst-status-community">${escapeHtml(communityStatusText())}</div>
+            <div class="rtst-actions">
+              <button type="button" class="rtst-mini-btn" data-rtst-action="check-github-now">Проверить GitHub</button>
             </div>
           </div>
         </div>
@@ -3923,6 +4674,7 @@
       </div>`;
     document.documentElement.appendChild(modal);
     syncPanelIcon();
+    bindRtstThumbnailFallbacks(modal);
     renderMovieBatch(movieCache.currentIndex);
     modalOpenedAt = Date.now();
   }
@@ -3950,7 +4702,7 @@
       stillBody.innerHTML = `
         <div class="rtst-movie-error">
           Не удалось загрузить базу фильмов.<br>
-          Проверь локальный кэш или обнови базу в настройках.<br>
+          Проверь сохранённую копию или обнови базу в настройках.<br>
           <span class="rtst-small">${escapeHtml(e && e.message ? e.message : String(e))}</span>
         </div>`;
     }
@@ -3963,6 +4715,7 @@
     const sourceUrl = batch.sourceUrl || (entry && entry.sourceUrl) || '';
     const sourceLink = sourceUrl ? `<button type="button" class="rtst-movie-source-btn" data-rtst-action="movie-source" data-rtst-url="${escapeAttribute(sourceUrl)}">пост на Пикабу</button>` : '';
     const movieContext = { batch, entry };
+    movieSmartRuntime.entries.clear();
     const rows = items.length ? items.map((movie) => renderMovieRow(movie, movieContext)).join('') : '<div class="rtst-movie-empty">В этой подборке пусто.</div>';
     return {
       toolbar: `
@@ -4016,11 +4769,12 @@
     const isSeries = seriesMeta.isSeries;
     const seriesBadges = renderMovieSeriesBadges(seriesMeta);
     const genreGhosts = renderMovieGenreGhosts(movie && movie.genres);
+    const smartKey = `m${++movieSmartRuntime.seq}`;
+    movieSmartRuntime.entries.set(smartKey, { movie, context, query });
     const googleOk = isExternalSearchAvailable();
-    const rutubeSearchUrl = buildRutubeMovieSearchUrl(query, false) || 'https://rutube.ru/search/';
     const googleTitle = googleOk
       ? `Искать через Google: ${query} · site:rutube.ru · без обзоров/трейлеров`
-      : 'Google-поиск доступен только когда база/интернет доступны.';
+      : 'Google-поиск отключён, пока GitHub недоступен.';
     return `
       <div class="rtst-movie-row" data-rtst-query="${escapeAttribute(query)}" data-rtst-series="${isSeries ? '1' : '0'}" style="--rtst-movie-rating-pct: ${escapeAttribute(String(ratingPercent))}%; --rtst-movie-rating-fill: ${escapeAttribute(ratingFill)};">
         ${genreGhosts ? `<span class="rtst-movie-genre-ghosts" aria-hidden="true">${genreGhosts}</span>` : ''}
@@ -4029,10 +4783,634 @@
         ${ratingsHtml ? `<span class="rtst-movie-rating-line">${ratingsHtml}</span>` : '<span class="rtst-movie-rating-line"><span>рейтингов пока нет</span></span>'}
         <span class="rtst-movie-search-line">
           <span class="rtst-movie-search-label">Искать в:</span>
-          <a class="rtst-movie-search-btn rtst-movie-rutube-btn" href="${escapeAttribute(rutubeSearchUrl)}" target="_self" title="Искать на RUTUBE: ${escapeAttribute(query)}" rel="nofollow">▶ RUTUBE</a>
+          <button type="button" class="rtst-movie-search-btn rtst-movie-rutube-btn" data-rtst-action="movie-smart-search" data-rtst-movie-key="${escapeAttribute(smartKey)}" data-rtst-query="${escapeAttribute(query)}" data-state="idle" title="Найти варианты на RUTUBE и выделить наиболее удачный">▶ RUTUBE</button>
           <button type="button" class="rtst-movie-search-btn rtst-movie-google-btn" data-rtst-action="movie-search-google" data-rtst-query="${escapeAttribute(query)}" data-state="${googleOk ? 'ok' : 'bad'}" title="${escapeAttribute(googleTitle)}" ${googleOk ? '' : 'disabled'}>🔎 Google</button>
         </span>
       </div>`;
+  }
+
+  function movieSmartCacheKey(movie, context = null) {
+    const seriesMeta = describeMovieSeries(movie, context);
+    return normalize([
+      movie && movie.title,
+      movie && movie.originalTitle,
+      movie && movie.year,
+      seriesMeta && seriesMeta.isSeries ? 'series' : 'movie',
+      seriesMeta && seriesMeta.season != null ? `s${seriesMeta.season}` : ''
+    ].filter(Boolean).join(' | '));
+  }
+
+  function movieSmartQueries(movie, context = null) {
+    if (!movie) return [];
+    const year = Number(movie.year) || null;
+    const seriesMeta = describeMovieSeries(movie, context);
+    const titles = unique([movie.title, movie.originalTitle, movie.query].filter(Boolean).map((value) => String(value).trim()).filter(Boolean));
+    const out = [];
+
+    for (const raw of titles.slice(0, 3)) {
+      let clean = raw
+        .replace(/\s*\/\s*[^/]{2,80}$/u, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (!clean) continue;
+      if (seriesMeta.isSeries && seriesMeta.season != null && !/(?:сезон|season|\bs\d{1,2}\b)/iu.test(clean)) {
+        clean += ` ${seriesMeta.season} сезон`;
+      }
+      if (year && !new RegExp(`\\b${year}\\b`).test(clean)) clean += ` ${year}`;
+      if (!out.some((old) => normalize(old) === normalize(clean))) out.push(clean);
+    }
+
+    return out.slice(0, 2);
+  }
+
+  function normalizeMovieMatchTitle(value) {
+    return normalize(String(value || ''))
+      .replace(/[^\p{L}\p{N}]+/gu, ' ')
+      .replace(/(?:^|\s)(?:19|20)\d{2}(?=\s|$)/gu, ' ')
+      .replace(/(?:^|\s)s\d{1,2}\s*e\d{1,3}(?=\s|$)/giu, ' ')
+      .replace(/(?:^|\s)\d{1,2}\s*[xх]\s*\d{1,3}(?=\s|$)/giu, ' ')
+      .replace(/(?:^|\s)\d{1,2}\s*(?:й\s*)?сезон(?:а|е|ом)?(?=\s|$)/giu, ' ')
+      .replace(/(?:^|\s)(?:сезон|season)\s*\d{1,2}(?=\s|$)/giu, ' ')
+      .replace(/(?:^|\s)\d{1,3}\s*(?:я\s*)?(?:серия|серии|эпизод)(?=\s|$)/giu, ' ')
+      .replace(/(?:^|\s)(?:серия|эпизод|episode|ep)\s*\d{1,3}(?=\s|$)/giu, ' ')
+      .replace(/(?:^|\s)(?:сериал|serial|series|фильм|movie|кино)(?=\s|$)/giu, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function movieTitleSimilarity(a, b) {
+    const na = normalizeMovieMatchTitle(a);
+    const nb = normalizeMovieMatchTitle(b);
+    if (!na || !nb) return 0;
+    if (na === nb) return 1;
+
+    const at = na.split(' ').filter((x) => x.length > 1);
+    const bt = nb.split(' ').filter((x) => x.length > 1);
+    if (!at.length || !bt.length) return 0;
+    if (at.length >= 2 && bt.length >= 2 && (na.includes(nb) || nb.includes(na))) return 0.93;
+
+    const as = new Set(at);
+    const bs = new Set(bt);
+    let common = 0;
+    for (const token of as) if (bs.has(token)) common += 1;
+    if (!common) return 0;
+    const coverage = common / Math.min(as.size, bs.size);
+    const jaccard = common / (as.size + bs.size - common);
+    return Math.min(0.92, coverage * 0.72 + jaccard * 0.28);
+  }
+
+  function movieCandidateYear(item) {
+    const direct = Number(item && (item.year ?? item.release_year ?? item.releaseYear));
+    if (direct >= 1900 && direct <= 2100) return direct;
+    const title = String(item && (item.title || item.name) || '');
+    const match = title.match(/\b((?:19|20)\d{2})\b/);
+    return match ? Number(match[1]) : null;
+  }
+
+  function movieCandidateSeason(item) {
+    const direct = findKnownNumericField(item, ['season', 'season_number', 'season_num', 'seasonNumber']);
+    if (direct != null) return Number(direct);
+    const title = normalize(String(item && (item.title || item.name) || ''))
+      .replace(/[^\p{L}\p{N}]+/gu, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const patterns = [
+      /(?:^|\s)(\d{1,2})\s*(?:й\s*)?сезон(?=\s|$)/iu,
+      /(?:^|\s)(?:сезон|season)\s*(\d{1,2})(?=\s|$)/iu,
+      /(?:^|\s)s0*(\d{1,2})\s*e\d{1,3}(?=\s|$)/iu
+    ];
+    for (const re of patterns) {
+      const match = re.exec(title);
+      if (match) return Number(match[1]);
+    }
+    return null;
+  }
+
+  function movieCandidateEpisode(item) {
+    const direct = findKnownNumericField(item, ['episode', 'episode_number', 'episode_num', 'episodeNumber']);
+    if (direct != null) return Number(direct);
+    const title = normalize(String(item && (item.title || item.name) || ''))
+      .replace(/[^\p{L}\p{N}]+/gu, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const patterns = [
+      /(?:^|\s)(\d{1,3})\s*(?:я\s*)?(?:серия|эпизод)(?=\s|$)/iu,
+      /(?:^|\s)(?:серия|эпизод|episode|ep)\s*(\d{1,3})(?=\s|$)/iu,
+      /(?:^|\s)s\d{1,2}\s*e0*(\d{1,3})(?=\s|$)/iu,
+      /(?:^|\s)\d{1,2}\s*[xх]\s*0*(\d{1,3})(?=\s|$)/iu
+    ];
+    for (const re of patterns) {
+      const match = re.exec(title);
+      if (match) return Number(match[1]);
+    }
+    return null;
+  }
+
+  function movieCandidateDurationSeconds(item) {
+    const raw = item && (item.duration ?? item.duration_seconds ?? item.durationSeconds ?? item.video_duration);
+    if (Number.isFinite(Number(raw))) return Math.max(0, Number(raw));
+    const text = String(raw || '').trim();
+    if (!text || !/^\d{1,2}:\d{2}(?::\d{2})?$/.test(text)) return null;
+    const parts = text.split(':').map(Number);
+    if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    return parts[0] * 60 + parts[1];
+  }
+
+  function movieCandidateGarbagePenalty(title, targetTitles) {
+    const candidate = normalize(String(title || ''));
+    const target = normalize((targetTitles || []).join(' '));
+    const groups = [
+      ['трейлер', 'trailer'],
+      ['тизер', 'teaser'],
+      ['обзор', 'review'],
+      ['реакц', 'reaction'],
+      ['фрагмент', 'отрывок', 'сцена', 'clip'],
+      ['анонс', 'promo'],
+      ['интервью', 'interview'],
+      ['саундтрек', 'soundtrack', ' ost ']
+    ];
+    let penalty = 0;
+    for (const words of groups) {
+      const candidateHas = words.some((word) => candidate.includes(word));
+      const targetHas = words.some((word) => target.includes(word));
+      if (candidateHas && !targetHas) penalty += 0.22;
+    }
+    return Math.min(0.55, penalty);
+  }
+
+  function movieCandidateId(item, url = '') {
+    const direct = String(item && (item.id || item.video_id || item.videoId) || '').trim();
+    if (/^[a-z0-9]{32}$/i.test(direct)) return direct;
+    return extractRutubeVideoIdFromUrl(url || String(item && (item.video_url || item.url || '') || '')) || '';
+  }
+
+  function movieCandidateMetric(item, keys) {
+    const value = findDeepValueByKeys(item, keys, 4);
+    if (value == null) return null;
+    if (typeof value === 'object') {
+      for (const key of ['count', 'value', 'total', 'amount']) {
+        const n = Number(value[key]);
+        if (Number.isFinite(n) && n >= 0) return n;
+      }
+      return null;
+    }
+    const n = Number(value);
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  }
+
+  function movieCandidateViews(item) {
+    return movieCandidateMetric(item, ['hits', 'views', 'views_count', 'view_count', 'viewsCount', 'viewCount']);
+  }
+
+  function movieCandidateLikes(item) {
+    return movieCandidateMetric(item, ['likes', 'likes_count', 'like_count', 'likesCount', 'likeCount', 'positive_reactions', 'positive_votes']);
+  }
+
+  function movieCandidatePublishedAt(item) {
+    const raw = findDeepValueByKeys(item, ['publication_ts', 'publicationTs', 'published_at', 'publishedAt', 'created_ts', 'createdTs', 'created', 'publication_date'], 4);
+    if (raw == null) return null;
+    if (typeof raw === 'number' || /^\d+(?:\.\d+)?$/.test(String(raw).trim())) {
+      let n = Number(raw);
+      if (!Number.isFinite(n)) return null;
+      if (n < 1e11) n *= 1000;
+      const d = new Date(n);
+      return Number.isFinite(d.getTime()) ? d : null;
+    }
+    const d = new Date(String(raw));
+    return Number.isFinite(d.getTime()) ? d : null;
+  }
+
+  function movieCandidateAuthorName(item) {
+    const author = item && item.author;
+    if (author && typeof author === 'object') {
+      const name = author.name || author.title || author.display_name || author.displayName;
+      if (name) return String(name).trim();
+    }
+    const value = findDeepValueByKeys(item, ['author_name', 'channel_name', 'uploader_name'], 4);
+    return value == null ? '' : String(value).trim();
+  }
+
+  function normalizeRutubeImageUrl(value) {
+    if (typeof value !== 'string') return '';
+    let url = value.trim().replace(/&amp;/gi, '&');
+    if (!url) return '';
+    if (/\s(?:1x|2x|3x|\d+w)(?:\s*,|$)/i.test(url) || url.includes(', http')) {
+      const parts = url.split(',').map((part) => part.trim().split(/\s+/)[0]).filter(Boolean);
+      url = parts[parts.length - 1] || '';
+    }
+    if (url.startsWith('//')) url = `https:${url}`;
+    else if (url.startsWith('/')) {
+      try { url = new URL(url, location.origin).href; } catch (e) {}
+    } else if (/^[a-z0-9.-]+\.(?:ru|com|net)\//i.test(url)) {
+      url = `https://${url}`;
+    }
+    if (!/^(?:https?:|data:image\/)/i.test(url)) return '';
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol === 'http:' && /(?:rutube\.ru|rtbcdn\.ru)$/i.test(parsed.hostname)) {
+        parsed.protocol = 'https:';
+        url = parsed.href;
+      }
+    } catch (e) {}
+    return url;
+  }
+
+  function movieCandidateThumbnailCandidates(...sources) {
+    const out = [];
+    const seen = new Set();
+    const imageKey = /(?:thumb|thumbnail|picture|preview|image|poster|cover|frame|screenshot)/i;
+    const rejectKey = /(?:avatar|logo|icon|favicon|author.*image|channel.*image)/i;
+    const priorityKeys = [
+      'thumbnail_url', 'thumbnailUrl', 'thumbnail', 'video_thumbnail', 'videoThumbnail',
+      'picture_url', 'pictureUrl', 'picture', 'preview_url', 'previewUrl', 'preview',
+      'image_url', 'imageUrl', 'image', 'poster_url', 'posterUrl', 'poster', 'cover_url', 'coverUrl', 'cover'
+    ];
+
+    const add = (raw) => {
+      if (typeof raw !== 'string') return;
+      const variants = raw.includes(',') ? raw.split(',') : [raw];
+      for (const part of variants) {
+        const token = String(part || '').trim().split(/\s+/)[0];
+        const url = normalizeRutubeImageUrl(token);
+        if (!url || seen.has(url)) continue;
+        seen.add(url);
+        out.push(url);
+      }
+    };
+
+    const walk = (value, path = '', depth = 0) => {
+      if (value == null || depth > 5 || out.length >= 12) return;
+      if (typeof value === 'string') {
+        if (imageKey.test(path) && !rejectKey.test(path)) add(value);
+        return;
+      }
+      if (Array.isArray(value)) {
+        value.slice(0, 12).forEach((child, index) => walk(child, `${path}[${index}]`, depth + 1));
+        return;
+      }
+      if (typeof value !== 'object') return;
+
+      for (const key of priorityKeys) {
+        if (Object.prototype.hasOwnProperty.call(value, key)) walk(value[key], `${path}.${key}`, depth + 1);
+      }
+      for (const [key, child] of Object.entries(value)) {
+        if (priorityKeys.includes(key) || rejectKey.test(key)) continue;
+        if (imageKey.test(key) || imageKey.test(path)) walk(child, `${path}.${key}`, depth + 1);
+        else if (depth < 2 && child && typeof child === 'object') walk(child, `${path}.${key}`, depth + 1);
+      }
+    };
+
+    sources.filter(Boolean).forEach((source) => walk(source, 'root', 0));
+    return out.slice(0, 8);
+  }
+
+  function movieCandidateThumbnail(item) {
+    return movieCandidateThumbnailCandidates(item)[0] || '';
+  }
+
+  function rtstThumbnailImgHtml(candidate, className = '', placeholderClass = '') {
+    const candidates = unique([
+      ...(candidate && Array.isArray(candidate.thumbnailCandidates) ? candidate.thumbnailCandidates : []),
+      candidate && candidate.thumbnail
+    ].filter(Boolean));
+    if (!candidates.length) return '';
+    const primary = candidates[0];
+    const fallbacks = encodeURIComponent(JSON.stringify(candidates.slice(1)));
+    return `<img${className ? ` class="${escapeAttribute(className)}"` : ''} src="${escapeAttribute(primary)}" data-rtst-thumb-fallbacks="${escapeAttribute(fallbacks)}" data-rtst-thumb-placeholder-class="${escapeAttribute(placeholderClass)}" loading="lazy" alt="">`;
+  }
+
+  function bindRtstThumbnailFallbacks(scope = document) {
+    const root = scope && scope.querySelectorAll ? scope : document;
+    root.querySelectorAll('img[data-rtst-thumb-fallbacks]').forEach((img) => {
+      if (img.dataset.rtstThumbBound === '1') return;
+      img.dataset.rtstThumbBound = '1';
+      const useNext = () => {
+        let list = [];
+        try { list = JSON.parse(decodeURIComponent(img.dataset.rtstThumbFallbacks || '')) || []; } catch (e) { list = []; }
+        const index = Number(img.dataset.rtstThumbIndex || 0);
+        const next = list[index];
+        if (next) {
+          img.dataset.rtstThumbIndex = String(index + 1);
+          img.src = next;
+          return;
+        }
+        const placeholder = document.createElement('span');
+        placeholder.className = String(img.dataset.rtstThumbPlaceholderClass || 'rtst-ph-thumb-empty');
+        placeholder.textContent = '▶';
+        img.replaceWith(placeholder);
+      };
+      img.addEventListener('error', useNext);
+      if (img.complete && img.naturalWidth === 0) queueMicrotask(useNext);
+    });
+  }
+
+  function interestIconSvg(signal) {
+    if (Number(signal) < 0) {
+      return '<svg class="rtst-interest-icon rtst-interest-icon-off" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 3l18 18"/><path d="M19.5 12.572l-1.5 1.428m-2 2l-4 4l-7.5 -7.428a5 5 0 0 1 -1.288 -5.068a4.976 4.976 0 0 1 1.788 -2.504m3 -1c1.56 0 3.05 .727 4 2a5 5 0 1 1 7.5 6.572"/></svg>';
+    }
+    return '<svg class="rtst-interest-icon rtst-interest-icon-on" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"/></svg>';
+  }
+
+  function pooIconSvg() {
+    return '<svg class="rtst-poo-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 12h.01"/><path d="M14 12h.01"/><path d="M10 16a3.5 3.5 0 0 0 4 0"/><path d="M11 4c2 0 3.5 1.5 3.5 4l.164 0a2.5 2.5 0 0 1 2.196 3.32a3 3 0 0 1 1.615 3.063a3 3 0 0 1 -1.299 5.607l-.176 0h-10a3 3 0 0 1 -1.474 -5.613a3 3 0 0 1 1.615 -3.062a2.5 2.5 0 0 1 2.195 -3.32l.164 0c1.5 0 2.5 -2 1.5 -4l0 .005"/></svg>';
+  }
+
+  function movieCandidateQualityAdjustment(item) {
+    const haystack = normalize([item && (item.title || item.name), item && item.description].filter(Boolean).join(' '));
+    let adjustment = 0;
+    const bad = [
+      [/\b(?:camrip|cam rip|telesync|telecine)\b/iu, 0.18],
+      [/(?:экранк|звук с кинотеатра|кинотеатр.*звук)/iu, 0.18],
+      [/(?:одноголос|автоперевод|машинн\w* перевод)/iu, 0.10],
+      [/(?:вшит\w* реклам|реклама каждые|с рекламой)/iu, 0.09]
+    ];
+    for (const [re, penalty] of bad) if (re.test(haystack)) adjustment -= penalty;
+    if (/(?:2160p|4k|uhd|1080p|full\s*hd|web[- .]?dl|blu[- ]?ray)/iu.test(haystack)) adjustment += 0.035;
+    if (/(?:официальн\w*|official)/iu.test(haystack)) adjustment += 0.025;
+    return adjustment;
+  }
+
+  function movieFreshnessScore(date) {
+    if (!(date instanceof Date) || !Number.isFinite(date.getTime())) return 0.45;
+    const days = Math.max(0, (Date.now() - date.getTime()) / 86400000);
+    if (days <= 14) return 1;
+    if (days <= 90) return 0.86;
+    if (days <= 365) return 0.68;
+    if (days <= 3 * 365) return 0.44;
+    return 0.24;
+  }
+
+  function logRelative(value, maxValue, missing = 0.35) {
+    if (value == null || !Number.isFinite(Number(value))) return missing;
+    if (!maxValue || maxValue <= 0) return value > 0 ? 0.5 : 0;
+    return Math.max(0, Math.min(1, Math.log1p(Number(value)) / Math.log1p(Number(maxValue))));
+  }
+
+  function finalizeMovieRutubeRanking(candidates) {
+    const list = (candidates || []).filter(Boolean);
+    const maxLikes = Math.max(0, ...list.map((x) => Number(x.likes) || 0));
+    const maxViews = Math.max(0, ...list.map((x) => Number(x.views) || 0));
+    for (const item of list) {
+      const ranked = RutubeCandidateScorer.movieRank(item, { maxLikes, maxViews });
+      item.rankScore = ranked.rankScore;
+      item.support = ranked.support;
+      item.history = ranked.history;
+      item.interest = ranked.interest;
+    }
+    return list.sort((a, b) => b.rankScore - a.rankScore || b.score - a.score || (b.likes || 0) - (a.likes || 0));
+  }
+
+  async function enrichMovieRutubeCandidate(candidate) {
+    if (!candidate) return candidate;
+    let detail = null;
+    if (candidate.id) {
+      try { detail = await RutubeApi.video(candidate.id); } catch (e) { detail = null; }
+    }
+    const item = detail && typeof detail === 'object' ? { ...candidate.item, ...detail } : candidate.item;
+    const thumbnailCandidates = unique([
+      ...movieCandidateThumbnailCandidates(item, detail, candidate.raw),
+      ...(candidate.thumbnailCandidates || []),
+      candidate.thumbnail
+    ].filter(Boolean));
+    return {
+      ...candidate,
+      item,
+      authorId: extractAuthorId(item) || candidate.authorId || '',
+      views: movieCandidateViews(item),
+      likes: movieCandidateLikes(item),
+      publishedAt: movieCandidatePublishedAt(item),
+      author: movieCandidateAuthorName(item),
+      thumbnail: thumbnailCandidates[0] || '',
+      thumbnailCandidates
+    };
+  }
+
+  function scoreMovieRutubeCandidate(raw, movie, context = null, evidence = {}) {
+    const candidate = RutubeCandidateScorer.normalize(raw, { source: 'search', queryKey: evidence.queryKey || '' });
+    if (!candidate) return null;
+    const { item, title } = candidate;
+
+    // В ручной выдаче «Что посмотреть?» уважение ЧС полезнее, чем героическое
+    // предложение пользователю ролика с канала, который он уже попросил убрать.
+    if (RutubeCandidateScorer.blockedChannel(candidate)) return null;
+
+    const targets = unique([movie && movie.title, movie && movie.originalTitle].filter(Boolean).map(String));
+    if (!targets.length) return null;
+    let similarity = 0;
+    for (const target of targets) similarity = Math.max(similarity, movieTitleSimilarity(target, title));
+    if (similarity < 0.42) return null;
+
+    let score = similarity;
+    const expectedYear = Number(movie && movie.year) || null;
+    const candidateYear = candidate.year;
+    if (expectedYear && candidateYear) {
+      if (expectedYear === candidateYear) score += 0.08;
+      else if (Math.abs(expectedYear - candidateYear) >= 2) score -= 0.24;
+      else score -= 0.08;
+    }
+
+    score -= movieCandidateGarbagePenalty(title, targets);
+
+    const duration = candidate.duration;
+    const seriesMeta = describeMovieSeries(movie, context);
+    const candidateSeason = candidate.season;
+    const candidateEpisode = candidate.episode;
+    if (seriesMeta.isSeries && seriesMeta.season != null && candidateSeason != null) {
+      if (Number(seriesMeta.season) === Number(candidateSeason)) score += 0.05;
+      else score -= 0.30;
+    }
+    if (seriesMeta.isSeries && candidateEpisode != null) {
+      if (Number(candidateEpisode) === 1) score += 0.035;
+      else if (Number(candidateEpisode) > 1) score -= 0.02;
+    }
+    if (duration != null) {
+      if (seriesMeta.isSeries) {
+        if (duration < 180) score -= 0.18;
+        else if (duration >= 900) score += 0.025;
+      } else {
+        if (duration < 600) score -= 0.20;
+        else if (duration < 1200) score -= 0.08;
+        else if (duration >= 2400) score += 0.04;
+      }
+    }
+
+    return {
+      ...candidate,
+      similarity,
+      baseScore: Math.max(0, Math.min(1, score)),
+      score: Math.max(0, Math.min(1, score))
+    };
+  }
+
+  async function resolveMovieOnRutube(movie, context = null) {
+    const cacheKey = movieSmartCacheKey(movie, context);
+    const cached = movieSmartRuntime.resolved.get(cacheKey);
+    if (cached && Date.now() - cached.at < MOVIE_SMART_SEARCH_CACHE_TTL_MS) return cached.value;
+
+    const queries = movieSmartQueries(movie, context);
+    const map = new Map();
+    let usedQuery = queries[0] || buildMovieQuery(movie);
+
+    for (const query of queries) {
+      usedQuery = query;
+      let items = [];
+      try { items = await RutubeApi.searchVideos(query, { limit: 30, cacheTtlMs: 12 * 60 * 1000 }); }
+      catch (e) { items = []; }
+
+      for (const raw of items) {
+        const candidate = scoreMovieRutubeCandidate(raw, movie, context, { queryKey: query });
+        if (!candidate || candidate.score < MOVIE_SMART_MIN_MATCH) continue;
+        const key = candidate.id || candidate.url;
+        const old = map.get(key);
+        if (!old) map.set(key, candidate);
+        else map.set(key, RutubeCandidateScorer.mergeEvidence(old, candidate));
+      }
+    }
+
+    let candidates = [...map.values()].sort((a, b) => b.score - a.score).slice(0, Math.max(MOVIE_SMART_RESULTS_LIMIT + 2, MOVIE_SMART_DETAIL_LIMIT));
+    const enrichCount = Math.min(MOVIE_SMART_DETAIL_LIMIT, candidates.length);
+    if (enrichCount) {
+      const enriched = await Promise.all(candidates.slice(0, enrichCount).map((candidate) => enrichMovieRutubeCandidate(candidate)));
+      candidates = [...enriched, ...candidates.slice(enrichCount)];
+    }
+    candidates = finalizeMovieRutubeRanking(candidates).slice(0, MOVIE_SMART_RESULTS_LIMIT);
+
+    const value = {
+      best: candidates[0] || null,
+      candidates,
+      query: usedQuery || buildMovieQuery(movie)
+    };
+    movieSmartRuntime.resolved.set(cacheKey, { at: Date.now(), value });
+    return value;
+  }
+
+  function formatMovieResultCount(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n < 0) return '';
+    try { return new Intl.NumberFormat('ru-RU', { notation: 'compact', maximumFractionDigits: 1 }).format(n); }
+    catch (e) { return Math.round(n).toLocaleString('ru-RU'); }
+  }
+
+  function formatMovieResultDuration(seconds) {
+    const n = Math.max(0, Math.round(Number(seconds) || 0));
+    if (!n) return '';
+    const h = Math.floor(n / 3600);
+    const m = Math.floor((n % 3600) / 60);
+    const s = n % 60;
+    return h ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`;
+  }
+
+  function formatMovieResultDate(date) {
+    if (!(date instanceof Date) || !Number.isFinite(date.getTime())) return '';
+    try { return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }); }
+    catch (e) { return ''; }
+  }
+
+  function renderRutubeMovieResult(candidate, favorite = false) {
+    const thumbImg = rtstThumbnailImgHtml(candidate, 'rtst-movie-result-thumb', 'rtst-movie-result-thumb rtst-movie-result-thumb-placeholder');
+    const thumb = thumbImg || '<span class="rtst-movie-result-thumb rtst-movie-result-thumb-placeholder">▶</span>';
+    const meta = [];
+    const duration = formatMovieResultDuration(candidate.duration);
+    const published = formatMovieResultDate(candidate.publishedAt);
+    const views = formatMovieResultCount(candidate.views);
+    const likes = formatMovieResultCount(candidate.likes);
+    if (published) meta.push(`📅 ${escapeHtml(published)}`);
+    if (duration) meta.push(`⏱ ${escapeHtml(duration)}`);
+    if (views) meta.push(`👁 ${escapeHtml(views)}`);
+    if (likes) meta.push(`♥ ${escapeHtml(likes)}`);
+    if (candidate.support && candidate.support.queryKeys && candidate.support.queryKeys.length > 1) meta.push(`✓ ${candidate.support.queryKeys.length} запроса`);
+    if (candidate.history && /^(?:complete|watched)$/i.test(candidate.history.status || '')) meta.push('◉ уже просмотрено');
+    if (candidate.interest && candidate.interest.personalScore > 0) meta.push('♥ лично интересно');
+    else if (candidate.interest && candidate.interest.personalScore < 0) meta.push('♡̸ лично неинтересно');
+    else if (candidate.interest && candidate.interest.community && Math.abs(candidate.interest.communityScore) >= 0.12) {
+      const count = Number(candidate.interest.community.count) || (Number(candidate.interest.community.up) || 0) + (Number(candidate.interest.community.down) || 0);
+      meta.push(`${candidate.interest.communityScore > 0 ? '↑' : '↓'} общий интерес${count ? ` · ${count}` : ''}`);
+    }
+    const match = Math.round((candidate.score || 0) * 100);
+    const rank = Math.round((candidate.rankScore || candidate.score || 0) * 100);
+    return `<a class="rtst-movie-result" data-favorite="${favorite ? '1' : '0'}" href="${escapeAttribute(candidate.url)}" target="_self" title="Открыть на RUTUBE">
+      ${thumb}
+      <span class="rtst-movie-result-main">
+        <span class="rtst-movie-result-title">${escapeHtml(candidate.title)}</span>
+        ${candidate.author ? `<span class="rtst-movie-result-author">${escapeHtml(candidate.author)}</span>` : ''}
+        <span class="rtst-movie-result-meta">${meta.map((x) => `<span>${x}</span>`).join('')}</span>
+      </span>
+      <span class="rtst-movie-result-side">
+        ${favorite ? '<span class="rtst-movie-result-favorite">★ фаворит</span>' : ''}
+        <span class="rtst-movie-result-rank">совпадение ${match}% · приоритет ${rank}%</span>
+      </span>
+    </a>`;
+  }
+
+  function openRutubeMovieResults(record, resolved) {
+    document.querySelectorAll('.rtst-movie-results-backdrop').forEach((el) => el.remove());
+    const candidates = resolved && Array.isArray(resolved.candidates) ? resolved.candidates : [];
+    if (!candidates.length) return false;
+    const title = movieTitleLine(record.movie);
+    const rows = candidates.map((candidate, index) => renderRutubeMovieResult(candidate, index === 0)).join('');
+    const fallbackQuery = record.query || buildMovieQuery(record.movie);
+    const modal = document.createElement('div');
+    modal.className = 'rtst-modal-backdrop rtst-movie-results-backdrop';
+    modal.innerHTML = `
+      <div class="rtst-modal rtst-movie-results-modal" role="dialog" aria-modal="true">
+        <div class="rtst-modal-head">
+          <div>
+            ${modalTitleHtml('Результаты RUTUBE')}
+            <div class="rtst-movie-results-note">${escapeHtml(title)} · фаворит учитывает совпадение, качество, свежесть, реакции и подтверждение несколькими поисковыми запросами. Уже просмотренная копия получает небольшой штраф. Выбор остаётся за человеком.</div>
+          </div>
+          <button type="button" data-rtst-action="close-movie-results" aria-label="Закрыть">×</button>
+        </div>
+        <div class="rtst-modal-body">
+          <div class="rtst-movie-results-list">${rows}</div>
+          <div class="rtst-movie-results-footer">
+            <button type="button" data-rtst-action="movie-search" data-rtst-query="${escapeAttribute(fallbackQuery)}">Обычный поиск RUTUBE</button>
+          </div>
+        </div>
+      </div>`;
+    document.documentElement.appendChild(modal);
+    bindRtstThumbnailFallbacks(modal);
+    modalOpenedAt = Date.now();
+    return true;
+  }
+
+  async function openSmartRutubeMovie(button) {
+    const key = String(button && button.dataset && button.dataset.rtstMovieKey || '');
+    const record = movieSmartRuntime.entries.get(key);
+    if (!record || !record.movie) {
+      openRutubeMovieSearch(button && button.dataset ? button.dataset.rtstQuery || '' : '', false);
+      return;
+    }
+
+    const fallbackQuery = record.query || buildMovieQuery(record.movie);
+    if (button.dataset.state === 'loading') return;
+    const oldText = button.textContent;
+    button.dataset.state = 'loading';
+    button.disabled = true;
+    button.textContent = '⌛ RUTUBE';
+
+    try {
+      const resolved = await resolveMovieOnRutube(record.movie, record.context);
+      if (resolved && resolved.candidates && resolved.candidates.length) {
+        button.dataset.state = 'found';
+        button.textContent = `▶ RUTUBE ${resolved.candidates.length}`;
+        button.title = `Найдено вариантов: ${resolved.candidates.length}. Открыть список с фаворитом.`;
+        openRutubeMovieResults(record, resolved);
+        return;
+      }
+      toast('RUTUBE API не нашёл подходящих вариантов — открываю обычный поиск.');
+      openRutubeMovieSearch(fallbackQuery, false);
+    } catch (e) {
+      toast('Поиск через RUTUBE API не ответил — открываю обычную выдачу.');
+      openRutubeMovieSearch(fallbackQuery, false);
+    } finally {
+      if (button && button.isConnected && button.dataset.state !== 'found') {
+        button.dataset.state = 'idle';
+        button.disabled = false;
+        button.textContent = oldText || '▶ RUTUBE';
+      } else if (button && button.isConnected && button.dataset.state === 'found') {
+        button.disabled = false;
+      }
+    }
   }
 
   function isMovieSeriesEntry(movie, batch = null, entry = null) {
@@ -4294,7 +5672,7 @@
     const entry = batches[safeIndex];
     const cacheKey = entry.id || entry.file || String(safeIndex);
     let batch = movieCache.batches.get(cacheKey);
-    if (!batch) throw new Error(`В локальном кэше нет подборки ${entry.title || cacheKey}. Нажми «Обновить вручную» в настройках.`);
+    if (!batch) throw new Error(`В локальном кэше нет подборки ${entry.title || cacheKey}. Нажми «Обновить базу» в настройках.`);
     movieCache.currentIndex = safeIndex;
     movieCache.currentBatch = batch;
     maybeUpdateMovieDbInBackground();
@@ -4359,7 +5737,7 @@
       return true;
     } catch (e) {
       setGithubState('bad', e && e.message ? String(e.message) : String(e));
-      if (!silent) toast('Не удалось обновить базу. Используется локальный кэш.');
+      if (!silent) toast('Не удалось обновить базу. Используется сохранённая копия.');
       if (!movieCache.index) loadMovieDbFromLocalCache();
       return false;
     }
@@ -4503,7 +5881,7 @@
     if (button) { button.disabled = true; button.textContent = 'Обновляю...'; }
     await refreshMovieDbCache({ silent: false });
     updateMovieCacheStatusText();
-    if (button) { button.disabled = false; button.textContent = 'Обновить вручную'; }
+    if (button) { button.disabled = false; button.textContent = 'Обновить базу'; }
   }
 
   function movieCacheStatusText() {
@@ -4645,8 +6023,23 @@
       const query = btn.dataset.rtstQuery || '';
       btn.title = ok
         ? `Искать через Google: ${query} · site:rutube.ru · без обзоров/трейлеров`
-        : 'Google-поиск доступен только когда интернет доступен.';
+        : 'Google-поиск отключён, пока GitHub недоступен.';
     });
+  }
+
+  function githubAvailabilityText() {
+    const state = githubState && githubState.state ? githubState.state : 'unknown';
+    if (state === 'ok') return 'GitHub: доступен.';
+    if (state === 'bad') return `GitHub: недоступен.${githubState.message ? ' ' + githubState.message : ''}`.trim();
+    if (state === 'checking') return 'GitHub: проверяю доступность…';
+    return 'GitHub: ещё не проверялся.';
+  }
+
+  function syncSettingsIndicators() {
+    const githubEl = document.getElementById('rtst-status-github');
+    if (githubEl) githubEl.textContent = githubAvailabilityText();
+    const communityEl = document.getElementById('rtst-status-community');
+    if (communityEl) communityEl.textContent = communityStatusText();
   }
 
   function syncGithubBadge() {
@@ -4659,27 +6052,30 @@
       btn.title = ['Открыть страницу проекта на GitHub.', versionLine].filter(Boolean).join('\n');
     }
 
+    syncSettingsIndicators();
     if (!status) return;
     status.dataset.state = state;
     if (state === 'ok') {
-      status.textContent = '🟢 интернет';
-      status.title = `Интернет доступен. База отвечает через ${movieCache.source || movieDbLastRemoteSource || 'remote'}.`;
+      status.textContent = '🟢 GitHub';
+      status.title = 'GitHub доступен.';
     } else if (state === 'bad') {
-      status.textContent = '🔴 чебурнет';
-      status.title = ['База подборок недоступна. Возможен Чебурнет, DNS-бубен или просто RUTUBE опять победил смысл.', githubState.message ? `Ошибка: ${githubState.message}` : ''].filter(Boolean).join('\n');
+      status.textContent = '🔴 GitHub';
+      status.title = ['GitHub недоступен.', githubState.message ? `Ошибка: ${githubState.message}` : ''].filter(Boolean).join('\n');
     } else if (state === 'checking') {
-      status.textContent = '🟡 проверка';
-      status.title = 'Проверяю доступ к базе подборок.';
+      status.textContent = '🟡 GitHub';
+      status.title = 'Проверяю доступность GitHub.';
     } else {
-      status.textContent = '⚪ сеть';
-      status.title = 'Доступ к интернету ещё не проверялся.';
+      status.textContent = '⚪ GitHub';
+      status.title = 'GitHub ещё не проверялся.';
     }
   }
 
   async function checkGithubAvailability() {
     setGithubState('checking', '');
     try {
-      await loadMovieJsonRemote(MOVIE_DB_INDEX_FILE);
+      const base = MOVIE_DB_BASE_URLS[0];
+      const url = `${base}${MOVIE_DB_INDEX_FILE}?rtst=${Date.now()}`;
+      await fetchMovieJsonWithTimeout(url, Math.min(MOVIE_DB_REQUEST_TIMEOUT_MS, 10000));
       setGithubState('ok', '');
     } catch (e) {
       setGithubState('bad', e && e.message ? e.message : String(e));
@@ -4745,7 +6141,7 @@
     const clean = String(query || '').trim();
     if (!clean) { toast('Поисковый запрос пуст.'); return; }
     if (!isExternalSearchAvailable()) {
-      toast('Google-поиск отключён: GitHub недоступен. Похоже, Чебурнет.');
+      toast('Google-поиск отключён: GitHub недоступен.');
       return;
     }
     const params = new URLSearchParams({
@@ -4805,22 +6201,45 @@
   function saveListFromModal(type) {
     const textarea = document.getElementById('rtst-modal-list');
     const values = linesFromTextarea(textarea && textarea.value);
+    const before = type === 'words' ? [...settings.userWords] : [...settings.userChannels];
+    const beforeMap = new Map(before.map((x) => [normalize(x), x]));
+    const afterMap = new Map(values.map((x) => [normalize(x), x]));
+    for (const [key, value] of afterMap) {
+      if (beforeMap.has(key)) continue;
+      if (type === 'words') queueCommunitySignal({ type: 'block_word', active: 1, value });
+      else queueCommunitySignal({ type: 'block_channel', value: 1, channel_name: value });
+    }
+    for (const [key, value] of beforeMap) {
+      if (afterMap.has(key)) continue;
+      if (type === 'words') queueCommunitySignal({ type: 'block_word', active: 0, value });
+      else queueCommunitySignal({ type: 'block_channel', value: 0, channel_name: value });
+    }
     if (type === 'words') settings.userWords = values; else settings.userChannels = values;
+    personalHomeRuntime.builtAt = 0; personalHomeRuntime.html = '';
     saveSettings(); syncPanel(); closeModal(); toast('Список сохранён.'); rescanNow();
   }
 
   function clearListFromModal(type) {
+    const before = type === 'words' ? [...settings.userWords] : [...settings.userChannels];
+    for (const value of before) {
+      if (type === 'words') queueCommunitySignal({ type: 'block_word', active: 0, value });
+      else queueCommunitySignal({ type: 'block_channel', value: 0, channel_name: value });
+    }
     if (type === 'words') settings.userWords = []; else settings.userChannels = [];
+    personalHomeRuntime.builtAt = 0; personalHomeRuntime.html = '';
     saveSettings(); syncPanel(); closeModal(); toast(type === 'words' ? 'Список фраз очищен.' : 'Список каналов очищен.'); rescanNow();
   }
 
   function escapeHtml(value) { return String(value || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
   function linesFromTextarea(value) { return unique(String(value || '').split('\n').map((line) => line.trim()).filter(Boolean)); }
 
-  function blockChannel(channel) {
+  function blockChannel(channel, meta = {}) {
     const clean = String(channel || '').trim();
     if (!clean) return;
     settings.userChannels = unique([...settings.userChannels, clean]);
+    personalHomeRuntime.builtAt = 0;
+    personalHomeRuntime.html = '';
+    queueCommunitySignal({ type: 'block_channel', value: 1, channel_name: clean, channel_id: String(meta.channelId || '') });
     saveSettings(); syncPanel(); toast(`Канал скрыт: ${clean}`); rescanNow();
   }
 
@@ -4828,6 +6247,9 @@
     const clean = String(word || '').trim();
     if (!clean) return;
     settings.userWords = unique([...settings.userWords, clean]);
+    personalHomeRuntime.builtAt = 0;
+    personalHomeRuntime.html = '';
+    queueCommunitySignal({ type: 'block_word', active: 1, value: clean });
     saveSettings(); syncPanel(); toast(`Фраза добавлена: ${clean}`); rescanNow();
   }
 
@@ -4883,7 +6305,7 @@
       el.removeAttribute('data-rtst-view-state');
       el.removeAttribute('data-rtst-view-percent');
     });
-    toast('Локальный кэш просмотров очищен.');
+    toast('История просмотров очищена.');
     rescanNow();
   }
 
@@ -5195,7 +6617,24 @@
     }
   }
 
-  async function fetchRutubeSeriesJson(url, timeoutMs = SERIES_API_TIMEOUT_MS) {
+  function rutubeApiList(data) {
+    if (Array.isArray(data)) return data;
+    if (!data || typeof data !== 'object') return [];
+    for (const key of ['results', 'items', 'objects', 'data']) {
+      if (Array.isArray(data[key])) return data[key];
+    }
+    return [];
+  }
+
+  async function rutubeApiRequest(url, options = {}) {
+    const timeoutMs = Math.max(1000, Number(options.timeoutMs) || SERIES_API_TIMEOUT_MS);
+    const cacheKey = String(options.cacheKey || '');
+    const cacheTtlMs = Math.max(0, Number(options.cacheTtlMs) || 0);
+    if (cacheKey && cacheTtlMs > 0) {
+      const cached = rutubeApiRuntime.cache.get(cacheKey);
+      if (cached && Date.now() - cached.at < cacheTtlMs) return cached.value;
+    }
+
     const canAbort = typeof AbortController === 'function';
     const controller = canAbort ? new AbortController() : null;
     let timer = null;
@@ -5214,10 +6653,16 @@
         request.then(resolve, reject);
       });
       if (!response.ok) throw new Error(`RUTUBE API ${response.status}`);
-      return await response.json();
+      const value = await response.json();
+      if (cacheKey && cacheTtlMs > 0) rutubeApiRuntime.cache.set(cacheKey, { at: Date.now(), value });
+      return value;
     } finally {
       if (timer) clearTimeout(timer);
     }
+  }
+
+  async function fetchRutubeSeriesJson(url, timeoutMs = SERIES_API_TIMEOUT_MS) {
+    return RutubeApi.request(url, { timeoutMs });
   }
 
   async function getRutubeVideoMeta(videoId) {
@@ -5226,7 +6671,7 @@
     const cached = seriesRuntime.videoCache.get(id);
     if (cached && Date.now() - cached.at < 15 * 60 * 1000) return cached.value;
     try {
-      const value = await fetchRutubeSeriesJson(`/api/video/${encodeURIComponent(id)}/?format=json`);
+      const value = await RutubeApi.video(id);
       seriesRuntime.videoCache.set(id, { at: Date.now(), value });
       return value;
     } catch (e) {
@@ -5382,7 +6827,7 @@
     for (const tvId of ids) {
       const url = `/api/metainfo/tv/${encodeURIComponent(tvId)}/video?season=${encodeURIComponent(season)}&sort=series_a&origin__type=rtb,rst&format=json`;
       const items = await loadPagedSeriesApi(url, `tv:${tvId}:s${season}`, 5);
-      if (items.length) return items.map((item) => ({ __rtstTvId: tvId, ...item }));
+      if (items.length) return items.map((item) => ({ ...item, __rtstTvId: tvId, __rtstSeason: Number(season) }));
     }
     return [];
   }
@@ -5394,13 +6839,50 @@
     const cached = seriesRuntime.listCache.get(key);
     if (cached && Date.now() - cached.at < 8 * 60 * 1000) return cached.items;
     try {
-      const data = await fetchRutubeSeriesJson(`/api/search/video/?query=${encodeURIComponent(clean)}&page=1&limit=50`);
-      const items = Array.isArray(data) ? data : (Array.isArray(data && data.results) ? data.results : []);
+      const items = await RutubeApi.searchVideos(clean, { page: 1, limit: 50, cacheTtlMs: 8 * 60 * 1000 });
       seriesRuntime.listCache.set(key, { at: Date.now(), items });
       return items;
     } catch (e) {
       return [];
     }
+  }
+
+  async function loadRelatedSeriesItems(videoId) {
+    const id = String(videoId || '').trim();
+    if (!/^[a-z0-9]{32}$/i.test(id)) return [];
+    return loadPagedSeriesApi(
+      `/api/video/${encodeURIComponent(id)}/related/?page=1&limit=50`,
+      `related:${id}`,
+      3
+    );
+  }
+
+  function seriesSourceLabel(source) {
+    return RUTUBE_SOURCE_LABELS[source] || String(source || 'источник');
+  }
+
+  function seriesCandidateIdentity(candidate) {
+    if (!candidate) return '';
+    if (candidate.id) return `id:${candidate.id}`;
+    return `url:${String(candidate.url || '').replace(/[?#].*$/, '')}`;
+  }
+
+  function mergeSeriesCandidateEvidence(base, incoming) {
+    if (!base) return incoming;
+    if (!incoming) return base;
+    if (seriesCandidateIdentity(base) !== seriesCandidateIdentity(incoming)) {
+      return Number(incoming.score || 0) > Number(base.score || 0) ? incoming : base;
+    }
+    const merged = RutubeCandidateScorer.mergeEvidence(base, incoming);
+    const support = RutubeCandidateScorer.sourceSupport(merged.sources, merged.queryKeys);
+    const chosenBaseScore = Math.max(Number(base.baseScore ?? base.score ?? 0), Number(incoming.baseScore ?? incoming.score ?? 0));
+    return {
+      ...merged,
+      baseScore: chosenBaseScore,
+      score: Math.round(chosenBaseScore + support.seriesBonus),
+      sourceLabel: support.sources.map(seriesSourceLabel).join(' + '),
+      support
+    };
   }
 
   function seriesCandidate(raw, source, current, context = {}) {
@@ -5409,31 +6891,45 @@
     const title = String(item.title || item.name || '').trim();
     if (!title) return null;
 
-    const fallbackSeason = source === 'tv' || (!current.explicitSeason && (source === 'playlist' || source === 'search')) ? current.season : null;
+    const fallbackSeason = source === 'tv' ? (seriesNumber(raw && raw.__rtstSeason) || current.season) : (!current.explicitSeason && (source === 'playlist' || source === 'search' || source === 'related') ? current.season : null);
     const descriptor = parseSeriesTitle(title, item, {
       allowEpisodeOnly: Boolean(fallbackSeason),
       fallbackSeason
     });
     if (!descriptor) return null;
-    if (current.season != null && descriptor.season !== current.season) return null;
+
+    // Соседний сезон допустим: нужен для перехода с финала сезона на начало
+    // следующего. Дальние сезоны здесь только создают шум и отбрасываются.
+    const seasonDelta = Number(descriptor.season) - Number(current.season);
+    if (!Number.isFinite(seasonDelta) || Math.abs(seasonDelta) > 1) return null;
 
     const similarity = maxSeriesAliasSimilarity(current.aliases, descriptor.aliases);
     const currentAuthorId = String(context.authorId || '');
     const authorId = extractAuthorId(item);
     const sameAuthor = Boolean(currentAuthorId && authorId && currentAuthorId === authorId);
-    const sourceBonus = source === 'tv' ? 34 : source === 'playlist' ? 26 : 8;
+    const sourceBonus = source === 'tv' ? 34 : source === 'playlist' ? 26 : source === 'related' ? 22 : 8;
     const authorBonus = sameAuthor ? 18 : 0;
-    const seasonBonus = descriptor.season === current.season ? 14 : 0;
+    const seasonBonus = seasonDelta === 0 ? 14 : 5;
+    let sequenceBonus = 0;
+    if (seasonDelta === 0 && Math.abs(descriptor.episode - current.episode) === 1) sequenceBonus = 14;
+    else if (seasonDelta === 1 && descriptor.episode === 1) sequenceBonus = 12;
+    else if (seasonDelta === -1) sequenceBonus = 4;
 
     if (source === 'playlist' && similarity < 0.43) return null;
+    if (source === 'related' && similarity < 0.50) return null;
     if (source === 'search' && similarity < 0.62) return null;
     if (source !== 'tv' && currentAuthorId && authorId && !sameAuthor && similarity < 0.78) return null;
     if (source === 'tv' && similarity < 0.20 && !raw.__rtstTvId) return null;
 
-    const score = Math.round(sourceBonus + authorBonus + seasonBonus + similarity * 42);
+    // Переход между сезонами требует более сильного совпадения, чем обычная
+    // соседняя серия. Особенно это важно для общего поиска RUTUBE.
+    if (seasonDelta !== 0 && source === 'search' && !sameAuthor && similarity < 0.90) return null;
+
+    const baseScore = Math.round(sourceBonus + authorBonus + seasonBonus + sequenceBonus + similarity * 42);
     const url = videoUrlFromApiItem(item, source === 'playlist' ? context.playlistId : '');
     const id = String(item.id || extractRutubeVideoIdFromUrl(url) || '').trim();
     if (!url || !descriptor.episode) return null;
+    const support = RutubeCandidateScorer.sourceSupport([source], []);
 
     return {
       id,
@@ -5443,8 +6939,12 @@
       episode: descriptor.episode,
       aliases: descriptor.aliases,
       source,
-      sourceLabel: source === 'tv' ? 'RUTUBE-сериал' : source === 'playlist' ? 'плейлист' : 'поиск',
-      score,
+      sources: [source],
+      queryKeys: [],
+      sourceLabel: seriesSourceLabel(source),
+      baseScore,
+      score: Math.round(baseScore + support.seriesBonus),
+      support,
       authorId,
       duration: Number(item.duration) || 0
     };
@@ -5456,8 +6956,38 @@
       if (!candidate || candidate.id === context.currentVideoId) continue;
       const key = `${candidate.season}:${candidate.episode}`;
       const old = map.get(key);
-      if (!old || candidate.score > old.score) map.set(key, candidate);
+      if (!old) {
+        map.set(key, candidate);
+        continue;
+      }
+      const merged = mergeSeriesCandidateEvidence(old, candidate);
+      if (merged !== old || candidate.score > old.score) map.set(key, merged);
     }
+  }
+
+  function pickSeriesNeighbors(entries, current) {
+    let prev = entries.get(`${current.season}:${current.episode - 1}`) || null;
+    let next = entries.get(`${current.season}:${current.episode + 1}`) || null;
+
+    // Если это первая серия сезона, разрешаем стрелке «назад» перейти к
+    // последней найденной серии предыдущего сезона.
+    if (!prev && current.explicitSeason && current.episode === 1 && current.season > 1) {
+      const candidates = [...entries.values()]
+        .filter((item) => item.season === current.season - 1 && item.score >= 70)
+        .sort((a, b) => b.episode - a.episode || b.score - a.score);
+      prev = candidates[0] || null;
+    }
+
+    // Если серии N+1 в текущем сезоне нет, первая серия следующего сезона
+    // считается допустимым продолжением. Это только ссылка, автоперехода нет.
+    if (!next && current.explicitSeason) {
+      const candidates = [...entries.values()]
+        .filter((item) => item.season === current.season + 1 && item.score >= 70)
+        .sort((a, b) => a.episode - b.episode || b.score - a.score);
+      next = candidates[0] || null;
+    }
+
+    return { prev, next };
   }
 
   async function resolveSeriesNavigator(videoId, title) {
@@ -5479,7 +7009,10 @@
       episode: current.episode,
       aliases: current.aliases,
       source: 'current',
+      sources: ['current'],
+      queryKeys: [],
       sourceLabel: 'сейчас',
+      baseScore: 999,
       score: 999,
       authorId: current.authorId,
       duration: current.duration
@@ -5493,15 +7026,21 @@
 
     // 1–2. Родная сериальность RUTUBE и обычный плейлист проверяются параллельно.
     // Так не ждём один медленный endpoint прежде, чем перейти к другому.
-    const [tvItems, playlistItems] = await Promise.all([
+    const [tvItems, playlistItems, relatedItems] = await Promise.all([
       loadNativeTvSeriesItems(videoId, current.season),
-      playlistId ? loadPlaylistSeriesItems(playlistId) : Promise.resolve([])
+      playlistId ? loadPlaylistSeriesItems(playlistId) : Promise.resolve([]),
+      loadRelatedSeriesItems(videoId)
     ]);
     addSeriesCandidates(entries, tvItems, 'tv', current, context);
 
     // В обычном плейлисте порядок может быть произвольным, поэтому номера
     // сезона/серии вытаскиваем из метаданных и названий и сортируем сами.
     if (playlistId) addSeriesCandidates(entries, playlistItems, 'playlist', current, context);
+
+    // Идея из SequelPredictor Rupoop: родные похожие видео RUTUBE часто уже
+    // содержат логическое продолжение. Мы не доверяем их порядку, а прогоняем
+    // через собственный парсер и рейтинг сериализатора.
+    addSeriesCandidates(entries, relatedItems, 'related', current, context);
 
     const hasNeighbor = (episode) => entries.has(`${current.season}:${episode}`);
     const needPrev = current.episode > 1 && !hasNeighbor(current.episode - 1);
@@ -5529,12 +7068,44 @@
       addSeriesCandidates(entries, searchItems, 'search', current, context);
     }
 
+    // 4. Продолжение через границу сезона. Сначала пробуем родную TV-связь
+    // RUTUBE, затем точечный поиск. Для заголовков без явного сезона этого не
+    // делаем: выдуманный «1 сезон» слишком слабое основание.
+    if (current.explicitSeason && !entries.has(`${current.season}:${current.episode + 1}`)) {
+      const nextSeason = current.season + 1;
+      const nextTvItems = await loadNativeTvSeriesItems(videoId, nextSeason);
+      addSeriesCandidates(entries, nextTvItems, 'tv', current, context);
+
+      if (![...entries.values()].some((item) => item.season === nextSeason && item.score >= 70)) {
+        for (const alias of current.aliases.slice(0, 2)) {
+          const searchItems = await loadSeriesSearchItems(`${alias} ${nextSeason} сезон`);
+          addSeriesCandidates(entries, searchItems, 'search', current, context);
+          if ([...entries.values()].some((item) => item.season === nextSeason && item.score >= 70)) break;
+        }
+      }
+    }
+
+    if (current.explicitSeason && current.episode === 1 && current.season > 1 && !entries.has(`${current.season}:${current.episode - 1}`)) {
+      const prevSeason = current.season - 1;
+      const prevTvItems = await loadNativeTvSeriesItems(videoId, prevSeason);
+      addSeriesCandidates(entries, prevTvItems, 'tv', current, context);
+
+      if (![...entries.values()].some((item) => item.season === prevSeason && item.score >= 70)) {
+        for (const alias of current.aliases.slice(0, 2)) {
+          const searchItems = await loadSeriesSearchItems(`${alias} ${prevSeason} сезон`);
+          addSeriesCandidates(entries, searchItems, 'search', current, context);
+          if ([...entries.values()].some((item) => item.season === prevSeason && item.score >= 70)) break;
+        }
+      }
+    }
+
     const list = [...entries.values()]
       .filter((item) => item.season === current.season)
       .sort((a, b) => a.episode - b.episode || b.score - a.score);
-    const prev = entries.get(`${current.season}:${current.episode - 1}`) || null;
-    const next = entries.get(`${current.season}:${current.episode + 1}`) || null;
-    const sources = [...new Set(list.filter((item) => item.source !== 'current').map((item) => item.sourceLabel))];
+    const { prev, next } = pickSeriesNeighbors(entries, current);
+    const sourceItems = [...list, prev, next].filter(Boolean);
+    const sourceCodes = unique(sourceItems.flatMap((item) => item.sources || (item.source ? [item.source] : [])).filter((source) => source && source !== 'current'));
+    const sources = sourceCodes.map(seriesSourceLabel);
 
     return { current, entries: list, prev, next, playlistId, sources };
   }
@@ -5828,6 +7399,7 @@
     };
 
     saveViewHistory(pruneViewHistory(history));
+    if (state === 'complete' || state === 'watched') personalHomeRuntime.builtAt = 0;
   }
 
   function installViewProgressTracker() {
@@ -6009,9 +7581,11 @@
         enabled: settings.enabled, showHidden: settings.showHidden, hideSideMenuPolitics: settings.hideSideMenuPolitics,
         hideShorts: settings.hideShorts, hardRemove: settings.hardRemove, cleanRutubeChrome: settings.cleanRutubeChrome,
         cleanWatchPage: settings.cleanWatchPage, disableAutoplay: settings.disableAutoplay, hideComments: settings.hideComments,
-        hideVideoInfo: settings.hideVideoInfo, stripPlayerAds: settings.stripPlayerAds, unlockContextMenu: settings.unlockContextMenu, swipeVideoVolume: settings.swipeVideoVolume, autoFullscreenOnRotate: settings.autoFullscreenOnRotate, hideVpnPopup: settings.hideVpnPopup, dimSearchTrash: settings.dimSearchTrash, markWatchedVideos: settings.markWatchedVideos, seriesNavigator: settings.seriesNavigator,
+        hideVideoInfo: settings.hideVideoInfo, stripPlayerAds: settings.stripPlayerAds, unlockContextMenu: settings.unlockContextMenu, swipeVideoVolume: settings.swipeVideoVolume, autoFullscreenOnRotate: settings.autoFullscreenOnRotate, hideVpnPopup: settings.hideVpnPopup, dimSearchTrash: settings.dimSearchTrash, markWatchedVideos: settings.markWatchedVideos, seriesNavigator: settings.seriesNavigator, personalHome: settings.personalHome,
+        useCommunityFilter: settings.useCommunityFilter, contributeCommunitySignals: settings.contributeCommunitySignals,
         blockedChannels: allBlockedChannels(), blockedWords: allBlockedWords(), userChannels: settings.userChannels, userWords: settings.userWords
-      }
+      },
+      videoInterest: loadVideoInterestStore()
     };
     const json = JSON.stringify(payload, null, 2);
     const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
@@ -6038,11 +7612,12 @@
     if (!src || typeof src !== 'object') throw new Error('bad settings json');
     const next = { ...settings };
     for (const key of ['blockedChannels', 'blockedWords', 'userChannels', 'userWords']) { if (Array.isArray(src[key])) next[key] = unique(src[key]); }
-    for (const key of ['enabled', 'showHidden', 'hideSideMenuPolitics', 'hideShorts', 'hardRemove', 'cleanRutubeChrome', 'cleanWatchPage', 'disableAutoplay', 'hideComments', 'hideVideoInfo', 'stripPlayerAds', 'unlockContextMenu', 'swipeVideoVolume', 'autoFullscreenOnRotate', 'hideVpnPopup', 'dimSearchTrash', 'markWatchedVideos', 'seriesNavigator']) {
+    for (const key of ['enabled', 'showHidden', 'hideSideMenuPolitics', 'hideShorts', 'hardRemove', 'cleanRutubeChrome', 'cleanWatchPage', 'disableAutoplay', 'hideComments', 'hideVideoInfo', 'stripPlayerAds', 'unlockContextMenu', 'swipeVideoVolume', 'autoFullscreenOnRotate', 'hideVpnPopup', 'dimSearchTrash', 'markWatchedVideos', 'seriesNavigator', 'personalHome', 'useCommunityFilter', 'contributeCommunitySignals']) {
       if (typeof src[key] === 'boolean') next[key] = src[key];
     }
     if (typeof src.cleanRutubeChrome === 'boolean' && typeof src.hideSideMenuPolitics !== 'boolean') next.hideSideMenuPolitics = src.cleanRutubeChrome;
     if (typeof src.hideSideMenuPolitics === 'boolean' && typeof src.cleanRutubeChrome !== 'boolean') next.cleanRutubeChrome = src.hideSideMenuPolitics;
+    if (data && data.videoInterest && typeof data.videoInterest === 'object' && !Array.isArray(data.videoInterest)) saveVideoInterestStore(data.videoInterest);
     settings = next; saveSettings(); syncPanel(); toast('Импорт применён.'); rescanNow();
   }
 
@@ -6127,9 +7702,10 @@
       el.removeAttribute('data-rtst-player-ad-hidden'); el.removeAttribute('data-rtst-showcase-banner-hidden'); el.removeAttribute('data-rtst-background-mode-hidden'); el.removeAttribute('data-rtst-search-trash'); el.removeAttribute('data-rtst-search-trash-reason'); el.removeAttribute('data-rtst-search-shorts'); el.removeAttribute('data-rtst-skip-clicked');
     });
     document.querySelectorAll('.rtst-watch-badge').forEach((el) => el.remove());
-    document.querySelectorAll('[data-rtst-view-state],[data-rtst-processed]').forEach((el) => {
+    document.querySelectorAll('.rtst-interest-controls').forEach((el) => el.remove());
+    document.querySelectorAll('[data-rtst-view-state],[data-rtst-processed],[data-rtst-video-controls-owner]').forEach((el) => {
       el.removeAttribute('data-rtst-processed'); el.removeAttribute('data-rtst-card'); el.removeAttribute('data-rtst-hidden-child');
-      el.removeAttribute('data-rtst-view-state'); el.removeAttribute('data-rtst-view-percent');
+      el.removeAttribute('data-rtst-view-state'); el.removeAttribute('data-rtst-view-percent'); el.removeAttribute('data-rtst-video-controls-owner');
     });
     document.querySelectorAll('[data-rtst-search-shorts-tab="1"]').forEach((el) => {
       el.style.removeProperty('display');
@@ -6146,7 +7722,7 @@
     if (isRtstUiElement(scope)) nodes.push(scope);
 
     try {
-      nodes.push(...scope.querySelectorAll('#rtst-panel, #rtst-panel *, #rtst-series-nav, #rtst-series-nav *, .rtst-modal-backdrop, .rtst-modal-backdrop *, .rtst-toast, .rtst-popup-close-proxy'));
+      nodes.push(...scope.querySelectorAll('#rtst-panel, #rtst-panel *, #rtst-series-nav, #rtst-series-nav *, #rtst-personal-home, #rtst-personal-home *, .rtst-modal-backdrop, .rtst-modal-backdrop *, .rtst-toast, .rtst-popup-close-proxy, .rtst-interest-controls, .rtst-interest-controls *'));
     } catch (e) {}
 
     nodes.forEach((el) => {
@@ -6857,6 +8433,7 @@
     syncRootFlags();
     createPanel();
     protectRtstUiFromCleanup(document);
+    bindRtstThumbnailFallbacks(document);
     syncRutubePopupCloseProxy();
     hideBackgroundModeSubscriptionPopup(document);
     hideOnboardingInventoryPopups(document);
@@ -6864,7 +8441,7 @@
     if (isEmbeddedRutubePlayer()) return;
     refreshLegacyControls();
 
-    if (!settings.enabled) { syncRutubePopupCloseProxy(); clearAllMarks(); updateCounter(); return; }
+    if (!settings.enabled) { syncRutubePopupCloseProxy(); removePersonalHome(); clearAllMarks(); updateCounter(); return; }
 
     addCurrentChannelButton();
     addHomeButtonNearSubscribe();
@@ -6902,6 +8479,19 @@
       return;
     }
 
+    if ((isHomePage() || isHomeFeedPage()) && settings.personalHome !== false) {
+      if (settings.hideSideMenuPolitics || settings.cleanRutubeChrome) {
+        scanNavigationLinks();
+        cleanRutubeChrome();
+        reorderSidebar();
+      }
+      syncPersonalHome(false);
+      applyHiddenVisibility();
+      updateCounter();
+      return;
+    }
+
+    removePersonalHome();
     scanCards();
     if (settings.hideSideMenuPolitics || settings.cleanRutubeChrome) {
       scanNavigationLinks();
@@ -7101,18 +8691,48 @@
     ));
   }
 
+  function hasVideoControlsOwner(el, videoId) {
+    const id = String(videoId || '').trim();
+    if (!el || !id) return false;
+    let node = el;
+    for (let i = 0; i < 7 && node && node !== document.body && node !== document.documentElement; i++, node = node.parentElement) {
+      if (String(node.dataset && node.dataset.rtstVideoControlsOwner || '') === id) return true;
+    }
+    return false;
+  }
+
+  function cardHasNestedVideoControlsOwner(card, videoId) {
+    if (!card || !card.querySelectorAll || !videoId) return false;
+    return Array.from(card.querySelectorAll('[data-rtst-video-controls-owner]')).some((el) => String(el.dataset.rtstVideoControlsOwner || '') === String(videoId));
+  }
+
   function scanCards(options = {}) {
     const skipShorts = Boolean(options && options.skipShorts);
-    const links = Array.from(document.querySelectorAll('a[href]')).filter((a) => isVideoLikeLink(a) || isChannelLikeLink(a));
+    // Контролы относятся к видео, поэтому главным якорем здесь может быть только
+    // ссылка на видео. Раньше сюда также попадали ссылки канала из той же карточки:
+    // RUTUBE иногда оборачивает их другим вложенным "card", и одна визуальная
+    // карточка получала второй комплект кнопок.
+    const links = Array.from(document.querySelectorAll('a[href]')).filter((a) => isVideoLikeLink(a));
     for (const link of links) {
       if (isRutubeNavigationElement(link)) continue;
+      const videoId = extractRutubeVideoIdFromUrl(link.href || '');
+      if (!videoId) continue;
       const card = findCard(link);
-      if (!card || card.closest('#rtst-panel')) continue;
+      if (!card || card.closest('#rtst-panel') || isRtstUiElement(card)) continue;
       applyWatchProgressBadge(card, link);
+
+      // Один video_id -> один хозяин набора кнопок в пределах вложенной структуры.
+      // Проверяем и предка, и уже обработанного потомка, чтобы порядок ссылок в DOM
+      // больше не влиял на количество сердечек.
+      if (hasVideoControlsOwner(card, videoId) || cardHasNestedVideoControlsOwner(card, videoId)) continue;
       if (card.dataset.rtstProcessed === '1') continue;
-      card.dataset.rtstProcessed = '1'; card.dataset.rtstCard = '1';
+      card.dataset.rtstProcessed = '1';
+      card.dataset.rtstCard = '1';
+      card.dataset.rtstVideoControlsOwner = videoId;
+
       const info = readCardInfo(card, link);
-      addBlockChannelButton(card, info.channel);
+      addBlockChannelButton(card, info.channel, info.channelId);
+      addVideoInterestButtons(card, info, link);
       const reason = getBlockReason(info, { skipShorts });
       if (reason) hideElement(card, reason);
     }
@@ -7130,6 +8750,480 @@
 
   function isVideoPage() { return /^\/video\//.test(location.pathname); }
   function isPlaylistPage() { return /^\/plst\//.test(location.pathname); }
+
+  function normalizeRutubeApiResourceUrl(resourceUrl, limit = 24) {
+    const raw = String(resourceUrl || '').trim();
+    if (!raw) return '';
+    try {
+      const u = new URL(raw, 'https://rutube.ru');
+      if (!/(^|\.)rutube\.ru$/i.test(u.hostname)) return '';
+      if (!u.searchParams.has('format')) u.searchParams.set('format', 'json');
+      if (!u.searchParams.has('limit')) u.searchParams.set('limit', String(Math.min(50, Math.max(1, Number(limit) || 24))));
+      return `https://rutube.ru${u.pathname}${u.search}`;
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function homeTopicTerms(item) {
+    const out = [];
+    const seen = new Set();
+    const add = (value) => {
+      if (value == null) return;
+      if (Array.isArray(value)) { value.forEach(add); return; }
+      if (typeof value === 'object') {
+        for (const key of ['name', 'title', 'slug', 'short_name', 'category_name', 'genre']) {
+          if (value[key] != null) add(value[key]);
+        }
+        return;
+      }
+      const raw = String(value || '').trim();
+      if (!raw) return;
+      raw.split(/[,;/|]+/).forEach((part) => {
+        const clean = normalize(part).replace(/\s+/g, ' ').trim();
+        if (!clean || clean.length < 3 || clean.length > 64 || seen.has(clean)) return;
+        seen.add(clean); out.push(clean);
+      });
+    };
+    if (!item || typeof item !== 'object') return out;
+    for (const key of ['category', 'categories', 'genre', 'genres', 'tags', 'video_category', 'category_name', 'category_title', 'feed_name']) add(item[key]);
+    return out.slice(0, 16);
+  }
+
+  function homeProfileBump(map, key, value) {
+    const clean = String(key || '').trim();
+    const n = Number(value) || 0;
+    if (!clean || !n) return;
+    map.set(clean, (Number(map.get(clean)) || 0) + n);
+  }
+
+  async function buildPersonalHomeProfile() {
+    const history = loadViewHistory();
+    const interest = loadVideoInterestStore();
+    const historyRows = Object.entries(history || {})
+      .filter(([id, row]) => id && row && typeof row === 'object')
+      .sort((a, b) => (Date.parse(b[1].updatedAt || '') || 0) - (Date.parse(a[1].updatedAt || '') || 0));
+
+    const ids = [];
+    for (const [id] of historyRows.slice(0, PERSONAL_HOME_HISTORY_SEEDS)) ids.push(id);
+    const rated = Object.entries(interest || {})
+      .filter(([, row]) => row && Number(row.signal) !== 0)
+      .sort((a, b) => (Date.parse(b[1].updatedAt || '') || 0) - (Date.parse(a[1].updatedAt || '') || 0));
+    for (const [id] of rated) {
+      if (!ids.includes(id)) ids.push(id);
+      if (ids.length >= PERSONAL_HOME_HISTORY_SEEDS + 4) break;
+    }
+
+    const authorWeights = new Map();
+    const topicWeights = new Map();
+    const details = await Promise.all(ids.map(async (id) => {
+      try { return [id, await RutubeApi.video(id)]; } catch (e) { return [id, null]; }
+    }));
+
+    for (const [id, raw] of details) {
+      if (!raw) continue;
+      const hist = history[id] || null;
+      const personal = interest[id] || null;
+      let weight = 0;
+      if (hist) {
+        const percent = Math.max(0, Math.min(100, Number(hist.percent) || 0));
+        weight += /^(?:complete|watched)$/i.test(String(hist.status || '')) ? 1 : Math.max(.2, percent / 100 * .8);
+      }
+      if (personal && Number(personal.signal) > 0) weight += 1.35;
+      if (personal && Number(personal.signal) < 0) weight -= 1.6;
+      if (!weight) continue;
+
+      const authorId = extractAuthorId(raw);
+      const authorName = movieCandidateAuthorName(raw);
+      if (authorId) homeProfileBump(authorWeights, `id:${authorId}`, weight);
+      else if (authorName) homeProfileBump(authorWeights, `name:${normalize(authorName)}`, weight * .75);
+      homeTopicTerms(raw).forEach((term) => homeProfileBump(topicWeights, term, weight));
+    }
+
+    let maxAuthor = 0, maxTopic = 0;
+    authorWeights.forEach((v) => { maxAuthor = Math.max(maxAuthor, Math.abs(Number(v) || 0)); });
+    topicWeights.forEach((v) => { maxTopic = Math.max(maxTopic, Math.abs(Number(v) || 0)); });
+    return { authorWeights, topicWeights, maxAuthor: maxAuthor || 1, maxTopic: maxTopic || 1 };
+  }
+
+  function homeAuthorAffinity(candidate, profile) {
+    if (!candidate || !profile || !profile.authorWeights) return 0;
+    const keys = [];
+    if (candidate.authorId) keys.push(`id:${candidate.authorId}`);
+    if (candidate.author) keys.push(`name:${normalize(candidate.author)}`);
+    let value = 0;
+    keys.forEach((key) => { value = Math.abs(Number(profile.authorWeights.get(key)) || 0) > Math.abs(value) ? Number(profile.authorWeights.get(key)) || 0 : value; });
+    return Math.max(-1, Math.min(1, value / Math.max(.001, Number(profile.maxAuthor) || 1)));
+  }
+
+  function homeTopicAffinity(candidate, profile) {
+    if (!candidate || !profile || !profile.topicWeights) return 0;
+    const terms = homeTopicTerms(candidate.item || candidate.raw || candidate);
+    if (!terms.length) return 0;
+    let sum = 0, hits = 0;
+    for (const term of terms) {
+      const value = Number(profile.topicWeights.get(term)) || 0;
+      if (!value) continue;
+      sum += value / Math.max(.001, Number(profile.maxTopic) || 1);
+      hits += 1;
+    }
+    if (!hits) return 0;
+    return Math.max(-1, Math.min(1, sum / Math.max(1, Math.min(3, hits))));
+  }
+
+  function homeCandidateAllowed(candidate, options = {}) {
+    if (!candidate || !candidate.id || !candidate.url || !candidate.title) return false;
+    if (RutubeCandidateScorer.blockedChannel(candidate)) return false;
+    const blockedWord = containsBlocked(`${candidate.title} ${candidate.author || ''}`, allBlockedWords());
+    if (blockedWord) return false;
+    if (settings.hideShorts) {
+      const shortText = normalize([candidate.url, candidate.item && candidate.item.type, candidate.item && candidate.item.content_type, candidate.item && candidate.item.video_type].filter(Boolean).join(' '));
+      if (/\/shorts?\//i.test(String(candidate.url || '')) || /(?:^|\s)shorts?(?:\s|$)/i.test(shortText)) return false;
+    }
+    const interest = RutubeCandidateScorer.interest(candidate);
+    if (interest.personalScore < 0 && options.allowDisliked !== true) return false;
+    const history = RutubeCandidateScorer.history(candidate);
+    if (history && /^(?:complete|watched)$/i.test(history.status) && options.allowWatched !== true) return false;
+    return true;
+  }
+
+  function personalHomeHistoryRows(kind = 'partial') {
+    return Object.entries(loadViewHistory())
+      .filter(([id, row]) => {
+        if (!id || !row || typeof row !== 'object') return false;
+        const status = String(row.status || '');
+        if (kind === 'partial') return !/^(?:complete|watched)$/i.test(status) && Number(row.percent) >= 3;
+        return /^(?:complete|watched)$/i.test(status);
+      })
+      .sort((a, b) => (Date.parse(b[1].updatedAt || '') || 0) - (Date.parse(a[1].updatedAt || '') || 0));
+  }
+
+  async function loadPersonalHomeContinue() {
+    const rows = personalHomeHistoryRows('partial').slice(0, 8);
+    const result = [];
+    await Promise.all(rows.map(async ([id, progress]) => {
+      let raw = null;
+      try { raw = await RutubeApi.video(id); } catch (e) {}
+      raw = raw || { id, title: progress.title || 'Видео', duration: progress.duration || 0 };
+      const candidate = RutubeCandidateScorer.normalize(raw, { source: 'history' });
+      if (!candidate || !homeCandidateAllowed(candidate, { allowWatched: true })) return;
+      candidate.homeProgress = Math.max(1, Math.min(94, Math.round(Number(progress.percent) || 0)));
+      candidate.homeReason = `остановились на ${candidate.homeProgress}%`;
+      candidate.homeOrder = Date.parse(progress.updatedAt || '') || 0;
+      result.push(candidate);
+    }));
+    return result.sort((a, b) => b.homeOrder - a.homeOrder).slice(0, 8);
+  }
+
+  function personalHomeSeriesDescriptor(raw, fallbackTitle = '') {
+    const title = String((raw && (raw.title || raw.name)) || fallbackTitle || '').trim();
+    if (!title) return null;
+    const allowEpisodeOnly = isSeriesCategory(raw) || /(?:сериал|series|сезон|серия|episode|season)/iu.test(title);
+    return parseSeriesTitle(title, raw, { allowEpisodeOnly, fallbackSeason: 1 });
+  }
+
+  async function findPersonalHomeSeriesContinuation(seedId, seedRaw, historyRow, relatedItems = null) {
+    const current = personalHomeSeriesDescriptor(seedRaw, historyRow && historyRow.title);
+    if (!current) return null;
+    const authorId = extractAuthorId(seedRaw);
+    let related = Array.isArray(relatedItems) ? relatedItems : [];
+    if (!Array.isArray(relatedItems)) {
+      try { related = await RutubeApi.related(seedId, { limit: 30 }); } catch (e) {}
+    }
+    const candidates = [];
+    for (const raw of related) {
+      const c = seriesCandidate(raw, 'related', current, { authorId });
+      if (!c || !c.id || c.id === seedId) continue;
+      const normalized = RutubeCandidateScorer.normalize(videoObjectFromApiItem(raw), { source: 'related', url: c.url });
+      if (!normalized || !homeCandidateAllowed(normalized)) continue;
+      c.normalized = normalized;
+      candidates.push(c);
+    }
+    const exact = candidates
+      .filter((c) => (c.season === current.season && c.episode === current.episode + 1) || (c.season === current.season + 1 && c.episode === 1))
+      .sort((a, b) => Number(b.score || 0) - Number(a.score || 0))[0];
+    if (exact) {
+      const out = { ...exact.normalized };
+      out.homeBoost = .52;
+      out.homeReason = exact.season === current.season
+        ? `следующая серия · ${exact.season} сезон, ${exact.episode} серия`
+        : `следующий сезон · ${exact.season} сезон, 1 серия`;
+      return out;
+    }
+
+    const alias = current.primaryAlias || current.aliases[0] || '';
+    if (!alias) return null;
+    const query = `${alias} ${current.season} сезон ${current.episode + 1} серия`;
+    let search = [];
+    try { search = await RutubeApi.searchVideos(query, { limit: 25, cacheTtlMs: 12 * 60 * 1000 }); } catch (e) {}
+    const searchCandidates = search.map((raw) => seriesCandidate(raw, 'search', current, { authorId })).filter(Boolean)
+      .filter((c) => c.season === current.season && c.episode === current.episode + 1)
+      .sort((a, b) => Number(b.score || 0) - Number(a.score || 0));
+    if (searchCandidates[0]) {
+      const c = searchCandidates[0];
+      const raw = search.find((item) => String((videoObjectFromApiItem(item) || {}).id || '') === String(c.id || '')) || { id: c.id, title: c.title, duration: c.duration || 0 };
+      const normalized = RutubeCandidateScorer.normalize(videoObjectFromApiItem(raw), { source: 'search', url: c.url });
+      if (normalized && homeCandidateAllowed(normalized)) {
+        normalized.homeBoost = .45;
+        normalized.homeReason = `следующая серия · ${c.season} сезон, ${c.episode} серия`;
+        return normalized;
+      }
+    }
+    return null;
+  }
+
+  async function loadPersonalHomeAfterWatched(profile) {
+    const rows = personalHomeHistoryRows('complete').slice(0, PERSONAL_HOME_RELATED_SEEDS);
+    const batches = await Promise.all(rows.map(async ([seedId, historyRow]) => {
+      let seedRaw = null;
+      try { seedRaw = await RutubeApi.video(seedId); } catch (e) {}
+      if (!seedRaw) return [];
+
+      let related = [];
+      try { related = await RutubeApi.related(seedId, { limit: 30 }); } catch (e) {}
+      const local = [];
+      const continuation = await findPersonalHomeSeriesContinuation(seedId, seedRaw, historyRow, related);
+      if (continuation) local.push(continuation);
+
+      const seedTitle = normalize(String(seedRaw.title || historyRow.title || ''));
+      for (const raw of related) {
+        const candidate = RutubeCandidateScorer.normalize(raw, { source: 'related' });
+        if (!candidate || candidate.id === seedId || !homeCandidateAllowed(candidate)) continue;
+        const sameTitle = seedTitle && normalize(candidate.title) === seedTitle;
+        if (sameTitle) continue;
+        const ranked = RutubeCandidateScorer.homeRank(candidate, profile);
+        candidate.homeRankScore = Math.min(1, ranked.rankScore + (candidate.homeBoost || 0));
+        candidate.homeReason = candidate.homeReason || `похоже на «${String(seedRaw.title || historyRow.title || '').slice(0, 58)}»`;
+        local.push(candidate);
+      }
+      return local;
+    }));
+
+    const map = new Map();
+    for (const candidate of batches.flat()) {
+      if (!candidate || !candidate.id) continue;
+      const old = map.get(candidate.id);
+      const candidateScore = Number(candidate.homeRankScore || 0) + Number(candidate.homeBoost || 0);
+      const oldScore = old ? Number(old.homeRankScore || 0) + Number(old.homeBoost || 0) : -1;
+      if (!old || candidateScore > oldScore) map.set(candidate.id, candidate);
+    }
+
+    const list = [...map.values()];
+    const maxLikes = Math.max(0, ...list.map((x) => Number(x.likes) || 0));
+    const maxViews = Math.max(0, ...list.map((x) => Number(x.views) || 0));
+    list.forEach((candidate) => {
+      const ranked = RutubeCandidateScorer.homeRank(candidate, profile, { maxLikes, maxViews });
+      candidate.homeRankScore = Math.min(1, ranked.rankScore + (candidate.homeBoost || 0));
+    });
+    return list.sort((a, b) => Number(b.homeRankScore || 0) - Number(a.homeRankScore || 0)).slice(0, 10);
+  }
+
+  function personalHomeFeedResources(feed) {
+    if (!feed || !Array.isArray(feed.tabs)) return [];
+    const rows = [];
+    const tabs = [...feed.tabs].sort((a, b) => Number(a.order_number || 0) - Number(b.order_number || 0));
+    for (const tab of tabs.slice(0, 4)) {
+      const resources = Array.isArray(tab.resources) ? tab.resources : [];
+      for (const resource of resources) {
+        const model = normalize(resource && resource.content_type && (resource.content_type.model || resource.content_type.name || resource.content_type));
+        if (/promo/.test(model)) continue;
+        const url = String(resource && resource.url || '').trim();
+        if (!url) continue;
+        rows.push({ url, name: String(resource.name || tab.name || feed.name || '').trim(), model });
+      }
+    }
+    const seen = new Set();
+    return rows.filter((row) => {
+      const key = normalizeRutubeApiResourceUrl(row.url, 24);
+      if (!key || seen.has(key)) return false;
+      seen.add(key); return true;
+    }).slice(0, PERSONAL_HOME_FEED_RESOURCES);
+  }
+
+  async function loadPersonalHomeFeed(profile) {
+    let resources = [];
+    try { resources = personalHomeFeedResources(await RutubeApi.feed('new_main_page')); } catch (e) {}
+    if (!resources.length) {
+      const feeds = await Promise.all(['movies', 'serials'].map(async (slug) => { try { return await RutubeApi.feed(slug); } catch (e) { return null; } }));
+      resources = feeds.flatMap(personalHomeFeedResources).slice(0, PERSONAL_HOME_FEED_RESOURCES);
+    }
+    const settled = await Promise.all(resources.map(async (resource) => {
+      try { return { resource, items: await RutubeApi.resource(resource.url, { limit: 24 }) }; }
+      catch (e) { return { resource, items: [] }; }
+    }));
+
+    const map = new Map();
+    for (const group of settled) {
+      for (const raw of group.items) {
+        const candidate = RutubeCandidateScorer.normalize(raw, { source: 'feed' });
+        if (!candidate || !homeCandidateAllowed(candidate)) continue;
+        candidate.homeReason = group.resource.name ? `из раздела «${group.resource.name}»` : 'из витрины RUTUBE';
+        const old = map.get(candidate.id);
+        if (!old) map.set(candidate.id, candidate);
+        else map.set(candidate.id, RutubeCandidateScorer.mergeEvidence(old, candidate));
+      }
+    }
+
+    const list = [...map.values()];
+    const maxLikes = Math.max(0, ...list.map((x) => Number(x.likes) || 0));
+    const maxViews = Math.max(0, ...list.map((x) => Number(x.views) || 0));
+    list.forEach((candidate) => {
+      const ranked = RutubeCandidateScorer.homeRank(candidate, profile, { maxLikes, maxViews });
+      candidate.homeRankScore = ranked.rankScore;
+      candidate.homeAffinity = Math.max(ranked.authorAffinity || 0, ranked.topicAffinity || 0, ranked.interest && ranked.interest.personalScore > 0 ? 1 : 0);
+    });
+    return list.sort((a, b) => Number(b.homeRankScore || 0) - Number(a.homeRankScore || 0)).slice(0, 28);
+  }
+
+  function personalHomeCardHtml(candidate) {
+    if (!candidate) return '';
+    const thumbImg = rtstThumbnailImgHtml(candidate, '', 'rtst-ph-thumb-empty');
+    const thumb = thumbImg || '<span class="rtst-ph-thumb-empty">▶</span>';
+    const duration = formatMovieResultDuration(candidate.duration);
+    const progress = Number(candidate.homeProgress) > 0 ? `${Math.round(candidate.homeProgress)}%` : '';
+    const meta = [];
+    if (candidate.author) meta.push(escapeHtml(candidate.author));
+    if (candidate.views != null) meta.push(`${escapeHtml(formatMovieResultCount(candidate.views))} просмотров`);
+    if (candidate.likes != null) meta.push(`♥ ${escapeHtml(formatMovieResultCount(candidate.likes))}`);
+    const date = candidate.publishedAt instanceof Date ? formatMovieResultDate(candidate.publishedAt) : '';
+    if (date) meta.push(escapeHtml(date));
+    const currentInterest = getVideoInterest(candidate.id);
+    const signal = currentInterest ? Number(currentInterest.signal) || 0 : 0;
+    const canBlock = Boolean(candidate.author || candidate.authorId);
+    return `
+      <div class="rtst-ph-card" data-rtst-card="1" data-rtst-video-id="${escapeAttribute(candidate.id)}">
+        <a class="rtst-ph-card-main" href="${escapeAttribute(candidate.url)}">
+          <div class="rtst-ph-thumb">${thumb}${progress ? `<span class="rtst-ph-progress">${escapeHtml(progress)}</span>` : ''}${duration ? `<span class="rtst-ph-duration">${escapeHtml(duration)}</span>` : ''}</div>
+          <div class="rtst-ph-card-body">
+            <div class="rtst-ph-card-title">${escapeHtml(candidate.title)}</div>
+            ${meta.length ? `<div class="rtst-ph-card-meta">${meta.map((x) => `<span>${x}</span>`).join('')}</div>` : ''}
+          </div>
+        </a>
+        <div class="rtst-ph-card-actions">
+          ${canBlock ? `<button type="button" class="rtst-block-btn" data-rtst-action="block-card-channel" data-rtst-channel="${escapeAttribute(candidate.author || '')}" data-rtst-channel-id="${escapeAttribute(candidate.authorId || '')}" title="Скрыть канал: ${escapeAttribute(candidate.author || 'канал')}" aria-label="Скрыть канал: ${escapeAttribute(candidate.author || 'канал')}">${pooIconSvg()}</button>` : ''}
+          <button type="button" class="rtst-interest-btn" data-rtst-action="rate-card-video" data-rtst-video-id="${escapeAttribute(candidate.id)}" data-rtst-title="${escapeAttribute(candidate.title)}" data-rtst-channel="${escapeAttribute(candidate.author || '')}" data-rtst-channel-id="${escapeAttribute(candidate.authorId || '')}" data-signal="1" data-active="${signal > 0 ? '1' : '0'}" title="Интересно" aria-label="Интересно">${interestIconSvg(1)}</button>
+          <button type="button" class="rtst-interest-btn" data-rtst-action="rate-card-video" data-rtst-video-id="${escapeAttribute(candidate.id)}" data-rtst-title="${escapeAttribute(candidate.title)}" data-rtst-channel="${escapeAttribute(candidate.author || '')}" data-rtst-channel-id="${escapeAttribute(candidate.authorId || '')}" data-signal="-1" data-active="${signal < 0 ? '1' : '0'}" title="Неинтересно" aria-label="Неинтересно">${interestIconSvg(-1)}</button>
+        </div>
+      </div>`;
+  }
+
+  function personalHomeSectionHtml(title, note, items) {
+    if (!Array.isArray(items) || !items.length) return '';
+    return `
+      <section class="rtst-ph-section">
+        <div class="rtst-ph-section-head"><div class="rtst-ph-section-title">${escapeHtml(title)}</div></div>
+        <div class="rtst-ph-grid">${items.map(personalHomeCardHtml).join('')}</div>
+      </section>`;
+  }
+
+  function mergePersonalHomeRecommendations(afterWatched, feedItems, limit = 28) {
+    const map = new Map();
+    for (const candidate of [...(Array.isArray(afterWatched) ? afterWatched : []), ...(Array.isArray(feedItems) ? feedItems : [])]) {
+      if (!candidate || !candidate.id) continue;
+      if (!map.has(candidate.id)) map.set(candidate.id, candidate);
+      else map.set(candidate.id, RutubeCandidateScorer.mergeEvidence(map.get(candidate.id), candidate));
+    }
+    return [...map.values()].slice(0, limit);
+  }
+
+  function personalHomeDocumentHtml(continueItems, forYouItems) {
+    const sections = [
+      personalHomeSectionHtml('Продолжить просмотр', '', continueItems),
+      personalHomeSectionHtml('Для вас', '', forYouItems)
+    ].filter(Boolean).join('');
+    return `
+      <div class="rtst-ph-head">
+        <div class="rtst-ph-controls">
+          <button type="button" class="rtst-ph-refresh" data-rtst-action="personal-home-refresh" title="Пересобрать рекомендации">↻ Обновить</button>
+          <button type="button" class="rtst-ph-settings" data-rtst-action="open-settings-modal" title="Открыть настройки">Настройки</button>
+        </div>
+      </div>
+      ${sections || '<div class="rtst-ph-empty">Пока недостаточно данных для персональной ленты. Несколько просмотров и оценок это исправят.</div>'}`;
+  }
+
+  function findPersonalHomeMount() {
+    return document.querySelector('main') || document.querySelector('[role="main"]') || document.querySelector('[class*="application-module__main" i]');
+  }
+
+  function preparePersonalHomeMount() {
+    const mount = findPersonalHomeMount();
+    if (!mount) return null;
+    let root = document.getElementById('rtst-personal-home');
+    if (!root) {
+      root = document.createElement('div');
+      root.id = 'rtst-personal-home';
+      root.dataset.rtstUi = '1';
+    }
+    if (root.parentElement !== mount) mount.insertBefore(root, mount.firstChild || null);
+    Array.from(mount.children).forEach((child) => {
+      if (child === root) return;
+      child.classList.add('rtst-native-home-hidden');
+      child.dataset.rtstNativeHomeHidden = '1';
+    });
+    personalHomeRuntime.mount = mount;
+    return root;
+  }
+
+  function removePersonalHome() {
+    document.querySelectorAll('[data-rtst-native-home-hidden="1"]').forEach((el) => {
+      el.classList.remove('rtst-native-home-hidden');
+      el.removeAttribute('data-rtst-native-home-hidden');
+    });
+    const root = document.getElementById('rtst-personal-home');
+    if (root) root.remove();
+    personalHomeRuntime.mount = null;
+  }
+
+  async function buildPersonalHome() {
+    const profile = await buildPersonalHomeProfile();
+    personalHomeRuntime.profile = profile;
+    const [continueItems, afterWatched, feedItems] = await Promise.all([
+      loadPersonalHomeContinue(),
+      loadPersonalHomeAfterWatched(profile),
+      loadPersonalHomeFeed(profile)
+    ]);
+    const forYouItems = mergePersonalHomeRecommendations(afterWatched, feedItems, 28);
+    return personalHomeDocumentHtml(continueItems, forYouItems);
+  }
+
+  async function syncPersonalHome(force = false) {
+    if (!settings.enabled || settings.personalHome === false || !(isHomePage() || isHomeFeedPage())) {
+      removePersonalHome();
+      return;
+    }
+    const root = preparePersonalHomeMount();
+    if (!root) return;
+
+    if (!force && personalHomeRuntime.html && personalHomeRuntime.builtAt && Date.now() - personalHomeRuntime.builtAt < PERSONAL_HOME_REFRESH_MS) {
+      if (root.innerHTML !== personalHomeRuntime.html) root.innerHTML = personalHomeRuntime.html;
+      bindRtstThumbnailFallbacks(root);
+      return;
+    }
+    if (personalHomeRuntime.loading) return;
+    personalHomeRuntime.loading = true;
+    const seq = ++personalHomeRuntime.seq;
+    root.innerHTML = '<div class="rtst-ph-head"><div class="rtst-ph-controls"><button type="button" class="rtst-ph-refresh" data-rtst-action="personal-home-refresh">↻ Обновить</button><button type="button" class="rtst-ph-settings" data-rtst-action="open-settings-modal">Настройки</button></div></div><div class="rtst-ph-loading">Собираю главную: история → продолжения → related → витрина → фильтр → рейтинг…</div>';
+    try {
+      const html = await buildPersonalHome();
+      if (seq !== personalHomeRuntime.seq || !(isHomePage() || isHomeFeedPage()) || settings.personalHome === false) return;
+      personalHomeRuntime.html = html;
+      personalHomeRuntime.builtAt = Date.now();
+      personalHomeRuntime.error = '';
+      const currentRoot = preparePersonalHomeMount();
+      if (currentRoot) {
+        currentRoot.innerHTML = html;
+        bindRtstThumbnailFallbacks(currentRoot);
+        currentRoot.querySelectorAll('[data-rtst-video-id]').forEach((el) => syncInterestControls(el.dataset.rtstVideoId || ''));
+      }
+    } catch (e) {
+      personalHomeRuntime.error = String(e && e.message || e || 'ошибка');
+      const currentRoot = preparePersonalHomeMount();
+      if (currentRoot) currentRoot.innerHTML = `<div class="rtst-ph-head"><div class="rtst-ph-controls"><button type="button" class="rtst-ph-refresh" data-rtst-action="personal-home-refresh">↻ Повторить</button><button type="button" class="rtst-ph-settings" data-rtst-action="open-settings-modal">Настройки</button></div></div><div class="rtst-ph-empty">${escapeHtml(personalHomeRuntime.error)}</div>`;
+    } finally {
+      if (seq === personalHomeRuntime.seq) personalHomeRuntime.loading = false;
+    }
+  }
+
   function isHomePage() { return location.pathname === '/' || location.pathname === ''; }
   function isHomeFeedPage() { return /^\/feeds\/new_main_page(?:\/|$)/.test(location.pathname); }
   function isMoviesSerialsPage() { return /^\/feeds\/movies-serials(?:\/|$)/.test(location.pathname); }
@@ -7674,8 +9768,21 @@
     const text = compactText(card);
     const title = normalize(primaryLink && primaryLink.textContent);
     const channel = detectChannelName(card, title);
+    const channelId = detectChannelId(card);
     const isShort = Boolean((primaryLink && (primaryLink.href || '').includes('/shorts/')) || card.querySelector('a[href*="/shorts/"]') || /(^|\s)shorts(\s|$)/i.test(text));
-    return { text, title, channel, isShort, element: card };
+    return { text, title, channel, channelId, isShort, element: card };
+  }
+
+  function detectChannelId(card) {
+    if (!card || !card.querySelectorAll) return '';
+    for (const a of card.querySelectorAll('a[href*="/channel/"], a[href*="/video/person/"], a[href*="/u/"]')) {
+      try {
+        const u = new URL(a.getAttribute('href') || a.href || '', location.href);
+        const m = u.pathname.match(/\/(?:channel|video\/person|u)\/([^/?#]+)/i);
+        if (m && m[1]) return m[1];
+      } catch (e) {}
+    }
+    return '';
   }
 
   function detectChannelName(card, title) {
@@ -7697,6 +9804,7 @@
 
   function getBlockReason(info, options = {}) {
     if (settings.hideShorts && info.isShort && !(options && options.skipShorts)) return 'shorts';
+    if (settings.useCommunityFilter !== false && info.channelId && communityCache.channelIds.includes(String(info.channelId))) return `канал id: ${info.channelId}`;
     const channelMatch = info.channel && containsBlocked(info.channel, allBlockedChannels());
     if (channelMatch) return `канал: ${channelMatch}`;
     const wordMatch = containsBlocked(info.text, allBlockedWords());
@@ -7798,19 +9906,82 @@
     return headingText.includes('подписки') || headingText.includes('мои подписки');
   }
 
-  function addBlockChannelButton(card, channel) {
+  function syncInterestControls(videoId) {
+    const id = String(videoId || '').trim();
+    const current = id ? getVideoInterest(id) : null;
+    const signal = current ? Number(current.signal) || 0 : 0;
+    document.querySelectorAll('[data-rtst-action="rate-current-video"]').forEach((btn) => {
+      btn.dataset.active = Number(btn.dataset.signal) === signal ? '1' : '0';
+      btn.setAttribute('aria-pressed', btn.dataset.active === '1' ? 'true' : 'false');
+    });
+    if (id) {
+      document.querySelectorAll('[data-rtst-action="rate-card-video"]').forEach((btn) => {
+        if (String(btn.dataset.rtstVideoId || '') !== id) return;
+        btn.dataset.active = Number(btn.dataset.signal) === signal ? '1' : '0';
+        btn.setAttribute('aria-pressed', btn.dataset.active === '1' ? 'true' : 'false');
+      });
+    }
+  }
+
+  function addVideoInterestButtons(card, info, primaryLink) {
+    if (!card || isWatchPage() || isSubscriptionsContext(card) || isRutubeNavigationElement(card)) return;
+    const videoLink = (primaryLink && isVideoLikeLink(primaryLink) && extractRutubeVideoIdFromUrl(primaryLink.href || ''))
+      ? primaryLink
+      : Array.from(card.querySelectorAll('a[href]')).find((a) => isVideoLikeLink(a) && extractRutubeVideoIdFromUrl(a.href || ''));
+    if (!videoLink) return;
+    const videoId = extractRutubeVideoIdFromUrl(videoLink.href || '');
+    if (!videoId) return;
+    const localWraps = Array.from(card.querySelectorAll(`.rtst-interest-controls[data-rtst-video-id="${videoId}"]`));
+    let wrap = localWraps.shift() || null;
+    localWraps.forEach((el) => el.remove());
+    if (!wrap) {
+      wrap = document.createElement('span');
+      wrap.className = 'rtst-interest-controls';
+      wrap.dataset.rtstVideoId = videoId;
+      wrap.innerHTML = `
+        <button type="button" class="rtst-interest-btn" data-rtst-action="rate-card-video" data-signal="1" title="Интересно" aria-label="Интересно">${interestIconSvg(1)}</button>
+        <button type="button" class="rtst-interest-btn" data-rtst-action="rate-card-video" data-signal="-1" title="Неинтересно" aria-label="Неинтересно">${interestIconSvg(-1)}</button>`;
+      const blockBtn = card.querySelector('.rtst-block-btn[data-rtst-action="block-card-channel"]');
+      const host = (blockBtn && blockBtn.parentElement) || videoLink.parentElement || card;
+      host.appendChild(wrap);
+    }
+    const owner = wrap.closest('[data-rtst-video-controls-owner]') || card;
+    if (owner && owner.querySelectorAll) {
+      const duplicates = Array.from(owner.querySelectorAll(`.rtst-interest-controls[data-rtst-video-id="${videoId}"]`));
+      const keep = duplicates.shift();
+      duplicates.forEach((el) => el.remove());
+      if (keep && keep !== wrap) wrap = keep;
+    }
+    wrap.querySelectorAll('[data-rtst-action="rate-card-video"]').forEach((btn) => {
+      btn.dataset.rtstVideoId = videoId;
+      btn.dataset.rtstTitle = String((info && info.title) || videoLink.textContent || '').trim().slice(0, 240);
+      btn.dataset.rtstChannel = String((info && info.channel) || '').trim().slice(0, 120);
+      btn.dataset.rtstChannelId = String((info && info.channelId) || '').trim().slice(0, 120);
+    });
+    syncInterestControls(videoId);
+  }
+
+  function addBlockChannelButton(card, channel, channelId = '') {
     if (!channel || isWatchPage() || isSubscriptionsContext(card) || isRutubeNavigationElement(card)) return;
     const existing = card.querySelector('.rtst-block-btn[data-rtst-action="block-card-channel"]');
     if (existing) {
-      existing.textContent = '⊘'; existing.dataset.rtstChannel = channel; existing.title = `Скрыть канал: ${channel}`; existing.setAttribute('aria-label', `Скрыть канал: ${channel}`);
+      existing.innerHTML = pooIconSvg(); existing.dataset.rtstChannel = channel; existing.dataset.rtstChannelId = channelId || ''; existing.title = `Скрыть канал: ${channel}`; existing.setAttribute('aria-label', `Скрыть канал: ${channel}`);
       return;
     }
     const btn = document.createElement('button');
     btn.type = 'button'; btn.className = 'rtst-block-btn'; btn.dataset.rtstAction = 'block-card-channel';
-    btn.dataset.rtstChannel = channel; btn.textContent = '⊘'; btn.title = `Скрыть канал: ${channel}`; btn.setAttribute('aria-label', `Скрыть канал: ${channel}`);
+    btn.dataset.rtstChannel = channel; btn.dataset.rtstChannelId = channelId || ''; btn.innerHTML = pooIconSvg(); btn.title = `Скрыть канал: ${channel}`; btn.setAttribute('aria-label', `Скрыть канал: ${channel}`);
     const channelLink = Array.from(card.querySelectorAll('a[href]')).find((a) => normalize(a.textContent) === normalize(channel));
     const host = (channelLink && channelLink.parentElement) || card;
     host.appendChild(btn);
+  }
+
+  function extractChannelIdFromUrl(url) {
+    try {
+      const u = new URL(String(url || ''), location.href);
+      const m = u.pathname.match(/\/(?:channel|video\/person|u)\/([^/?#]+)/i);
+      return m && m[1] ? m[1] : '';
+    } catch (e) { return ''; }
   }
 
   function detectCurrentVideoChannelUrl() {
@@ -8063,9 +10234,12 @@
     try { lastVideoContextId = getCurrentVideoId() || lastVideoContextId; } catch (e) {}
 
     loadMovieDbFromLocalCache();
+    loadCommunityCacheFromLocal();
     setTimeout(checkGithubAvailability, 1500);
     setTimeout(() => refreshPanelIconCacheInBackground(false), 2200);
     setTimeout(maybeUpdateMovieDbInBackground, 3500);
+    setTimeout(maybeUpdateCommunityInBackground, 4200);
+    setTimeout(() => flushCommunitySignalQueue(), 5200);
 
     scheduleScan('boot', 0);
   }
