@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.5.8
+// @version      1.5.9
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki / npekpacHo
 // @license      MIT
@@ -39,7 +39,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.5.8';
+  const UI_VERSION = '1.5.9';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -2857,6 +2857,7 @@
       html[data-rtst-enabled="1"] [data-testid*="popup" i]:has(a[href*="promo.rutubelist.ru" i]),
       html[data-rtst-enabled="1"] [class*="popup" i]:has(a[href*="promo.rutubelist.ru" i]),
       html[data-rtst-enabled="1"] [class*="modal" i]:has(a[href*="promo.rutubelist.ru" i]),
+      html[data-rtst-enabled="1"] [class*="app-download-topbar-module__topbar"],
       html[data-rtst-enabled="1"] [data-rtst-app-install-banner-hidden="1"],
       html[data-rtst-enabled="1"] [role="dialog"]:has(a[href*="play.google.com" i]),
       html[data-rtst-enabled="1"] [role="dialog"]:has(a[href*="rustore" i]),
@@ -8149,6 +8150,36 @@
   function hideTopRutubeAppInstallBanner(root = document) {
     if (!settings.enabled) return 0;
     const scope = root && root.querySelectorAll ? root : document;
+    const EXACT_TOPBAR_SELECTOR = '[class*="app-download-topbar-module__topbar"]';
+    let count = 0;
+
+    /* Начиная с мобильной разметки RUTUBE v1-42-0 баннер имеет устойчивое
+       имя CSS-module: app-download-topbar-module__topbar. Это главный путь:
+       CSS прячет его ещё до первого кадра, а JS страхует SPA-перерисовки. */
+    const hideExactTopbar = (target) => {
+      if (!target || target.nodeType !== 1 || isRtstUiElement(target)) return;
+      if (target.dataset.rtstAppInstallBannerHidden === '1') return;
+      target.dataset.rtstAppInstallBannerHidden = '1';
+      target.dataset.rtstAppInstallHidden = '1';
+      target.dataset.rtstReason = 'верхний баннер установки приложения RUTUBE (app-download-topbar)';
+      target.style.setProperty('display', 'none', 'important');
+      target.style.setProperty('visibility', 'hidden', 'important');
+      target.style.setProperty('height', '0', 'important');
+      target.style.setProperty('min-height', '0', 'important');
+      target.style.setProperty('max-height', '0', 'important');
+      target.style.setProperty('margin', '0', 'important');
+      target.style.setProperty('padding', '0', 'important');
+      target.style.setProperty('border', '0', 'important');
+      target.style.setProperty('overflow', 'hidden', 'important');
+      target.style.setProperty('pointer-events', 'none', 'important');
+      count += 1;
+    };
+
+    try {
+      if (scope.nodeType === 1 && scope.matches && scope.matches(EXACT_TOPBAR_SELECTOR)) hideExactTopbar(scope);
+      scope.querySelectorAll(EXACT_TOPBAR_SELECTOR).forEach(hideExactTopbar);
+    } catch (e) {}
+
     const controls = [];
     const push = (el) => {
       if (el && el.nodeType === 1 && !isRtstUiElement(el) && isRutubeInstallAction(el)) controls.push(el);
@@ -8159,7 +8190,6 @@
       scope.querySelectorAll('button, a, [role="button"]').forEach(push);
     } catch (e) {}
 
-    let count = 0;
     for (const control of controls) {
       const target = findTopRutubeAppInstallBanner(control);
       if (!target || target.dataset.rtstAppInstallBannerHidden === '1') continue;
@@ -8269,7 +8299,7 @@
   }
 
   function installRutubeAppInstallPromoSuppressor() {
-    const KEY = '__rtstAppInstallPromoObserverV158';
+    const KEY = '__rtstAppInstallPromoObserverV159';
     if (window[KEY]) return;
     window[KEY] = true;
 
