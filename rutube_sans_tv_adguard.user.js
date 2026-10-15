@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.5.4
+// @version      1.5.7
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki / npekpacHo
 // @license      MIT
@@ -39,7 +39,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.5.4';
+  const UI_VERSION = '1.5.7';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -494,7 +494,7 @@
   }
 
   function isRtstUiElement(el) {
-    return Boolean(el && el.closest && el.closest('#rtst-panel, .rtst-modal-backdrop, .rtst-toast, #rtst-series-nav, .rtst-series-modal, #rtst-personal-home, .rtst-interest-controls, [data-rtst-primary-movie="1"], [data-rtst-primary-home="1"]'));
+    return Boolean(el && el.closest && el.closest('#rtst-panel, .rtst-modal-backdrop, .rtst-toast, #rtst-series-nav, .rtst-series-modal, #rtst-personal-home, .rtst-interest-controls, .rtst-header-tools, [data-rtst-primary-movie="1"], [data-rtst-primary-home="1"]'));
   }
 
   const Dom = {
@@ -2852,6 +2852,15 @@
       html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"]:has([class*="background-view-popup-module__" i]),
       html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] .wdp-popup-overlay-module__overlay[data-testid="overlay-popup"]:has(a[href*="/promo/turnoffad/" i]),
       html[data-rtst-enabled="1"][data-rtst-strip-player-ads="1"] [class*="background-view-popup-module__" i],
+      html[data-rtst-enabled="1"] [role="dialog"]:has(a[href*="promo.rutubelist.ru" i]),
+      html[data-rtst-enabled="1"] [aria-modal="true"]:has(a[href*="promo.rutubelist.ru" i]),
+      html[data-rtst-enabled="1"] [data-testid*="popup" i]:has(a[href*="promo.rutubelist.ru" i]),
+      html[data-rtst-enabled="1"] [class*="popup" i]:has(a[href*="promo.rutubelist.ru" i]),
+      html[data-rtst-enabled="1"] [class*="modal" i]:has(a[href*="promo.rutubelist.ru" i]),
+      html[data-rtst-enabled="1"] [role="dialog"]:has(a[href*="play.google.com" i]),
+      html[data-rtst-enabled="1"] [role="dialog"]:has(a[href*="rustore" i]),
+      html[data-rtst-enabled="1"] [role="dialog"]:has(a[href*="appgallery" i]),
+      html[data-rtst-enabled="1"] [data-rtst-app-install-hidden="1"],
       .rtst-player-ad-hidden {
         display: none !important;
         visibility: hidden !important;
@@ -2917,10 +2926,14 @@
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
-        font: 900 21px/1 Arial, sans-serif !important;
       }
+      [data-rtst-primary-home="1"] .rtst-primary-home-icon { font: 900 21px/1 Arial, sans-serif !important; }
       [data-rtst-primary-home="1"] .rtst-primary-home-icon::before { content: "⌂"; }
-      [data-rtst-primary-movie="1"] .rtst-primary-movie-icon::before { content: "✦"; }
+      [data-rtst-primary-movie="1"] .rtst-primary-movie-icon::before { content: none !important; }
+      [data-rtst-primary-movie="1"] .rtst-primary-movie-icon svg {
+        display: block !important; width: 22px !important; height: 22px !important;
+        fill: none !important; stroke: currentColor !important;
+      }
 
       .rtst-search-trash {
         position: relative !important;
@@ -2987,28 +3000,28 @@
       .rtst-block-btn {
         display: inline-flex !important; align-items: center !important; justify-content: center !important;
         width: 24px !important; height: 24px !important; min-width: 24px !important; min-height: 24px !important;
-        margin: 3px 0 3px 8px !important; padding: 0 !important; border: 1px solid rgba(255,255,255,.55) !important;
-        border-radius: 6px !important; background: rgba(18,18,18,.92) !important; color: #fff !important;
+        margin: 3px 0 3px 8px !important; padding: 0 !important; border: 0 !important;
+        border-radius: 0 !important; background: transparent !important; color: rgba(255,255,255,.64) !important;
         cursor: pointer !important; font: 700 14px/1 Arial, sans-serif !important;
-        box-shadow: 0 1px 2px rgba(255,255,255,.18), 0 2px 7px rgba(0,0,0,.34) !important;
+        box-shadow: none !important; outline: 0 !important;
         text-decoration: none !important; user-select: none !important; vertical-align: middle !important; flex: 0 0 auto !important;
       }
-      .rtst-block-btn svg { width: 16px !important; height: 16px !important; display: block !important; flex: 0 0 auto !important; }
-      .rtst-block-btn:hover { background: #f2f2f2 !important; border-color: rgba(0,0,0,.45) !important; color: #111 !important; }
-      .rtst-block-btn:active { transform: scale(.96) !important; }
-      .rtst-interest-controls { display: inline-flex !important; align-items: center !important; gap: 3px !important; margin-left: 5px !important; vertical-align: middle !important; }
+      .rtst-block-btn svg { width: 18px !important; height: 18px !important; display: block !important; flex: 0 0 auto !important; }
+      .rtst-block-btn:hover { background: transparent !important; color: #fff !important; }
+      .rtst-block-btn:active { transform: scale(.92) !important; }
+      .rtst-interest-controls { display: inline-flex !important; align-items: center !important; gap: 4px !important; margin-left: 5px !important; vertical-align: middle !important; }
       .rtst-interest-btn {
         display: inline-flex !important; align-items: center !important; justify-content: center !important;
         width: 24px !important; height: 24px !important; min-width: 24px !important; min-height: 24px !important; padding: 0 !important;
-        border: 1px solid rgba(255,255,255,.28) !important; border-radius: 6px !important; background: rgba(18,18,18,.72) !important;
-        color: rgba(255,255,255,.70) !important; cursor: pointer !important; font: 13px/1 Arial, sans-serif !important; box-shadow: none !important;
+        border: 0 !important; border-radius: 0 !important; background: transparent !important;
+        color: rgba(255,255,255,.66) !important; cursor: pointer !important; font: 13px/1 Arial, sans-serif !important; box-shadow: none !important; outline: 0 !important;
       }
-      .rtst-interest-btn:hover { background: rgba(255,255,255,.15) !important; color: #fff !important; }
-      .rtst-interest-btn svg, .rtst-current-interest svg { width: 16px !important; height: 16px !important; display: block !important; flex: 0 0 auto !important; }
+      .rtst-interest-btn:hover { background: transparent !important; color: #fff !important; }
+      .rtst-interest-btn svg, .rtst-current-interest svg { width: 18px !important; height: 18px !important; display: block !important; flex: 0 0 auto !important; }
       .rtst-current-interest .rtst-quick-btn { display: inline-flex !important; align-items: center !important; justify-content: center !important; gap: 6px !important; }
       .rtst-interest-btn[data-signal="1"][data-active="1"] svg, .rtst-current-interest .rtst-quick-btn[data-signal="1"][data-active="1"] svg { fill: currentColor !important; }
-      .rtst-interest-btn[data-active="1"] { background: rgba(189,242,200,.18) !important; border-color: rgba(189,242,200,.55) !important; color: #e8ffed !important; }
-      .rtst-interest-btn[data-signal="-1"][data-active="1"] { background: rgba(255,176,168,.16) !important; border-color: rgba(255,176,168,.50) !important; color: #ffe5e2 !important; }
+      .rtst-interest-btn[data-signal="1"][data-active="1"] { background: transparent !important; border: 0 !important; color: #d9ffe3 !important; }
+      .rtst-interest-btn[data-signal="-1"][data-active="1"] { background: transparent !important; border: 0 !important; color: #ffc9c4 !important; }
       .rtst-current-interest { display: grid !important; grid-template-columns: repeat(2,minmax(0,1fr)) !important; gap: 6px !important; }
       .rtst-panel .rtst-current-interest .rtst-quick-btn[data-active="1"] { border-color: rgba(189,242,200,.55) !important; background: rgba(189,242,200,.15) !important; }
       .rtst-panel .rtst-current-interest .rtst-quick-btn[data-signal="-1"][data-active="1"] { border-color: rgba(255,176,168,.50) !important; background: rgba(255,176,168,.13) !important; }
@@ -3016,20 +3029,29 @@
       html[data-rtst-personal-home="1"] .rtst-native-home-hidden,
       html[data-rtst-personal-home="1"] main > :not(#rtst-personal-home),
       html[data-rtst-personal-home="1"] [role="main"] > :not(#rtst-personal-home) { display: none !important; }
-      html[data-rtst-personal-home="1"][data-rtst-page="home"] #rtst-panel { display: none !important; }
       #rtst-personal-home {
         display: block !important; width: 100% !important; max-width: none !important; margin: 0 !important;
         padding: 14px clamp(8px, 1.2vw, 24px) 42px !important; box-sizing: border-box !important; color: var(--rt-text-primary, #f4fff7) !important;
       }
-      #rtst-personal-home .rtst-ph-head { display: flex !important; align-items: center !important; justify-content: flex-end !important; gap: 10px !important; margin: 2px 0 18px !important; }
-      #rtst-personal-home .rtst-ph-controls { display: inline-flex !important; align-items: center !important; gap: 8px !important; flex-wrap: wrap !important; }
-      #rtst-personal-home .rtst-ph-refresh,
-      #rtst-personal-home .rtst-ph-settings {
-        flex: 0 0 auto !important; min-height: 36px !important; padding: 0 14px !important; border: 1px solid rgba(255,255,255,.13) !important;
-        border-radius: 999px !important; background: rgba(255,255,255,.07) !important; color: #f4fff7 !important; cursor: pointer !important; font: 700 12px/1 Arial, sans-serif !important;
+      .rtst-header-tools {
+        display: inline-flex !important; align-items: center !important; justify-content: center !important; gap: 4px !important;
+        flex: 0 0 auto !important; margin: 0 4px !important;
       }
-      #rtst-personal-home .rtst-ph-refresh:hover,
-      #rtst-personal-home .rtst-ph-settings:hover { background: rgba(255,255,255,.13) !important; }
+      .rtst-header-tool-btn {
+        appearance: none !important; display: inline-flex !important; align-items: center !important; justify-content: center !important;
+        width: 36px !important; height: 36px !important; min-width: 36px !important; min-height: 36px !important;
+        margin: 0 !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important;
+        background: transparent !important; color: inherit !important; box-shadow: none !important; outline: 0 !important;
+        cursor: pointer !important; opacity: .78 !important;
+      }
+      .rtst-header-tool-btn:hover { background: transparent !important; opacity: 1 !important; }
+      .rtst-header-tool-btn:active { transform: scale(.92) !important; }
+      .rtst-header-tool-btn svg { width: 24px !important; height: 24px !important; display: block !important; pointer-events: none !important; }
+      @media (max-width: 680px) {
+        .rtst-header-tools { gap: 0 !important; margin: 0 !important; }
+        .rtst-header-tool-btn { width: 32px !important; height: 32px !important; min-width: 32px !important; min-height: 32px !important; }
+        .rtst-header-tool-btn svg { width: 21px !important; height: 21px !important; }
+      }
       #rtst-personal-home .rtst-ph-section { margin: 0 0 24px !important; }
       #rtst-personal-home .rtst-ph-section-head { display: flex !important; align-items: center !important; justify-content: space-between !important; margin: 0 0 12px !important; }
       #rtst-personal-home .rtst-ph-section-title { font: 800 18px/1.2 Arial, sans-serif !important; }
@@ -3060,7 +3082,6 @@
       @media (max-width: 1080px) { #rtst-personal-home { padding: 12px 12px 34px !important; } #rtst-personal-home .rtst-ph-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)) !important; } }
       @media (max-width: 680px) {
         #rtst-personal-home { padding: 10px 8px 28px !important; }
-        #rtst-personal-home .rtst-ph-head { margin-bottom: 14px !important; }
         #rtst-personal-home .rtst-ph-grid { grid-template-columns: repeat(2,minmax(0,1fr)) !important; gap: 11px 8px !important; }
         #rtst-personal-home .rtst-ph-card-title { font-size: 11px !important; min-height: 30px !important; }
         #rtst-personal-home .rtst-ph-card-meta { font-size: 9px !important; }
@@ -3804,71 +3825,10 @@
   }
 
   function createPanel() {
+    // С 1.5.6 постоянные действия Рутубочиста живут в верхнем тулбаре RUTUBE.
+    // Старый плавающий launcher больше не нужен ни на desktop, ни на mobile.
     const oldPanel = document.getElementById('rtst-panel');
-    if (isEmbeddedRutubePlayer()) {
-      if (oldPanel) oldPanel.remove();
-      return;
-    }
-    if (oldPanel && oldPanel.dataset.rtstUiVersion === UI_VERSION) {
-      syncPanel();
-      return;
-    }
     if (oldPanel) oldPanel.remove();
-
-    const panel = document.createElement('div');
-    panel.id = 'rtst-panel';
-    panel.className = 'rtst-panel';
-    panel.dataset.collapsed = '1';
-    panel.dataset.rtstUiVersion = UI_VERSION;
-
-    panel.innerHTML = `
-      <div class="rtst-panel-head" data-rtst-action="toggle-panel" title="Открыть Рутубочист">
-        <div class="rtst-panel-main">
-          <div class="rtst-panel-title">Рутубочист</div>
-          <div class="rtst-panel-subtitle">персональная лента и фильтр RUTUBE</div>
-          <div class="rtst-panel-counter" id="rtst-counter" hidden></div>
-        </div>
-        <div class="rtst-panel-compact" aria-hidden="true">
-          <span class="rtst-panel-compact-icon rtst-app-icon-target" id="rtst-panel-icon" data-rtst-app-icon="1" title="Рутубочист">🪠</span>
-          <span class="rtst-panel-compact-count" id="rtst-compact-count" hidden></span>
-        </div>
-        <button type="button" class="rtst-head-bug" data-rtst-action="copy-player-diagnostics" title="Скопировать диагностику плеера">🐞</button>
-        <button type="button" class="rtst-head-gear" data-rtst-action="open-settings-modal" title="Настройки">⚙</button>
-        <div class="rtst-panel-caret">▾</div>
-      </div>
-      <div class="rtst-panel-body">
-        <div class="rtst-quick-actions" id="rtst-quick-actions" hidden>
-          <div class="rtst-quick-nav" id="rtst-quick-nav">
-            <a href="/" class="rtst-quick-btn" id="rtst-quick-channel" title="Перейти на канал автора">На канал</a>
-            <a href="/" class="rtst-quick-btn" title="На главную RUTUBE">На главную</a>
-          </div>
-          <div class="rtst-current-interest" id="rtst-current-interest">
-            <button type="button" class="rtst-quick-btn" data-rtst-action="rate-current-video" data-signal="1">${interestIconSvg(1)}<span>интересно</span></button>
-            <button type="button" class="rtst-quick-btn" data-rtst-action="rate-current-video" data-signal="-1">${interestIconSvg(-1)}<span>неинтересно</span></button>
-          </div>
-          <button type="button" class="rtst-quick-btn rtst-quick-movie" data-rtst-action="open-movie-modal">Что посмотреть?</button>
-        </div>
-        <div class="rtst-movie-cta">
-          <button type="button" class="rtst-movie-cta-btn" data-rtst-action="open-movie-modal">Что посмотреть?</button>
-          <div class="rtst-movie-cta-caption">подборки от CentralZD</div>
-        </div>
-        <div class="rtst-panel-footer">
-          <div class="rtst-small">©2026 npekpacHo<br><span class="rtst-version" id="rtst-version">Версия ${UI_VERSION}</span></div>
-          <button type="button" class="rtst-github-link" id="rtst-github-link" data-rtst-action="open-project" title="Открыть страницу проекта на GitHub"><span class="rtst-app-icon rtst-app-icon-footer" data-rtst-app-icon="1" aria-hidden="true">🪠</span></button>
-          <span class="rtst-network-status" id="rtst-network-status" data-state="unknown" title="GitHub ещё не проверялся">⚪ GitHub</span>
-        </div>
-      </div>
-    `;
-
-    document.documentElement.appendChild(panel);
-    
-    panel.addEventListener('mouseenter', () => wakePanel(30000));
-    panel.addEventListener('mouseleave', () => wakePanel(4800));
-
-    updatePanelRouteState();
-    syncGithubBadge();
-    syncPanel();
-    wakePanel(5200);
   }
 
   function updatePanelRouteState() {
@@ -4510,7 +4470,7 @@
       if (action === 'movie-newer') { switchMovieBatch(-1); return; }
       if (action === 'movie-older') { switchMovieBatch(1); return; }
       if (action === 'movie-refresh') { refreshMovieNavigator(actionEl); return; }
-      if (action === 'personal-home-refresh') { event.preventDefault(); event.stopPropagation(); personalHomeRuntime.builtAt = 0; void syncPersonalHome(true); return; }
+      if (action === 'personal-home-refresh') { event.preventDefault(); event.stopPropagation(); personalHomeRuntime.builtAt = 0; if (settings.personalHome !== false && (isHomePage() || isHomeFeedPage())) void syncPersonalHome(true); else toast('Кэш персональной главной сброшен.'); return; }
       if (action === 'movie-random') { openRandomMovieSearch(); return; }
       if (action === 'movie-smart-search') { event.preventDefault(); event.stopPropagation(); void openSmartRutubeMovie(actionEl); return; }
       if (action === 'close-movie-results') { event.preventDefault(); event.stopPropagation(); const backdrop = actionEl.closest('.rtst-movie-results-backdrop'); if (backdrop) backdrop.remove(); return; }
@@ -5114,6 +5074,19 @@
 
   function pooIconSvg() {
     return '<svg class="rtst-poo-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 12h.01"/><path d="M14 12h.01"/><path d="M10 16a3.5 3.5 0 0 0 4 0"/><path d="M11 4c2 0 3.5 1.5 3.5 4l.164 0a2.5 2.5 0 0 1 2.196 3.32a3 3 0 0 1 1.615 3.063a3 3 0 0 1 -1.299 5.607l-.176 0h-10a3 3 0 0 1 -1.474 -5.613a3 3 0 0 1 1.615 -3.062a2.5 2.5 0 0 1 2.195 -3.32l.164 0c1.5 0 2.5 -2 1.5 -4l0 .005"/></svg>';
+  }
+
+  function eyeQuestionIconSvg(extraClass = 'rtst-header-tool-icon') {
+    const cls = escapeAttribute(String(extraClass || 'rtst-header-tool-icon'));
+    return `<svg class="${cls}" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/><path d="M14.071 17.764a8.989 8.989 0 0 1 -2.071 .236c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.346 0 6.173 1.727 8.482 5.182"/><path d="M19 22v.01"/><path d="M19 19a2.003 2.003 0 0 0 .914 -3.782a1.98 1.98 0 0 0 -2.414 .483"/></svg>`;
+  }
+
+  function settings2IconSvg() {
+    return '<svg class="rtst-header-tool-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M19.875 6.27a2.225 2.225 0 0 1 1.125 1.948v7.284c0 .809 -.443 1.555 -1.158 1.948l-6.75 4.27a2.269 2.269 0 0 1 -2.184 0l-6.75 -4.27a2.225 2.225 0 0 1 -1.158 -1.948v-7.285c0 -.809 .443 -1.554 1.158 -1.947l6.75 -3.98a2.33 2.33 0 0 1 2.25 0l6.75 3.98h-.033"/><path d="M9 12a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"/></svg>';
+  }
+
+  function blocksIconSvg() {
+    return '<svg class="rtst-header-tool-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 4a1 1 0 0 1 1 -1h5a1 1 0 0 1 1 1v5a1 1 0 0 1 -1 1h-5a1 1 0 0 1 -1 -1l0 -5"/><path d="M3 14h12a2 2 0 0 1 2 2v3a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-10a2 2 0 0 1 2 -2h3a2 2 0 0 1 2 2v12"/></svg>';
   }
 
   function movieCandidateQualityAdjustment(item) {
@@ -7734,7 +7707,7 @@
     if (isRtstUiElement(scope)) nodes.push(scope);
 
     try {
-      nodes.push(...scope.querySelectorAll('#rtst-panel, #rtst-panel *, #rtst-series-nav, #rtst-series-nav *, #rtst-personal-home, #rtst-personal-home *, .rtst-modal-backdrop, .rtst-modal-backdrop *, .rtst-toast, .rtst-popup-close-proxy, .rtst-interest-controls, .rtst-interest-controls *'));
+      nodes.push(...scope.querySelectorAll('#rtst-panel, #rtst-panel *, #rtst-series-nav, #rtst-series-nav *, #rtst-personal-home, #rtst-personal-home *, .rtst-header-tools, .rtst-header-tools *, .rtst-modal-backdrop, .rtst-modal-backdrop *, .rtst-toast, .rtst-popup-close-proxy, .rtst-interest-controls, .rtst-interest-controls *'));
     } catch (e) {}
 
     nodes.forEach((el) => {
@@ -7883,6 +7856,7 @@
       if (icon) {
         icon.removeAttribute('style');
         icon.classList.add('rtst-primary-movie-icon');
+        icon.innerHTML = eyeQuestionIconSvg('rtst-primary-movie-eye');
       }
 
       list.appendChild(item);
@@ -8087,6 +8061,161 @@
     });
   }
 
+
+  function rutubeAppInstallMarkerScore(node) {
+    if (!node || isRtstUiElement(node)) return 0;
+    let text = '';
+    let html = '';
+    try {
+      text = compactText(node);
+      html = String(node.outerHTML || '').toLowerCase();
+    } catch (e) { return 0; }
+
+    let score = 0;
+    if (text.includes('приложение rutube')) score += 4;
+    if (/(?:^|\s)установить(?:\s|$)/u.test(text)) score += 2;
+    if (text.includes('скачать установочный файл')) score += 4;
+
+    const stores = [
+      'google play', 'appgallery', 'rustore', 'rumarket', 'samsung galaxy store'
+    ];
+    const storeHits = stores.reduce((n, name) => n + (text.includes(name) ? 1 : 0), 0);
+    score += Math.min(6, storeHits * 2);
+
+    if (html.includes('promo.rutubelist.ru')) score += 7;
+    if (/rutube\.release[^"'<>\s]*\.apk/i.test(html)) score += 7;
+    if (/href=["'][^"']*\.apk(?:[?"'])/i.test(html)) score += 4;
+
+    return score;
+  }
+
+  function isRutubeAppInstallPromo(node) {
+    if (!node || isRtstUiElement(node)) return false;
+    const score = rutubeAppInstallMarkerScore(node);
+    if (score >= 7) return true;
+
+    /* Для компактного баннера достаточно пары очень характерных фраз.
+       Не реагируем на одиночное слово «Установить», чтобы не сносить
+       случайные элементы интерфейса. */
+    try {
+      const text = compactText(node);
+      return text.includes('приложение rutube') && /(?:^|\s)установить(?:\s|$)/u.test(text);
+    } catch (e) { return false; }
+  }
+
+  function findRutubeAppInstallPromoContainer(el) {
+    if (!el || el.nodeType !== 1) return null;
+
+    try {
+      const overlay = el.closest(
+        '[role="dialog"], [aria-modal="true"], ' +
+        '.wdp-popup-overlay-module__overlay[data-testid="overlay-popup"], ' +
+        '[data-testid*="popup" i], [class*="modal" i], [class*="popup" i], [class*="overlay" i]'
+      );
+      if (overlay && overlay !== document.body && overlay !== document.documentElement && isRutubeAppInstallPromo(overlay)) return overlay;
+    } catch (e) {}
+
+    let node = el;
+    let best = isRutubeAppInstallPromo(node) ? node : null;
+    for (let i = 0; i < 7 && node && node.parentElement; i += 1) {
+      const parent = node.parentElement;
+      if (!parent || parent === document.body || parent === document.documentElement) break;
+      const tag = String(parent.tagName || '').toLowerCase();
+      if (['main', 'header', 'footer', 'nav'].includes(tag)) break;
+      const text = String(parent.textContent || '').trim();
+      if (text.length > 2200) break;
+      if (isRutubeAppInstallPromo(parent)) best = parent;
+      node = parent;
+    }
+    return best;
+  }
+
+  function hideRutubeAppInstallPromos(root = document) {
+    if (!settings.enabled) return;
+    const scope = root && root.querySelectorAll ? root : document;
+    const markers = [];
+
+    const push = (el) => { if (el && el.nodeType === 1 && !isRtstUiElement(el)) markers.push(el); };
+    if (scope.nodeType === 1) push(scope);
+
+    try {
+      scope.querySelectorAll(
+        'a[href*="promo.rutubelist.ru" i], ' +
+        'a[href*="play.google.com" i], ' +
+        'a[href*="rustore" i], ' +
+        'a[href*="appgallery" i], ' +
+        'a[href*="galaxystore" i], ' +
+        'a[href$=".apk" i], a[download*="Rutube.release" i], ' +
+        '[role="dialog"], [aria-modal="true"], [data-testid*="popup" i], ' +
+        '[class*="modal" i], [class*="popup" i], [class*="banner" i], ' +
+        'button'
+      ).forEach((el) => {
+        if (el.tagName === 'BUTTON') {
+          const t = normalize(el.textContent || '');
+          if (t !== 'установить' && !t.includes('установить приложение')) return;
+        }
+        push(el);
+      });
+    } catch (e) {}
+
+    const hidden = new Set();
+    for (const marker of markers) {
+      let target = null;
+      if (isRutubeAppInstallPromo(marker)) target = findRutubeAppInstallPromoContainer(marker) || marker;
+      else {
+        const parent = findRutubeAppInstallPromoContainer(marker);
+        if (parent && isRutubeAppInstallPromo(parent)) target = parent;
+      }
+      if (!target || hidden.has(target) || isRtstUiElement(target)) continue;
+
+      /* Модалку лучше сначала закрыть её собственной кнопкой: так React
+         освобождает focus-lock и overflow страницы. */
+      try {
+        const closeBtn = target.querySelector(
+          'button[aria-label*="закрыть" i], button[title*="закрыть" i], ' +
+          '[class*="close" i] button, button[class*="close" i], [data-testid*="close" i]'
+        );
+        if (closeBtn && closeBtn.dataset.rtstAppInstallClicked !== '1') {
+          closeBtn.dataset.rtstAppInstallClicked = '1';
+          closeBtn.click();
+        }
+      } catch (e) {}
+
+      target.dataset.rtstAppInstallHidden = '1';
+      target.dataset.rtstReason = 'предложение установить приложение RUTUBE';
+      target.style.setProperty('display', 'none', 'important');
+      target.style.setProperty('visibility', 'hidden', 'important');
+      target.style.setProperty('pointer-events', 'none', 'important');
+      hidden.add(target);
+      hiddenCount += 1;
+    }
+  }
+
+  function installRutubeAppInstallPromoSuppressor() {
+    const KEY = '__rtstAppInstallPromoObserverV157';
+    if (window[KEY]) return;
+    window[KEY] = true;
+
+    const start = () => {
+      const root = document.body || document.documentElement;
+      if (!root || typeof MutationObserver !== 'function') return;
+      hideRutubeAppInstallPromos(document);
+
+      const appObserver = new MutationObserver((mutations) => {
+        if (!settings.enabled) return;
+        for (const mutation of mutations) {
+          for (const node of mutation.addedNodes || []) {
+            if (!node || node.nodeType !== 1 || isRtstUiElement(node)) continue;
+            hideRutubeAppInstallPromos(node);
+          }
+        }
+      });
+      appObserver.observe(root, { childList: true, subtree: true });
+    };
+
+    if (document.body || document.documentElement) start();
+    else window.addEventListener('DOMContentLoaded', start, { once: true });
+  }
 
   function isBackgroundModeSubscriptionPopup(el) {
     if (!el || isRtstUiElement(el)) return false;
@@ -8444,9 +8573,11 @@
 
     syncRootFlags();
     createPanel();
+    syncPersonalHomeHeaderTools();
     protectRtstUiFromCleanup(document);
     bindRtstThumbnailFallbacks(document);
     syncRutubePopupCloseProxy();
+    hideRutubeAppInstallPromos(document);
     hideBackgroundModeSubscriptionPopup(document);
     hideOnboardingInventoryPopups(document);
     hideEridAds(document);
@@ -9241,14 +9372,7 @@
       personalHomeSectionHtml('Продолжить просмотр', '', continueItems),
       personalHomeSectionHtml('Для вас', '', forYouItems)
     ].filter(Boolean).join('');
-    return `
-      <div class="rtst-ph-head">
-        <div class="rtst-ph-controls">
-          <button type="button" class="rtst-ph-refresh" data-rtst-action="personal-home-refresh" title="Пересобрать рекомендации">↻ Обновить</button>
-          <button type="button" class="rtst-ph-settings" data-rtst-action="open-settings-modal" title="Открыть настройки">Настройки</button>
-        </div>
-      </div>
-      ${sections || '<div class="rtst-ph-empty">Пока недостаточно данных для персональной ленты. Несколько просмотров и оценок это исправят.</div>'}`;
+    return `${sections || '<div class="rtst-ph-empty">Пока недостаточно данных для персональной ленты. Несколько просмотров и оценок это исправят.</div>'}`;
   }
 
   function findPersonalHomeMount() {
@@ -9328,7 +9452,7 @@
     const seq = ++personalHomeRuntime.seq;
     const hadRenderedContent = root.dataset.rtstHomeRendered === '1' || root.querySelector('.rtst-ph-card');
     if (!hadRenderedContent) {
-      root.innerHTML = '<div class="rtst-ph-head"><div class="rtst-ph-controls"><button type="button" class="rtst-ph-refresh" data-rtst-action="personal-home-refresh">↻ Обновить</button><button type="button" class="rtst-ph-settings" data-rtst-action="open-settings-modal">Настройки</button></div></div><div class="rtst-ph-loading">Собираю главную: история → продолжения → related → витрина → фильтр → рейтинг…</div>';
+      root.innerHTML = '<div class="rtst-ph-loading">Собираю главную: история → продолжения → related → витрина → фильтр → рейтинг…</div>';
     } else {
       root.setAttribute('aria-busy', 'true');
     }
@@ -9358,7 +9482,7 @@
         currentRoot.removeAttribute('aria-busy');
         // Уже показанную ленту не уничтожаем из-за временной ошибки обновления.
         if (!currentRoot.querySelector('.rtst-ph-card')) {
-          currentRoot.innerHTML = `<div class="rtst-ph-head"><div class="rtst-ph-controls"><button type="button" class="rtst-ph-refresh" data-rtst-action="personal-home-refresh">↻ Повторить</button><button type="button" class="rtst-ph-settings" data-rtst-action="open-settings-modal">Настройки</button></div></div><div class="rtst-ph-empty">${escapeHtml(personalHomeRuntime.error)}</div>`;
+          currentRoot.innerHTML = `<div class="rtst-ph-empty">${escapeHtml(personalHomeRuntime.error)}</div>`;
         }
       }
     } finally {
@@ -9431,6 +9555,37 @@
       if (!el || isRtstUiElement(el) || isInsidePlayer(el) || containsVideoPlayer(el) || isProtectedHeader(el)) return;
       softHideViewElement(el, 'баннер безопасного режима');
     });
+  }
+
+  function syncPersonalHomeHeaderTools() {
+    const shouldShow = Boolean(settings.enabled && !isEmbeddedRutubePlayer());
+    const old = document.getElementById('rtst-header-tools');
+    if (!shouldShow) { if (old) old.remove(); return; }
+
+    const right = document.querySelector('section.wdp-header-right-module__wrapper, .wdp-header-right-module__wrapper');
+    if (!right || right.closest('#rtst-panel')) return;
+
+    let tools = old;
+    if (!tools) {
+      tools = document.createElement('div');
+      tools.id = 'rtst-header-tools';
+      tools.className = 'rtst-header-tools';
+      tools.dataset.rtstUi = '1';
+      tools.innerHTML = `
+        <button type="button" class="rtst-header-tool-btn" data-rtst-action="open-movie-modal" title="Что посмотреть?" aria-label="Что посмотреть?">${eyeQuestionIconSvg()}</button>
+        <button type="button" class="rtst-header-tool-btn" data-rtst-action="personal-home-refresh" title="Обновить персональную главную" aria-label="Обновить персональную главную">${blocksIconSvg()}</button>
+        <button type="button" class="rtst-header-tool-btn" data-rtst-action="open-settings-modal" title="Настройки Рутубочиста" aria-label="Настройки Рутубочиста">${settings2IconSvg()}</button>`;
+    }
+
+    const refresh = tools.querySelector('[data-rtst-action="personal-home-refresh"]');
+    if (refresh) {
+      const onPersonalHome = Boolean(settings.personalHome !== false && (isHomePage() || isHomeFeedPage()));
+      refresh.dataset.rtstHomeReady = onPersonalHome ? '1' : '0';
+      refresh.title = onPersonalHome ? 'Обновить персональную главную' : 'Сбросить кэш рекомендаций персональной главной';
+      refresh.setAttribute('aria-label', refresh.title);
+    }
+
+    if (tools.parentElement !== right) right.insertBefore(tools, right.firstChild || null);
   }
 
   function addHomeButtonNearSubscribe() {
@@ -9704,6 +9859,7 @@
 
   function cleanRutubeChrome() {
     hideEridAds(document);
+    hideRutubeAppInstallPromos(document);
     ensurePrimaryMenu();
     markMobileTopCategoryTabs();
     hideOnboardingInventoryPopups(document);
@@ -10385,6 +10541,7 @@
   function boot() {
     installPlayOptionsAdvertStripper();
     installVpnPopupSuppressor();
+    installRutubeAppInstallPromoSuppressor();
     installRutubeContextMenuUnlocker();
     installMobileVideoVolumeSwipe();
     installAutoFullscreenOnRotate();
@@ -10417,6 +10574,7 @@
   installViewProgressTracker();
   loadPanelIconFromLocalCache();
   installVpnPopupSuppressor();
+  installRutubeAppInstallPromoSuppressor();
   setupAutoplayGuard();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
   else boot();
