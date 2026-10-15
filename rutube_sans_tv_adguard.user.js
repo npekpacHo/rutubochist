@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.5.7
+// @version      1.5.8
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki / npekpacHo
 // @license      MIT
@@ -39,7 +39,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.5.7';
+  const UI_VERSION = '1.5.8';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -2857,6 +2857,7 @@
       html[data-rtst-enabled="1"] [data-testid*="popup" i]:has(a[href*="promo.rutubelist.ru" i]),
       html[data-rtst-enabled="1"] [class*="popup" i]:has(a[href*="promo.rutubelist.ru" i]),
       html[data-rtst-enabled="1"] [class*="modal" i]:has(a[href*="promo.rutubelist.ru" i]),
+      html[data-rtst-enabled="1"] [data-rtst-app-install-banner-hidden="1"],
       html[data-rtst-enabled="1"] [role="dialog"]:has(a[href*="play.google.com" i]),
       html[data-rtst-enabled="1"] [role="dialog"]:has(a[href*="rustore" i]),
       html[data-rtst-enabled="1"] [role="dialog"]:has(a[href*="appgallery" i]),
@@ -8103,6 +8104,81 @@
     } catch (e) { return false; }
   }
 
+  function isRutubeInstallAction(el) {
+    if (!el || el.nodeType !== 1) return false;
+    const text = compactText(el);
+    if (!text) return false;
+    return text === 'установить' || text === 'установить приложение' || text.includes('установить приложение rutube');
+  }
+
+  function findTopRutubeAppInstallBanner(control) {
+    if (!control || control.nodeType !== 1 || !isRutubeInstallAction(control)) return null;
+
+    let node = control;
+    for (let i = 0; i < 9 && node; i += 1) {
+      if (node === document.body || node === document.documentElement) break;
+      if (isRtstUiElement(node)) return null;
+
+      const text = compactText(node);
+      if (text.includes('приложение rutube') && /(?:^|\s)установить(?:\s|$)/u.test(text)) {
+        let rect = null;
+        try { rect = node.getBoundingClientRect(); } catch (e) {}
+        const top = rect ? Number(rect.top) || 0 : 0;
+        const height = rect ? Number(rect.height) || 0 : 0;
+        const width = rect ? Number(rect.width) || 0 : 0;
+        const viewportWidth = Math.max(320, Number(window.innerWidth) || 0);
+        const nearTop = !rect || top <= 220;
+        const compactEnough = !rect || (height > 0 && height <= 220 && width >= Math.min(260, viewportWidth * 0.45));
+        const hasMainToolbar = Boolean(node.querySelector && node.querySelector('.wdp-header-right-module__wrapper, .header-logo-wrapper-module__logo'));
+
+        /* Не скрываем всю шапку, если баннер вдруг оказался её непосредственным
+           ребёнком без отдельной обёртки. В нормальной разметке минимальный общий
+           контейнер текста и кнопки находится раньше header. */
+        if (nearTop && compactEnough && !hasMainToolbar) return node;
+      }
+
+      const parent = node.parentElement;
+      if (!parent) break;
+      const parentText = String(parent.textContent || '').trim();
+      if (parentText.length > 2600) break;
+      node = parent;
+    }
+    return null;
+  }
+
+  function hideTopRutubeAppInstallBanner(root = document) {
+    if (!settings.enabled) return 0;
+    const scope = root && root.querySelectorAll ? root : document;
+    const controls = [];
+    const push = (el) => {
+      if (el && el.nodeType === 1 && !isRtstUiElement(el) && isRutubeInstallAction(el)) controls.push(el);
+    };
+
+    if (scope.nodeType === 1) push(scope);
+    try {
+      scope.querySelectorAll('button, a, [role="button"]').forEach(push);
+    } catch (e) {}
+
+    let count = 0;
+    for (const control of controls) {
+      const target = findTopRutubeAppInstallBanner(control);
+      if (!target || target.dataset.rtstAppInstallBannerHidden === '1') continue;
+      target.dataset.rtstAppInstallBannerHidden = '1';
+      target.dataset.rtstAppInstallHidden = '1';
+      target.dataset.rtstReason = 'верхний баннер установки приложения RUTUBE';
+      target.style.setProperty('display', 'none', 'important');
+      target.style.setProperty('visibility', 'hidden', 'important');
+      target.style.setProperty('height', '0', 'important');
+      target.style.setProperty('min-height', '0', 'important');
+      target.style.setProperty('margin', '0', 'important');
+      target.style.setProperty('padding', '0', 'important');
+      target.style.setProperty('border', '0', 'important');
+      target.style.setProperty('overflow', 'hidden', 'important');
+      count += 1;
+    }
+    return count;
+  }
+
   function findRutubeAppInstallPromoContainer(el) {
     if (!el || el.nodeType !== 1) return null;
 
@@ -8132,6 +8208,7 @@
 
   function hideRutubeAppInstallPromos(root = document) {
     if (!settings.enabled) return;
+    hideTopRutubeAppInstallBanner(root);
     const scope = root && root.querySelectorAll ? root : document;
     const markers = [];
 
@@ -8192,7 +8269,7 @@
   }
 
   function installRutubeAppInstallPromoSuppressor() {
-    const KEY = '__rtstAppInstallPromoObserverV157';
+    const KEY = '__rtstAppInstallPromoObserverV158';
     if (window[KEY]) return;
     window[KEY] = true;
 
@@ -8203,14 +8280,26 @@
 
       const appObserver = new MutationObserver((mutations) => {
         if (!settings.enabled) return;
+        let needsTopSweep = false;
         for (const mutation of mutations) {
+          if (mutation.type === 'characterData') {
+            const parent = mutation.target && mutation.target.parentElement;
+            if (parent && !isRtstUiElement(parent)) hideRutubeAppInstallPromos(parent);
+            needsTopSweep = true;
+            continue;
+          }
           for (const node of mutation.addedNodes || []) {
             if (!node || node.nodeType !== 1 || isRtstUiElement(node)) continue;
             hideRutubeAppInstallPromos(node);
+            needsTopSweep = true;
           }
         }
+        /* Баннер иногда собирается несколькими независимыми React-вставками:
+           сначала текст, потом кнопка. После пачки мутаций один раз проверяем
+           уже собранную верхнюю область целиком. */
+        if (needsTopSweep) hideTopRutubeAppInstallBanner(document);
       });
-      appObserver.observe(root, { childList: true, subtree: true });
+      appObserver.observe(root, { childList: true, subtree: true, characterData: true });
     };
 
     if (document.body || document.documentElement) start();
