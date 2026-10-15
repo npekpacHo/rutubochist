@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.5.3
+// @version      1.5.4
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki / npekpacHo
 // @license      MIT
@@ -39,7 +39,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.5.3';
+  const UI_VERSION = '1.5.4';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -199,7 +199,7 @@
   const PERSONAL_HOME_RELATED_SEEDS = 4;
   const PERSONAL_HOME_FEED_RESOURCES = 6;
   const personalHomeRuntime = {
-    seq: 0, loading: false, builtAt: 0, html: '', mount: null, error: '', profile: null
+    seq: 0, loading: false, builtAt: 0, html: '', mount: null, error: '', profile: null, renderToken: ''
   };
 
   // Единый тонкий слой доступа к публичным same-origin API RUTUBE.
@@ -2513,6 +2513,7 @@
     communityCache.source = String(meta.source || 'remote');
     personalHomeRuntime.builtAt = 0;
     personalHomeRuntime.html = '';
+    personalHomeRuntime.renderToken = '';
   }
 
   function loadCommunityCacheFromLocal() {
@@ -4380,7 +4381,7 @@
       if (target.id === 'rtst-mark-watched') { settings.markWatchedVideos = target.checked; saveSettings(); syncRootFlags(); personalHomeRuntime.builtAt = 0; rescanNow(); }
       if (target.id === 'rtst-personal-home-toggle') { settings.personalHome = target.checked; saveSettings(); personalHomeRuntime.builtAt = 0; if (!target.checked) removePersonalHome(); syncRootFlags(); rescanNow(); }
       if (target.id === 'rtst-series-navigator') { settings.seriesNavigator = target.checked; saveSettings(); if (!target.checked) removeSeriesNavigator(); rescanNow(); }
-      if (target.id === 'rtst-community-filter') { settings.useCommunityFilter = target.checked; personalHomeRuntime.builtAt = 0; personalHomeRuntime.html = ''; saveSettings(); if (target.checked) { loadCommunityCacheFromLocal(); maybeUpdateCommunityInBackground(); } syncPanel(); rescanNow(); }
+      if (target.id === 'rtst-community-filter') { settings.useCommunityFilter = target.checked; personalHomeRuntime.builtAt = 0; personalHomeRuntime.html = ''; personalHomeRuntime.renderToken = ''; saveSettings(); if (target.checked) { loadCommunityCacheFromLocal(); maybeUpdateCommunityInBackground(); } syncPanel(); rescanNow(); }
       if (target.id === 'rtst-community-contribute') { settings.contributeCommunitySignals = target.checked; saveSettings(); if (target.checked) setTimeout(() => flushCommunitySignalQueue(), 0); syncPanel(); }
       if (target.id === 'rtst-clean-watch') { settings.cleanWatchPage = target.checked; saveSettings(); syncRootFlags(); rescanNow(); }
       if (target.id === 'rtst-disable-autoplay') { settings.disableAutoplay = target.checked; saveSettings(); scanAutoplayVideos(); }
@@ -6215,7 +6216,7 @@
       else queueCommunitySignal({ type: 'block_channel', value: 0, channel_name: value });
     }
     if (type === 'words') settings.userWords = values; else settings.userChannels = values;
-    personalHomeRuntime.builtAt = 0; personalHomeRuntime.html = '';
+    personalHomeRuntime.builtAt = 0; personalHomeRuntime.html = ''; personalHomeRuntime.renderToken = '';
     saveSettings(); syncPanel(); closeModal(); toast('Список сохранён.'); rescanNow();
   }
 
@@ -6226,7 +6227,7 @@
       else queueCommunitySignal({ type: 'block_channel', value: 0, channel_name: value });
     }
     if (type === 'words') settings.userWords = []; else settings.userChannels = [];
-    personalHomeRuntime.builtAt = 0; personalHomeRuntime.html = '';
+    personalHomeRuntime.builtAt = 0; personalHomeRuntime.html = ''; personalHomeRuntime.renderToken = '';
     saveSettings(); syncPanel(); closeModal(); toast(type === 'words' ? 'Список фраз очищен.' : 'Список каналов очищен.'); rescanNow();
   }
 
@@ -6239,6 +6240,7 @@
     settings.userChannels = unique([...settings.userChannels, clean]);
     personalHomeRuntime.builtAt = 0;
     personalHomeRuntime.html = '';
+    personalHomeRuntime.renderToken = '';
     queueCommunitySignal({ type: 'block_channel', value: 1, channel_name: clean, channel_id: String(meta.channelId || '') });
     saveSettings(); syncPanel(); toast(`Канал скрыт: ${clean}`); rescanNow();
   }
@@ -6249,6 +6251,7 @@
     settings.userWords = unique([...settings.userWords, clean]);
     personalHomeRuntime.builtAt = 0;
     personalHomeRuntime.html = '';
+    personalHomeRuntime.renderToken = '';
     queueCommunitySignal({ type: 'block_word', active: 1, value: clean });
     saveSettings(); syncPanel(); toast(`Фраза добавлена: ${clean}`); rescanNow();
   }
@@ -9293,6 +9296,18 @@
     return personalHomeDocumentHtml(continueItems, forYouItems);
   }
 
+  function renderPersonalHomeInto(root, html, renderToken) {
+    if (!root || !html) return false;
+    const token = String(renderToken || '');
+    if (token && root.dataset.rtstHomeRenderToken === token) return false;
+    root.innerHTML = html;
+    if (token) root.dataset.rtstHomeRenderToken = token;
+    root.dataset.rtstHomeRendered = '1';
+    bindRtstThumbnailFallbacks(root);
+    root.querySelectorAll('[data-rtst-video-id]').forEach((el) => syncInterestControls(el.dataset.rtstVideoId || ''));
+    return true;
+  }
+
   async function syncPersonalHome(force = false) {
     if (!settings.enabled || settings.personalHome === false || !(isHomePage() || isHomeFeedPage())) {
       removePersonalHome();
@@ -9302,30 +9317,50 @@
     if (!root) return;
 
     if (!force && personalHomeRuntime.html && personalHomeRuntime.builtAt && Date.now() - personalHomeRuntime.builtAt < PERSONAL_HOME_REFRESH_MS) {
-      if (root.innerHTML !== personalHomeRuntime.html) root.innerHTML = personalHomeRuntime.html;
-      bindRtstThumbnailFallbacks(root);
+      // Не сравниваем root.innerHTML с сохранённым шаблоном. После первого рендера
+      // fallback-превью и syncInterestControls закономерно меняют DOM, из-за чего
+      // Firefox особенно заметно перерисовывал всю главную на каждом rescan.
+      renderPersonalHomeInto(root, personalHomeRuntime.html, personalHomeRuntime.renderToken);
       return;
     }
     if (personalHomeRuntime.loading) return;
     personalHomeRuntime.loading = true;
     const seq = ++personalHomeRuntime.seq;
-    root.innerHTML = '<div class="rtst-ph-head"><div class="rtst-ph-controls"><button type="button" class="rtst-ph-refresh" data-rtst-action="personal-home-refresh">↻ Обновить</button><button type="button" class="rtst-ph-settings" data-rtst-action="open-settings-modal">Настройки</button></div></div><div class="rtst-ph-loading">Собираю главную: история → продолжения → related → витрина → фильтр → рейтинг…</div>';
+    const hadRenderedContent = root.dataset.rtstHomeRendered === '1' || root.querySelector('.rtst-ph-card');
+    if (!hadRenderedContent) {
+      root.innerHTML = '<div class="rtst-ph-head"><div class="rtst-ph-controls"><button type="button" class="rtst-ph-refresh" data-rtst-action="personal-home-refresh">↻ Обновить</button><button type="button" class="rtst-ph-settings" data-rtst-action="open-settings-modal">Настройки</button></div></div><div class="rtst-ph-loading">Собираю главную: история → продолжения → related → витрина → фильтр → рейтинг…</div>';
+    } else {
+      root.setAttribute('aria-busy', 'true');
+    }
     try {
+      const previousHtml = personalHomeRuntime.html;
       const html = await buildPersonalHome();
       if (seq !== personalHomeRuntime.seq || !(isHomePage() || isHomeFeedPage()) || settings.personalHome === false) return;
       personalHomeRuntime.html = html;
       personalHomeRuntime.builtAt = Date.now();
       personalHomeRuntime.error = '';
+      if (!personalHomeRuntime.renderToken || html !== previousHtml) {
+        personalHomeRuntime.renderToken = `${personalHomeRuntime.builtAt}:${seq}`;
+      }
       const currentRoot = preparePersonalHomeMount();
       if (currentRoot) {
-        currentRoot.innerHTML = html;
-        bindRtstThumbnailFallbacks(currentRoot);
-        currentRoot.querySelectorAll('[data-rtst-video-id]').forEach((el) => syncInterestControls(el.dataset.rtstVideoId || ''));
+        currentRoot.removeAttribute('aria-busy');
+        // Если набор карточек не изменился, оставляем существующие DOM-узлы как есть:
+        // изображения не перезагружаются, hover не сбрасывается, мерцания нет.
+        if (!hadRenderedContent || html !== previousHtml || currentRoot.dataset.rtstHomeRenderToken !== personalHomeRuntime.renderToken) {
+          renderPersonalHomeInto(currentRoot, html, personalHomeRuntime.renderToken);
+        }
       }
     } catch (e) {
       personalHomeRuntime.error = String(e && e.message || e || 'ошибка');
       const currentRoot = preparePersonalHomeMount();
-      if (currentRoot) currentRoot.innerHTML = `<div class="rtst-ph-head"><div class="rtst-ph-controls"><button type="button" class="rtst-ph-refresh" data-rtst-action="personal-home-refresh">↻ Повторить</button><button type="button" class="rtst-ph-settings" data-rtst-action="open-settings-modal">Настройки</button></div></div><div class="rtst-ph-empty">${escapeHtml(personalHomeRuntime.error)}</div>`;
+      if (currentRoot) {
+        currentRoot.removeAttribute('aria-busy');
+        // Уже показанную ленту не уничтожаем из-за временной ошибки обновления.
+        if (!currentRoot.querySelector('.rtst-ph-card')) {
+          currentRoot.innerHTML = `<div class="rtst-ph-head"><div class="rtst-ph-controls"><button type="button" class="rtst-ph-refresh" data-rtst-action="personal-home-refresh">↻ Повторить</button><button type="button" class="rtst-ph-settings" data-rtst-action="open-settings-modal">Настройки</button></div></div><div class="rtst-ph-empty">${escapeHtml(personalHomeRuntime.error)}</div>`;
+        }
+      }
     } finally {
       if (seq === personalHomeRuntime.seq) personalHomeRuntime.loading = false;
     }
