@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.5.0
+// @version      1.5.3
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki / npekpacHo
 // @license      MIT
@@ -39,7 +39,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.5.0';
+  const UI_VERSION = '1.5.3';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -3017,8 +3017,8 @@
       html[data-rtst-personal-home="1"] [role="main"] > :not(#rtst-personal-home) { display: none !important; }
       html[data-rtst-personal-home="1"][data-rtst-page="home"] #rtst-panel { display: none !important; }
       #rtst-personal-home {
-        display: block !important; width: 100% !important; max-width: 1880px !important; margin: 0 auto !important;
-        padding: 14px 18px 42px !important; box-sizing: border-box !important; color: var(--rt-text-primary, #f4fff7) !important;
+        display: block !important; width: 100% !important; max-width: none !important; margin: 0 !important;
+        padding: 14px clamp(8px, 1.2vw, 24px) 42px !important; box-sizing: border-box !important; color: var(--rt-text-primary, #f4fff7) !important;
       }
       #rtst-personal-home .rtst-ph-head { display: flex !important; align-items: center !important; justify-content: flex-end !important; gap: 10px !important; margin: 2px 0 18px !important; }
       #rtst-personal-home .rtst-ph-controls { display: inline-flex !important; align-items: center !important; gap: 8px !important; flex-wrap: wrap !important; }
@@ -3032,7 +3032,7 @@
       #rtst-personal-home .rtst-ph-section { margin: 0 0 24px !important; }
       #rtst-personal-home .rtst-ph-section-head { display: flex !important; align-items: center !important; justify-content: space-between !important; margin: 0 0 12px !important; }
       #rtst-personal-home .rtst-ph-section-title { font: 800 18px/1.2 Arial, sans-serif !important; }
-      #rtst-personal-home .rtst-ph-grid { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)) !important; gap: 16px 14px !important; }
+      #rtst-personal-home .rtst-ph-grid { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)) !important; gap: 16px 14px !important; width: 100% !important; align-items: start !important; }
       #rtst-personal-home .rtst-ph-card {
         position: relative !important; min-width: 0 !important; border-radius: 12px !important; overflow: hidden !important; background: rgba(255,255,255,.035) !important;
         border: 1px solid rgba(255,255,255,.075) !important; transition: background-color .12s ease, border-color .12s ease !important; transform: none !important;
@@ -3056,7 +3056,7 @@
       #rtst-personal-home .rtst-ph-card-actions .rtst-block-btn { margin-right: auto !important; }
       #rtst-personal-home .rtst-ph-empty, #rtst-personal-home .rtst-ph-loading { padding: 18px 4px !important; color: rgba(244,255,247,.62) !important; font: 12px/1.4 Arial, sans-serif !important; }
       #rtst-personal-home .rtst-ph-score { color: rgba(244,255,247,.38) !important; }
-      @media (max-width: 1080px) { #rtst-personal-home { padding: 12px 12px 34px !important; } #rtst-personal-home .rtst-ph-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)) !important; } }
+      @media (max-width: 1080px) { #rtst-personal-home { padding: 12px 12px 34px !important; } #rtst-personal-home .rtst-ph-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)) !important; } }
       @media (max-width: 680px) {
         #rtst-personal-home { padding: 10px 8px 28px !important; }
         #rtst-personal-home .rtst-ph-head { margin-bottom: 14px !important; }
@@ -6309,11 +6309,20 @@
     rescanNow();
   }
 
+  function looksLikeRutubeVideoId(value) {
+    const id = String(value || '').trim();
+    // Обычные RUTUBE video_id сейчас 32-символьные hex-строки. Оставляем
+    // небольшой запас по формату, но короткие служебные сегменты вроде
+    // /video/person/... видео считаться не должны.
+    return /^[a-z0-9_-]{16,80}$/i.test(id) && !/^(?:person|private|channel|live|embed|manage|search)$/i.test(id);
+  }
+
   function extractRutubeVideoIdFromUrl(url) {
     try {
       const u = new URL(url, location.href);
-      const match = u.pathname.match(/\/video\/(?:private\/)?([a-z0-9_:-]+)/i);
-      return match ? match[1] : '';
+      const match = u.pathname.match(/^\/video\/(?:private\/)?([^/?#]+)\/?$/i);
+      const candidate = match && match[1] ? String(match[1]).trim() : '';
+      return looksLikeRutubeVideoId(candidate) ? candidate : '';
     } catch (e) {
       return '';
     }
@@ -8706,8 +8715,23 @@
     return Array.from(card.querySelectorAll('[data-rtst-video-controls-owner]')).some((el) => String(el.dataset.rtstVideoControlsOwner || '') === String(videoId));
   }
 
+  function purgeInvalidVideoControls() {
+    document.querySelectorAll('.rtst-interest-controls[data-rtst-video-id]').forEach((wrap) => {
+      const id = String(wrap.dataset.rtstVideoId || '').trim();
+      if (!looksLikeRutubeVideoId(id)) wrap.remove();
+    });
+    document.querySelectorAll('[data-rtst-video-controls-owner]').forEach((owner) => {
+      const id = String(owner.dataset.rtstVideoControlsOwner || '').trim();
+      if (looksLikeRutubeVideoId(id)) return;
+      owner.removeAttribute('data-rtst-video-controls-owner');
+      owner.removeAttribute('data-rtst-processed');
+      owner.removeAttribute('data-rtst-card');
+    });
+  }
+
   function scanCards(options = {}) {
     const skipShorts = Boolean(options && options.skipShorts);
+    purgeInvalidVideoControls();
     // Контролы относятся к видео, поэтому главным якорем здесь может быть только
     // ссылка на видео. Раньше сюда также попадали ссылки канала из той же карточки:
     // RUTUBE иногда оборачивает их другим вложенным "card", и одна визуальная
@@ -9116,14 +9140,97 @@
       </section>`;
   }
 
+  function personalHomeSeriesGroup(candidate) {
+    if (!candidate || !candidate.title) return null;
+    const raw = candidate.item || candidate.raw || {};
+    const descriptor = personalHomeSeriesDescriptor(raw, candidate.title);
+    if (!descriptor) return null;
+    const alias = normalizeSeriesAlias(descriptor.primaryAlias || (descriptor.aliases && descriptor.aliases[0]) || '');
+    if (!alias) return null;
+    return { key: `series:${alias}`, descriptor };
+  }
+
+  function personalHomeIsContinuation(candidate) {
+    if (!candidate) return false;
+    if (Number(candidate.homeBoost || 0) >= .4) return true;
+    return /(?:следующая серия|следующий сезон)/iu.test(String(candidate.homeReason || ''));
+  }
+
+  function personalHomeCandidateRank(candidate) {
+    return Number(candidate && candidate.homeRankScore || 0) + Number(candidate && candidate.homeBoost || 0);
+  }
+
+  function choosePersonalHomeSeriesRepresentative(current, incoming, currentDescriptor, incomingDescriptor) {
+    if (!current) return incoming;
+    if (!incoming) return current;
+
+    const currentContinuation = personalHomeIsContinuation(current);
+    const incomingContinuation = personalHomeIsContinuation(incoming);
+    if (currentContinuation !== incomingContinuation) return incomingContinuation ? incoming : current;
+
+    // Для ещё не начатого сериала карточка означает «попробовать сериал»,
+    // поэтому точка входа важнее популярности отдельного эпизода.
+    if (!currentContinuation && currentDescriptor && incomingDescriptor) {
+      const currentSeason = Number(currentDescriptor.season) || 9999;
+      const incomingSeason = Number(incomingDescriptor.season) || 9999;
+      if (currentSeason !== incomingSeason) return incomingSeason < currentSeason ? incoming : current;
+
+      const currentEpisode = Number(currentDescriptor.episode) || 9999;
+      const incomingEpisode = Number(incomingDescriptor.episode) || 9999;
+      if (currentEpisode !== incomingEpisode) return incomingEpisode < currentEpisode ? incoming : current;
+    }
+
+    return personalHomeCandidateRank(incoming) > personalHomeCandidateRank(current) ? incoming : current;
+  }
+
   function mergePersonalHomeRecommendations(afterWatched, feedItems, limit = 28) {
-    const map = new Map();
+    // Сначала схлопываем одинаковые video_id, найденные разными источниками.
+    const byVideo = new Map();
     for (const candidate of [...(Array.isArray(afterWatched) ? afterWatched : []), ...(Array.isArray(feedItems) ? feedItems : [])]) {
       if (!candidate || !candidate.id) continue;
-      if (!map.has(candidate.id)) map.set(candidate.id, candidate);
-      else map.set(candidate.id, RutubeCandidateScorer.mergeEvidence(map.get(candidate.id), candidate));
+      if (!byVideo.has(candidate.id)) byVideo.set(candidate.id, candidate);
+      else byVideo.set(candidate.id, RutubeCandidateScorer.mergeEvidence(byVideo.get(candidate.id), candidate));
     }
-    return [...map.values()].slice(0, limit);
+
+    // Затем схлопываем эпизоды одного сериала. В «Для вас» сериал является
+    // одной рекомендацией, а не поводом занять десять карточек десятью сериями.
+    const series = new Map();
+    const singles = [];
+    for (const candidate of byVideo.values()) {
+      const group = personalHomeSeriesGroup(candidate);
+      if (!group) {
+        singles.push(candidate);
+        continue;
+      }
+
+      const old = series.get(group.key);
+      const rank = personalHomeCandidateRank(candidate);
+      if (!old) {
+        series.set(group.key, { candidate, descriptor: group.descriptor, rank, count: 1 });
+        continue;
+      }
+
+      const chosen = choosePersonalHomeSeriesRepresentative(old.candidate, candidate, old.descriptor, group.descriptor);
+      const chosenDescriptor = chosen === candidate ? group.descriptor : old.descriptor;
+      series.set(group.key, {
+        candidate: chosen,
+        descriptor: chosenDescriptor,
+        rank: Math.max(old.rank, rank),
+        count: old.count + 1
+      });
+    }
+
+    const collapsedSeries = [...series.values()].map((entry) => ({
+      ...entry.candidate,
+      // Ранг сохраняем от всей группы: серия №1 не должна провалиться вниз
+      // только потому, что у серии №10 оказалось больше просмотров.
+      homeRankScore: Math.max(Number(entry.candidate.homeRankScore || 0), entry.rank),
+      homeSeriesGroupSize: entry.count
+    }));
+
+    return [...singles, ...collapsedSeries]
+      .sort((a, b) => personalHomeCandidateRank(b) - personalHomeCandidateRank(a))
+      .slice(0, limit);
   }
 
   function personalHomeDocumentHtml(continueItems, forYouItems) {
@@ -9729,7 +9836,15 @@
     return ['главная', 'кино и сериалы', 'подписки', 'история просмотра', 'плейлисты', 'смотреть позже', 'комментарии', 'понравилось', 'по темам', 'каталог', 'в топе', 'трансляции', 'мое', 'моё'].some((word) => text.includes(word));
   }
 
-  function isVideoLikeLink(a) { return (a.href || '').includes('/video/') || (a.href || '').includes('/shorts/') || (a.href || '').includes('/plst/'); }
+  function isVideoLikeLink(a) {
+    const raw = String(a && (a.href || a.getAttribute && a.getAttribute('href')) || '').trim();
+    if (!raw) return false;
+    if (extractRutubeVideoIdFromUrl(raw)) return true;
+    try {
+      const u = new URL(raw, location.href);
+      return /^\/(?:shorts|plst)\/[a-z0-9_-]+\/?$/i.test(u.pathname);
+    } catch (e) { return false; }
+  }
   function isChannelLikeLink(a) { return (a.href || '').includes('/channel/') || (a.href || '').includes('/u/') || (a.href || '').includes('/feeds/'); }
 
   function findCard(startEl) {
@@ -9764,9 +9879,25 @@
     return linkCount >= 1;
   }
 
+  function detectCardTitle(card, primaryLink) {
+    if (!card) return normalize(primaryLink && primaryLink.textContent);
+    const titleLink = card.querySelector(
+      'a[id^="cardTitle"][href], a[class*="card-description-module__title"][href], a[class*="titleV2"][href], [data-testid*="card-title" i], [data-testid*="video-title" i]'
+    );
+    const fromTitleLink = String(titleLink && (titleLink.getAttribute('title') || titleLink.textContent) || '').trim();
+    if (fromTitleLink) return normalize(fromTitleLink);
+    const linkTitle = String(primaryLink && primaryLink.getAttribute && primaryLink.getAttribute('title') || '').trim();
+    if (linkTitle) return normalize(linkTitle);
+    const imageAlt = Array.from(card.querySelectorAll('img[alt]'))
+      .map((img) => String(img.getAttribute('alt') || '').trim())
+      .find((alt) => alt && !/^иконка канала\b/i.test(alt) && !/^канал\b/i.test(alt) && alt.length <= 260);
+    if (imageAlt) return normalize(imageAlt);
+    return normalize(primaryLink && primaryLink.textContent);
+  }
+
   function readCardInfo(card, primaryLink) {
     const text = compactText(card);
-    const title = normalize(primaryLink && primaryLink.textContent);
+    const title = detectCardTitle(card, primaryLink);
     const channel = detectChannelName(card, title);
     const channelId = detectChannelId(card);
     const isShort = Boolean((primaryLink && (primaryLink.href || '').includes('/shorts/')) || card.querySelector('a[href*="/shorts/"]') || /(^|\s)shorts(\s|$)/i.test(text));
