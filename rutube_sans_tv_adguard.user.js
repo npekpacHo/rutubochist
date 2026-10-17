@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.5.11
+// @version      1.5.12
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki / npekpacHo
 // @license      MIT
@@ -39,7 +39,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.5.11';
+  const UI_VERSION = '1.5.12';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -110,6 +110,116 @@
   };
 
   let settings = loadSettings();
+
+  // В установленном PWA Android берёт оформление системных панелей из
+  // theme-color/color-scheme и фона документа. RUTUBE периодически оставляет
+  // системную область навигации светлой, поэтому в standalone-режиме явно
+  // сообщаем Chromium, что интерфейс тёмный, и держим нижний фон чёрным.
+  let pwaSystemUiObserver = null;
+  let pwaSystemUiApplyTimer = null;
+
+  function isStandalonePwaMode() {
+    try {
+      return Boolean(
+        (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+        (window.matchMedia && window.matchMedia('(display-mode: fullscreen)').matches) ||
+        (window.matchMedia && window.matchMedia('(display-mode: minimal-ui)').matches) ||
+        window.navigator.standalone === true
+      );
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function ensurePwaSystemMeta(name, content) {
+    const head = document.head;
+    if (!head) return;
+
+    let nodes = Array.from(head.querySelectorAll(`meta[name="${name}" i]`));
+    if (!nodes.length) {
+      const meta = document.createElement('meta');
+      meta.setAttribute('name', name);
+      meta.setAttribute('data-rtst-pwa-system-ui', '1');
+      head.prepend(meta);
+      nodes = [meta];
+    }
+
+    nodes.forEach((meta) => {
+      if (meta.getAttribute('content') !== content) meta.setAttribute('content', content);
+    });
+  }
+
+  function applyPwaDarkSystemUi() {
+    if (!isStandalonePwaMode()) return;
+
+    const root = document.documentElement;
+    if (root) {
+      root.setAttribute('data-rtst-pwa-dark-system-ui', '1');
+      root.style.setProperty('color-scheme', 'dark', 'important');
+      root.style.setProperty('background-color', '#000000', 'important');
+    }
+    if (document.body) {
+      document.body.style.setProperty('color-scheme', 'dark', 'important');
+      document.body.style.setProperty('background-color', '#000000', 'important');
+    }
+
+    ensurePwaSystemMeta('theme-color', '#000000');
+    ensurePwaSystemMeta('color-scheme', 'dark');
+  }
+
+  function installPwaDarkSystemUi() {
+    if (!isStandalonePwaMode()) return;
+
+    const ensureEarlyStyle = () => {
+      if (document.getElementById('rtst-pwa-system-ui-style')) return;
+      const style = document.createElement('style');
+      style.id = 'rtst-pwa-system-ui-style';
+      style.textContent = `
+        @media (display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui) {
+          html, body {
+            color-scheme: dark !important;
+            background-color: #000000 !important;
+          }
+        }
+      `;
+      (document.head || document.documentElement).appendChild(style);
+    };
+
+    ensureEarlyStyle();
+    applyPwaDarkSystemUi();
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', applyPwaDarkSystemUi, { once: true });
+    }
+
+    if (pwaSystemUiObserver) return;
+    const observeHead = () => {
+      const head = document.head;
+      if (!head || pwaSystemUiObserver) return;
+      pwaSystemUiObserver = new MutationObserver(() => {
+        clearTimeout(pwaSystemUiApplyTimer);
+        pwaSystemUiApplyTimer = setTimeout(applyPwaDarkSystemUi, 0);
+      });
+      pwaSystemUiObserver.observe(head, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['content', 'name', 'media']
+      });
+      applyPwaDarkSystemUi();
+    };
+
+    if (document.head) observeHead();
+    else {
+      const rootObserver = new MutationObserver(() => {
+        if (!document.head) return;
+        rootObserver.disconnect();
+        observeHead();
+      });
+      rootObserver.observe(document.documentElement, { childList: true, subtree: true });
+    }
+  }
+
   let scanTimer = null;
   let scanMaxTimer = null;
   let observer = null;
@@ -10671,6 +10781,7 @@
     scheduleScan('boot', 0);
   }
 
+  installPwaDarkSystemUi();
   installPlayOptionsAdvertStripper();
   installRutubeContextMenuUnlocker();
   installMobileVideoVolumeSwipe();
