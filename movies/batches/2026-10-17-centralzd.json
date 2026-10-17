@@ -1,0 +1,262 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.5",
+  "id": "2026-10-17-centralzd",
+  "title": "Что посмотреть от 17.10.2026",
+  "date": "2026-10-17",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_17102026_14432176",
+  "extractedAt": "2026-10-17T07:34:52.716Z",
+  "count": 11,
+  "items": [
+    {
+      "id": "prakticheskaya-magiya-2-practical-magic-2-2026",
+      "title": "Практическая магия 2",
+      "originalTitle": "Practical Magic 2",
+      "year": 2026,
+      "query": "Практическая магия 2 Practical Magic 2 2026",
+      "genres": [
+        "фэнтези",
+        "драма",
+        "мелодрама",
+        "комедия"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.3,
+          "votes": 2802,
+          "percent": 63
+        },
+        "imdb": {
+          "value": 6.4,
+          "votes": 4093,
+          "percent": 64
+        },
+        "rottenTomatoes": {
+          "critics": 36,
+          "audience": 91
+        }
+      }
+    },
+    {
+      "id": "nadezhda-hopeu-hope-2026",
+      "title": "Надежда",
+      "originalTitle": "Hopeu (Hope)",
+      "year": 2026,
+      "query": "Надежда Hopeu (Hope) 2026",
+      "genres": [
+        "фантастика",
+        "боевик"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.4,
+          "votes": 18977,
+          "percent": 64
+        },
+        "imdb": {
+          "value": 6.8,
+          "votes": 9856,
+          "percent": 68
+        },
+        "rottenTomatoes": {
+          "critics": 79,
+          "audience": 77
+        }
+      }
+    },
+    {
+      "id": "priyatel-buddy-2026",
+      "title": "Приятель",
+      "originalTitle": "Buddy",
+      "year": 2026,
+      "query": "Приятель Buddy 2026",
+      "genres": [
+        "ужасы",
+        "фантастика"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.8,
+          "votes": 13000,
+          "percent": 68
+        },
+        "rottenTomatoes": {
+          "critics": 88,
+          "audience": 76
+        }
+      }
+    },
+    {
+      "id": "chistye-ruki-clean-hands-2026",
+      "title": "Чистые руки",
+      "originalTitle": "Clean Hands",
+      "year": 2026,
+      "query": "Чистые руки Clean Hands 2026",
+      "genres": [
+        "драма",
+        "криминал",
+        "биография"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.5,
+          "votes": 60,
+          "percent": 75
+        }
+      }
+    },
+    {
+      "id": "solnce-nikogda-ne-saditsya-the-sun-never-sets-2026",
+      "title": "Солнце никогда не садится",
+      "originalTitle": "The Sun Never Sets",
+      "year": 2026,
+      "query": "Солнце никогда не садится The Sun Never Sets 2026",
+      "genres": [
+        "драма",
+        "мелодрама"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7,
+          "votes": 39,
+          "percent": 70
+        },
+        "rottenTomatoes": {
+          "critics": 79,
+          "audience": 73
+        }
+      }
+    },
+    {
+      "id": "tencing-tenzing-2026",
+      "title": "Тенцинг",
+      "originalTitle": "Tenzing",
+      "year": 2026,
+      "query": "Тенцинг Tenzing 2026",
+      "genres": [
+        "драма",
+        "приключения",
+        "биография",
+        "история"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.7,
+          "votes": 289,
+          "percent": 77
+        },
+        "rottenTomatoes": {
+          "critics": 98,
+          "audience": 95
+        }
+      }
+    },
+    {
+      "id": "lyubov-tvoey-zhizni-love-of-your-life-2026",
+      "title": "Любовь твоей жизни",
+      "originalTitle": "Love of Your Life",
+      "year": 2026,
+      "query": "Любовь твоей жизни Love of Your Life 2026",
+      "genres": [
+        "драма",
+        "мелодрама"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.5,
+          "votes": 2000,
+          "percent": 65
+        },
+        "rottenTomatoes": {
+          "critics": 81,
+          "audience": 62
+        }
+      }
+    },
+    {
+      "id": "priezzhiy-the-incomer-2026",
+      "title": "Приезжий",
+      "originalTitle": "The Incomer",
+      "year": 2026,
+      "query": "Приезжий The Incomer 2026",
+      "genres": [
+        "комедия",
+        "боевик"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 5.7,
+          "votes": 8000,
+          "percent": 57
+        },
+        "rottenTomatoes": {
+          "critics": 26,
+          "audience": 49
+        },
+        "kinopoisk": {
+          "value": 5.9,
+          "votes": 764,
+          "percent": 59
+        }
+      }
+    },
+    {
+      "id": "genial-nyy-plan-masterplan-2026",
+      "title": "Гениальный план",
+      "originalTitle": "Masterplan",
+      "year": 2026,
+      "query": "Гениальный план Masterplan 2026",
+      "genres": [
+        "триллер",
+        "комедия",
+        "криминал"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 5.4,
+          "votes": 404,
+          "percent": 54
+        }
+      }
+    },
+    {
+      "id": "oazis-ne-oglyadyvaysya-v-gneve-oasis-don-t-look-back-in-anger-2026",
+      "title": "«Оазис»: Не оглядывайся в гневе",
+      "originalTitle": "Oasis: Don't Look Back in Anger",
+      "year": 2026,
+      "query": "«Оазис»: Не оглядывайся в гневе Oasis: Don't Look Back in Anger 2026",
+      "genres": [
+        "документальный",
+        "музыка"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 8.4,
+          "votes": 1642,
+          "percent": 84
+        },
+        "rottenTomatoes": {
+          "critics": 97,
+          "audience": 98
+        }
+      }
+    },
+    {
+      "id": "dol-f-nesokrushimyy-dolph-unbreakable-2025",
+      "title": "Дольф: Несокрушимый",
+      "originalTitle": "Dolph: Unbreakable",
+      "year": 2025,
+      "query": "Дольф: Несокрушимый Dolph: Unbreakable 2025",
+      "genres": [
+        "документальный"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.6,
+          "votes": 25,
+          "percent": 76
+        }
+      }
+    }
+  ]
+}
