@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.5.10
+// @version      1.5.11
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki / npekpacHo
 // @license      MIT
@@ -39,7 +39,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.5.10';
+  const UI_VERSION = '1.5.11';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -444,6 +444,11 @@
         userChannels: unique([...(saved.userChannels || [])]), userWords: unique([...(saved.userWords || [])])
       };
       merged.hardRemove = false;
+
+      // С 1.5.11 глобальный выключатель из интерфейса удалён: после выключения
+      // исчезал и единственный вход в настройки. Сам userscript включается/выключается
+      // штатно в менеджере userscript'ов, поэтому старое enabled=false не переносим.
+      merged.enabled = true;
 
       // В 1.3.34 поисковые минус-слова ошибочно попали в общий список фильтрации.
       // Держим их отдельно, чтобы Google-запрос не был простынёй, а лента не теряла
@@ -3384,9 +3389,6 @@
       .rtst-modal-head > div:first-child { min-width: 0 !important; }
       .rtst-modal-title-row { display: flex !important; align-items: center !important; gap: 10px !important; min-width: 0 !important; }
       .rtst-modal-title { font: 800 14px/1.2 Arial, sans-serif !important; letter-spacing: .1px !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
-      .rtst-enable-toggle { flex: 0 0 auto !important; min-width: 78px !important; min-height: 30px !important; padding: 4px 12px !important; border-radius: 999px !important; border: 1px solid rgba(186,242,198,.30) !important; background: rgba(83,255,124,.14) !important; color: #dfffe6 !important; box-shadow: none !important; font: 800 11px/1.2 Arial, sans-serif !important; }
-      .rtst-enable-toggle[data-state="off"] { border-color: rgba(255,107,107,.36) !important; background: rgba(255,107,107,.13) !important; color: #ffd9d9 !important; }
-      .rtst-enable-toggle:hover { filter: none !important; background: rgba(255,255,255,.15) !important; }
       .rtst-modal .rtst-title-icon-btn,
       .rtst-modal .rtst-mini-icon-btn { width: 30px !important; height: 30px !important; min-width: 30px !important; min-height: 30px !important; padding: 0 !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; border-radius: 8px !important; font: 14px/1 Arial, sans-serif !important; }
       .rtst-modal .rtst-title-icon-btn { background: rgba(255,255,255,.08) !important; color: #f4fff7 !important; }
@@ -3644,7 +3646,6 @@
         .rtst-modal-head > button[data-rtst-action="close-modal"] { width: 40px !important; height: 40px !important; min-width: 40px !important; min-height: 40px !important; font-size: 22px !important; }
         .rtst-modal-title { font-size: 16px !important; }
         .rtst-modal-title-row { gap: 8px !important; }
-        .rtst-enable-toggle { min-width: 74px !important; min-height: 38px !important; padding: 8px 10px !important; font-size: 13px !important; }
         .rtst-modal-body { flex: 1 !important; overflow-y: auto !important; padding: 16px !important; }
         .rtst-modal-fixed { padding: 12px 16px !important; }
         .rtst-modal textarea { min-height: 30vh !important; }
@@ -3775,7 +3776,6 @@
         }
         .rtst-modal-title { font-size: 16px !important; }
         .rtst-modal-title-row { gap: 8px !important; }
-        .rtst-enable-toggle { min-width: 74px !important; min-height: 38px !important; padding: 8px 10px !important; font-size: 13px !important; }
         .rtst-modal-body {
           flex: 1 !important;
           overflow-y: auto !important;
@@ -3930,11 +3930,20 @@
 
         /* Нижняя служебная панель desktop используется RUTUBE в основном для
            ситуационных уведомлений. В чистом интерфейсе убираем её целиком. */
+        [class*="application-module__bottom-content"],
+        .application-module__bottom-content,
         [class*="bottom-bar-components-module__bottomBar"][class*="application-module__desktopBottomBar"],
         .bottom-bar-components-module__bottomBar.application-module__desktopBottomBar {
           display: none !important;
           visibility: hidden !important;
           pointer-events: none !important;
+          height: 0 !important;
+          min-height: 0 !important;
+          max-height: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          border: 0 !important;
+          overflow: hidden !important;
         }
 
         /* Промо/onboarding popup'ы RUTUBE не уменьшаем и не украшаем крестиком,
@@ -4152,19 +4161,6 @@
 
   function syncPanel() {
     updatePanelRouteState();
-    const enabledOn = document.getElementById('rtst-enabled-on');
-    const enabledOff = document.getElementById('rtst-enabled-off');
-    if (enabledOn && enabledOff) {
-      enabledOn.checked = Boolean(settings.enabled);
-      enabledOff.checked = !settings.enabled;
-    }
-    const enabledToggle = document.getElementById('rtst-enabled-toggle');
-    if (enabledToggle) {
-      enabledToggle.dataset.state = settings.enabled ? 'on' : 'off';
-      enabledToggle.setAttribute('aria-pressed', settings.enabled ? 'true' : 'false');
-      enabledToggle.textContent = settings.enabled ? 'включён' : 'выключен';
-      enabledToggle.title = settings.enabled ? 'Рутубочист включён. Нажмите, чтобы выключить.' : 'Рутубочист выключен. Нажмите, чтобы включить.';
-    }
     const showHidden = document.getElementById('rtst-show-hidden');
     if (showHidden) showHidden.checked = Boolean(settings.showHidden);
     const hideMenu = document.getElementById('rtst-hide-menu');
@@ -4335,7 +4331,6 @@
     document.addEventListener('change', (event) => {
       const target = event.target;
       if (!target) return;
-      if (target.name === 'rtst-enabled-radio') { settings.enabled = target.value === 'on'; saveSettings(); syncRootFlags(); rescanNow(); }
       if (target.id === 'rtst-show-hidden') { settings.showHidden = target.checked; saveSettings(); applyHiddenVisibility(); }
       if (target.id === 'rtst-hide-menu') { settings.hideSideMenuPolitics = target.checked; settings.cleanRutubeChrome = target.checked; saveSettings(); syncRootFlags(); rescanNow(); }
       if (target.id === 'rtst-hide-shorts') { settings.hideShorts = target.checked; saveSettings(); syncRootFlags(); rescanNow(); }
@@ -4457,17 +4452,6 @@
       if (action === 'open-movie-modal') { event.preventDefault(); event.stopPropagation(); openMovieModal(); return; }
       if (action === 'open-series-modal') { event.preventDefault(); event.stopPropagation(); openSeriesModal(); return; }
       if (action === 'open-settings-modal') { openSettingsModal(); return; }
-      if (action === 'toggle-enabled') {
-        event.preventDefault();
-        event.stopPropagation();
-        settings.enabled = !settings.enabled;
-        saveSettings();
-        syncPanel();
-        syncRootFlags();
-        rescanNow();
-        toast(settings.enabled ? 'Рутубочист включён.' : 'Рутубочист выключен.');
-        return;
-      }
       if (action === 'open-project') { event.preventDefault(); event.stopPropagation(); openProjectPage(); return; }
       if (action === 'movie-newer') { switchMovieBatch(-1); return; }
       if (action === 'movie-older') { switchMovieBatch(1); return; }
@@ -4522,7 +4506,6 @@
           <div class="rtst-modal-title-row">
             ${appIconHtml('rtst-app-icon-title')}
             <div class="rtst-modal-title">Рутубочист</div>
-            <button type="button" class="rtst-enable-toggle" id="rtst-enabled-toggle" data-rtst-action="toggle-enabled" data-state="on" aria-pressed="true">включён</button>
           </div>
           <button type="button" data-rtst-action="close-modal" title="Закрыть">×</button>
         </div>
@@ -7564,7 +7547,7 @@
     const payload = {
       app: 'RUTUBE Sans TV', version: UI_VERSION, exportedAt: new Date().toISOString(),
       settings: {
-        enabled: settings.enabled, showHidden: settings.showHidden, hideSideMenuPolitics: settings.hideSideMenuPolitics,
+        showHidden: settings.showHidden, hideSideMenuPolitics: settings.hideSideMenuPolitics,
         hideShorts: settings.hideShorts, hardRemove: settings.hardRemove, cleanRutubeChrome: settings.cleanRutubeChrome,
         cleanWatchPage: settings.cleanWatchPage, disableAutoplay: settings.disableAutoplay, hideComments: settings.hideComments,
         hideVideoInfo: settings.hideVideoInfo, stripPlayerAds: settings.stripPlayerAds, unlockContextMenu: settings.unlockContextMenu, swipeVideoVolume: settings.swipeVideoVolume, autoFullscreenOnRotate: settings.autoFullscreenOnRotate, hideVpnPopup: settings.hideVpnPopup, dimSearchTrash: settings.dimSearchTrash, markWatchedVideos: settings.markWatchedVideos, seriesNavigator: settings.seriesNavigator, personalHome: settings.personalHome,
@@ -7598,11 +7581,12 @@
     if (!src || typeof src !== 'object') throw new Error('bad settings json');
     const next = { ...settings };
     for (const key of ['blockedChannels', 'blockedWords', 'userChannels', 'userWords']) { if (Array.isArray(src[key])) next[key] = unique(src[key]); }
-    for (const key of ['enabled', 'showHidden', 'hideSideMenuPolitics', 'hideShorts', 'hardRemove', 'cleanRutubeChrome', 'cleanWatchPage', 'disableAutoplay', 'hideComments', 'hideVideoInfo', 'stripPlayerAds', 'unlockContextMenu', 'swipeVideoVolume', 'autoFullscreenOnRotate', 'hideVpnPopup', 'dimSearchTrash', 'markWatchedVideos', 'seriesNavigator', 'personalHome', 'useCommunityFilter', 'contributeCommunitySignals']) {
+    for (const key of ['showHidden', 'hideSideMenuPolitics', 'hideShorts', 'hardRemove', 'cleanRutubeChrome', 'cleanWatchPage', 'disableAutoplay', 'hideComments', 'hideVideoInfo', 'stripPlayerAds', 'unlockContextMenu', 'swipeVideoVolume', 'autoFullscreenOnRotate', 'hideVpnPopup', 'dimSearchTrash', 'markWatchedVideos', 'seriesNavigator', 'personalHome', 'useCommunityFilter', 'contributeCommunitySignals']) {
       if (typeof src[key] === 'boolean') next[key] = src[key];
     }
     if (typeof src.cleanRutubeChrome === 'boolean' && typeof src.hideSideMenuPolitics !== 'boolean') next.hideSideMenuPolitics = src.cleanRutubeChrome;
     if (typeof src.hideSideMenuPolitics === 'boolean' && typeof src.cleanRutubeChrome !== 'boolean') next.cleanRutubeChrome = src.hideSideMenuPolitics;
+    next.enabled = true;
     if (data && data.videoInterest && typeof data.videoInterest === 'object' && !Array.isArray(data.videoInterest)) saveVideoInterestStore(data.videoInterest);
     settings = next; saveSettings(); syncPanel(); toast('Импорт применён.'); rescanNow();
   }
@@ -9676,7 +9660,7 @@
   }
 
   function syncPersonalHomeHeaderTools() {
-    const shouldShow = Boolean(settings.enabled && !isEmbeddedRutubePlayer());
+    const shouldShow = Boolean(!isEmbeddedRutubePlayer());
     const old = document.getElementById('rtst-header-tools');
     if (!shouldShow) { if (old) old.remove(); return; }
 
@@ -9983,10 +9967,12 @@
     hideOnboardingInventoryPopups(document);
 
     document.querySelectorAll(
+      '[class*="application-module__bottom-content"], ' +
+      '.application-module__bottom-content, ' +
       '[class*="bottom-bar-components-module__bottomBar"][class*="application-module__desktopBottomBar"], ' +
       '.bottom-bar-components-module__bottomBar.application-module__desktopBottomBar'
     ).forEach((bar) => {
-      if (!isRtstUiElement(bar)) forceHideChromeElement(bar, 'нижний desktop toolbar RUTUBE');
+      if (!isRtstUiElement(bar)) forceHideChromeElement(bar, 'нижний toolbar RUTUBE');
     });
 
     /* Fallback на случай очередного переименования CSS-module: если контейнер
