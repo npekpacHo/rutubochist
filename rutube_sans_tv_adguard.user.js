@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.5.15
+// @version      1.5.16
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki / npekpacHo
 // @license      MIT
@@ -39,7 +39,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.5.15';
+  const UI_VERSION = '1.5.16';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -326,11 +326,16 @@
   };
 
   const PERSONAL_HOME_REFRESH_MS = 12 * 60 * 1000;
+  const PERSONAL_HOME_RENDER_CACHE_KEY = 'rtstPersonalHomeRenderCache:v1';
+  const PERSONAL_HOME_RENDER_CACHE_SCHEMA = 1;
+  const PERSONAL_HOME_RENDER_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+  const PERSONAL_HOME_RENDER_CACHE_MAX_HTML = 1500 * 1024;
   const PERSONAL_HOME_HISTORY_SEEDS = 8;
   const PERSONAL_HOME_RELATED_SEEDS = 4;
   const PERSONAL_HOME_FEED_RESOURCES = 6;
   const personalHomeRuntime = {
-    seq: 0, loading: false, builtAt: 0, html: '', mount: null, error: '', profile: null, renderToken: ''
+    seq: 0, loading: false, builtAt: 0, html: '', mount: null, error: '', profile: null, renderToken: '',
+    diskLoaded: false, cacheDirty: false
   };
 
   // Единый тонкий слой доступа к публичным same-origin API RUTUBE.
@@ -2650,6 +2655,7 @@
     personalHomeRuntime.builtAt = 0;
     personalHomeRuntime.html = '';
     personalHomeRuntime.renderToken = '';
+    if (String(meta.source || '') !== 'local') markPersonalHomeRenderCacheDirty();
   }
 
   function loadCommunityCacheFromLocal() {
@@ -2775,6 +2781,8 @@
     movieSmartRuntime.resolved.clear();
     syncInterestControls(getCurrentVideoId());
     document.querySelectorAll('[data-rtst-action="rate-card-video"]').forEach((btn) => { btn.dataset.active = '0'; btn.setAttribute('aria-pressed', 'false'); });
+    personalHomeRuntime.builtAt = 0;
+    markPersonalHomeRenderCacheDirty();
     toast('Личные оценки интереса очищены.');
   }
 
@@ -2889,6 +2897,7 @@
     syncInterestControls(id);
     movieSmartRuntime.resolved.clear();
     personalHomeRuntime.builtAt = 0;
+    markPersonalHomeRenderCacheDirty();
     toast(cleanSignal > 0 ? 'Отмечено: интересно.' : cleanSignal < 0 ? 'Отмечено: неинтересно.' : 'Оценка интереса снята.');
     if (isHomePage() || isHomeFeedPage()) setTimeout(() => syncPersonalHome(true), 0);
   }
@@ -4727,10 +4736,10 @@
       if (target.id === 'rtst-hide-menu') { settings.hideSideMenuPolitics = target.checked; settings.cleanRutubeChrome = target.checked; saveSettings(); syncRootFlags(); rescanNow(); }
       if (target.id === 'rtst-hide-shorts') { settings.hideShorts = target.checked; saveSettings(); syncRootFlags(); rescanNow(); }
       if (target.id === 'rtst-dim-search-trash') { settings.dimSearchTrash = target.checked; saveSettings(); syncRootFlags(); rescanNow(); }
-      if (target.id === 'rtst-mark-watched') { settings.markWatchedVideos = target.checked; saveSettings(); syncRootFlags(); personalHomeRuntime.builtAt = 0; rescanNow(); }
+      if (target.id === 'rtst-mark-watched') { settings.markWatchedVideos = target.checked; saveSettings(); syncRootFlags(); personalHomeRuntime.builtAt = 0; markPersonalHomeRenderCacheDirty(); rescanNow(); }
       if (target.id === 'rtst-personal-home-toggle') { settings.personalHome = target.checked; saveSettings(); personalHomeRuntime.builtAt = 0; if (!target.checked) removePersonalHome(); syncRootFlags(); rescanNow(); }
       if (target.id === 'rtst-series-navigator') { settings.seriesNavigator = target.checked; saveSettings(); if (!target.checked) removeSeriesNavigator(); rescanNow(); }
-      if (target.id === 'rtst-community-filter') { settings.useCommunityFilter = target.checked; personalHomeRuntime.builtAt = 0; personalHomeRuntime.html = ''; personalHomeRuntime.renderToken = ''; saveSettings(); if (target.checked) { loadCommunityCacheFromLocal(); maybeUpdateCommunityInBackground(); } syncPanel(); rescanNow(); }
+      if (target.id === 'rtst-community-filter') { settings.useCommunityFilter = target.checked; personalHomeRuntime.builtAt = 0; personalHomeRuntime.html = ''; personalHomeRuntime.renderToken = ''; clearPersonalHomeRenderCache(); saveSettings(); if (target.checked) { loadCommunityCacheFromLocal(); maybeUpdateCommunityInBackground(); } syncPanel(); rescanNow(); }
       if (target.id === 'rtst-community-contribute') { settings.contributeCommunitySignals = target.checked; saveSettings(); if (target.checked) setTimeout(() => flushCommunitySignalQueue(), 0); syncPanel(); }
       if (target.id === 'rtst-clean-watch') { settings.cleanWatchPage = target.checked; saveSettings(); syncRootFlags(); rescanNow(); }
       if (target.id === 'rtst-disable-autoplay') { settings.disableAutoplay = target.checked; saveSettings(); scanAutoplayVideos(); }
@@ -4848,7 +4857,7 @@
       if (action === 'movie-newer') { switchMovieBatch(-1); return; }
       if (action === 'movie-older') { switchMovieBatch(1); return; }
       if (action === 'movie-refresh') { refreshMovieNavigator(actionEl); return; }
-      if (action === 'personal-home-refresh') { event.preventDefault(); event.stopPropagation(); personalHomeRuntime.builtAt = 0; if (settings.personalHome !== false && (isHomePage() || isHomeFeedPage())) void syncPersonalHome(true); else toast('Кэш персональной главной сброшен.'); return; }
+      if (action === 'personal-home-refresh') { event.preventDefault(); event.stopPropagation(); personalHomeRuntime.builtAt = 0; markPersonalHomeRenderCacheDirty(); if (settings.personalHome !== false && (isHomePage() || isHomeFeedPage())) void syncPersonalHome(true); else toast('Кэш персональной главной сброшен.'); return; }
       if (action === 'movie-random') { openRandomMovieSearch(); return; }
       if (action === 'movie-smart-search') { event.preventDefault(); event.stopPropagation(); void openSmartRutubeMovie(actionEl); return; }
       if (action === 'close-movie-results') { event.preventDefault(); event.stopPropagation(); const backdrop = actionEl.closest('.rtst-movie-results-backdrop'); if (backdrop) backdrop.remove(); return; }
@@ -6566,6 +6575,7 @@
     }
     if (type === 'words') settings.userWords = values; else settings.userChannels = values;
     personalHomeRuntime.builtAt = 0; personalHomeRuntime.html = ''; personalHomeRuntime.renderToken = '';
+    clearPersonalHomeRenderCache();
     saveSettings(); syncPanel(); closeModal(); toast('Список сохранён.'); rescanNow();
   }
 
@@ -6577,6 +6587,7 @@
     }
     if (type === 'words') settings.userWords = []; else settings.userChannels = [];
     personalHomeRuntime.builtAt = 0; personalHomeRuntime.html = ''; personalHomeRuntime.renderToken = '';
+    clearPersonalHomeRenderCache();
     saveSettings(); syncPanel(); closeModal(); toast(type === 'words' ? 'Список фраз очищен.' : 'Список каналов очищен.'); rescanNow();
   }
 
@@ -6590,6 +6601,7 @@
     personalHomeRuntime.builtAt = 0;
     personalHomeRuntime.html = '';
     personalHomeRuntime.renderToken = '';
+    clearPersonalHomeRenderCache();
     queueCommunitySignal({ type: 'block_channel', value: 1, channel_name: clean, channel_id: String(meta.channelId || '') });
     saveSettings(); syncPanel(); toast(`Канал скрыт: ${clean}`); rescanNow();
   }
@@ -6601,6 +6613,7 @@
     personalHomeRuntime.builtAt = 0;
     personalHomeRuntime.html = '';
     personalHomeRuntime.renderToken = '';
+    clearPersonalHomeRenderCache();
     queueCommunitySignal({ type: 'block_word', active: 1, value: clean });
     saveSettings(); syncPanel(); toast(`Фраза добавлена: ${clean}`); rescanNow();
   }
@@ -7760,7 +7773,7 @@
     };
 
     saveViewHistory(pruneViewHistory(history));
-    if (state === 'complete' || state === 'watched') personalHomeRuntime.builtAt = 0;
+    if (state === 'complete' || state === 'watched') { personalHomeRuntime.builtAt = 0; markPersonalHomeRenderCacheDirty(); }
   }
 
   function installViewProgressTracker() {
@@ -9919,6 +9932,67 @@
     return '<div class="rtst-ph-loading rtst-ph-brand"><div class="rtst-ph-brand-title">РУТУБОЧИСТ</div><div class="rtst-ph-brand-slogan">Мне это не нравится!</div></div>';
   }
 
+  function loadPersonalHomeRenderCache() {
+    if (personalHomeRuntime.diskLoaded) return Boolean(personalHomeRuntime.html);
+    personalHomeRuntime.diskLoaded = true;
+    try {
+      const raw = localStorage.getItem(PERSONAL_HOME_RENDER_CACHE_KEY);
+      if (!raw) return false;
+      const data = JSON.parse(raw);
+      const builtAt = Number(data && data.builtAt) || 0;
+      const html = data && typeof data.html === 'string' ? data.html : '';
+      const age = builtAt ? Date.now() - builtAt : Infinity;
+      if (!data || Number(data.schema) !== PERSONAL_HOME_RENDER_CACHE_SCHEMA || !html || !html.includes('rtst-ph-') || age > PERSONAL_HOME_RENDER_CACHE_MAX_AGE_MS) {
+        localStorage.removeItem(PERSONAL_HOME_RENDER_CACHE_KEY);
+        return false;
+      }
+      personalHomeRuntime.html = html;
+      personalHomeRuntime.builtAt = builtAt;
+      personalHomeRuntime.cacheDirty = data.dirty === true;
+      personalHomeRuntime.renderToken = `disk:${builtAt}:${html.length}`;
+      return true;
+    } catch (e) {
+      try { localStorage.removeItem(PERSONAL_HOME_RENDER_CACHE_KEY); } catch (ignore) {}
+      return false;
+    }
+  }
+
+  function savePersonalHomeRenderCache(html, builtAt) {
+    const cleanHtml = typeof html === 'string' ? html : '';
+    if (!cleanHtml || cleanHtml.length > PERSONAL_HOME_RENDER_CACHE_MAX_HTML) return false;
+    try {
+      localStorage.setItem(PERSONAL_HOME_RENDER_CACHE_KEY, JSON.stringify({
+        schema: PERSONAL_HOME_RENDER_CACHE_SCHEMA,
+        builtAt: Number(builtAt) || Date.now(),
+        dirty: false,
+        html: cleanHtml
+      }));
+      personalHomeRuntime.diskLoaded = true;
+      personalHomeRuntime.cacheDirty = false;
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function markPersonalHomeRenderCacheDirty() {
+    personalHomeRuntime.cacheDirty = true;
+    try {
+      const raw = localStorage.getItem(PERSONAL_HOME_RENDER_CACHE_KEY);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (!data || Number(data.schema) !== PERSONAL_HOME_RENDER_CACHE_SCHEMA || typeof data.html !== 'string') return;
+      data.dirty = true;
+      localStorage.setItem(PERSONAL_HOME_RENDER_CACHE_KEY, JSON.stringify(data));
+    } catch (e) {}
+  }
+
+  function clearPersonalHomeRenderCache() {
+    try { localStorage.removeItem(PERSONAL_HOME_RENDER_CACHE_KEY); } catch (e) {}
+    personalHomeRuntime.diskLoaded = true;
+    personalHomeRuntime.cacheDirty = true;
+  }
+
   function keepPersonalHomeBrandUntilFirstCard(root, brand) {
     if (!root || !brand) return;
     const firstCard = root.querySelector('.rtst-ph-card');
@@ -9967,7 +10041,9 @@
     if (token) root.dataset.rtstHomeRenderToken = token;
     root.dataset.rtstHomeRendered = '1';
     bindRtstThumbnailFallbacks(root);
-    root.querySelectorAll('[data-rtst-video-id]').forEach((el) => syncInterestControls(el.dataset.rtstVideoId || ''));
+    // Один проход по кнопкам вместо отдельного полного document.querySelectorAll для каждой карточки.
+    // На мобильном это заметно дешевле при 20–30 рекомендациях.
+    syncInterestControlsInScope(root);
     if (brand) keepPersonalHomeBrandUntilFirstCard(root, brand);
     return true;
   }
@@ -9980,12 +10056,16 @@
     const root = preparePersonalHomeMount();
     if (!root) return;
 
-    if (!force && personalHomeRuntime.html && personalHomeRuntime.builtAt && Date.now() - personalHomeRuntime.builtAt < PERSONAL_HOME_REFRESH_MS) {
-      // Не сравниваем root.innerHTML с сохранённым шаблоном. После первого рендера
-      // fallback-превью и syncInterestControls закономерно меняют DOM, из-за чего
-      // Firefox особенно заметно перерисовывал всю главную на каждом rescan.
+    // Тёплый старт: готовую разметку персональной главной держим в localStorage.
+    // Сначала мгновенно показываем прошлую ленту, а уже потом, если она устарела,
+    // обновляем данные в фоне. CSS отдельно кэшировать бессмысленно: это и так делает браузер.
+    if (!personalHomeRuntime.html) loadPersonalHomeRenderCache();
+    if (personalHomeRuntime.html) {
       renderPersonalHomeInto(root, personalHomeRuntime.html, personalHomeRuntime.renderToken);
-      return;
+      const cacheFresh = !personalHomeRuntime.cacheDirty
+        && personalHomeRuntime.builtAt
+        && Date.now() - personalHomeRuntime.builtAt < PERSONAL_HOME_REFRESH_MS;
+      if (!force && cacheFresh) return;
     }
     if (personalHomeRuntime.loading) return;
     personalHomeRuntime.loading = true;
@@ -10003,9 +10083,11 @@
       personalHomeRuntime.html = html;
       personalHomeRuntime.builtAt = Date.now();
       personalHomeRuntime.error = '';
+      personalHomeRuntime.cacheDirty = false;
       if (!personalHomeRuntime.renderToken || html !== previousHtml) {
         personalHomeRuntime.renderToken = `${personalHomeRuntime.builtAt}:${seq}`;
       }
+      savePersonalHomeRenderCache(html, personalHomeRuntime.builtAt);
       const currentRoot = preparePersonalHomeMount();
       if (currentRoot) {
         currentRoot.removeAttribute('aria-busy');
@@ -10768,6 +10850,18 @@
     const heading = section.querySelector('h1,h2,h3,h4,[class*="Title"],[class*="title"]');
     const headingText = normalize(heading && heading.textContent);
     return headingText.includes('подписки') || headingText.includes('мои подписки');
+  }
+
+  function syncInterestControlsInScope(scope) {
+    const host = scope && typeof scope.querySelectorAll === 'function' ? scope : document;
+    const store = loadVideoInterestStore();
+    host.querySelectorAll('[data-rtst-action="rate-card-video"]').forEach((btn) => {
+      const id = String(btn.dataset.rtstVideoId || '').trim();
+      const current = id && store[id] && typeof store[id] === 'object' ? store[id] : null;
+      const signal = current ? Number(current.signal) || 0 : 0;
+      btn.dataset.active = Number(btn.dataset.signal) === signal ? '1' : '0';
+      btn.setAttribute('aria-pressed', btn.dataset.active === '1' ? 'true' : 'false');
+    });
   }
 
   function syncInterestControls(videoId) {
