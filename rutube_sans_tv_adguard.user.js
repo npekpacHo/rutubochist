@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.5.13
+// @version      1.5.14
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki / npekpacHo
 // @license      MIT
@@ -39,7 +39,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.5.13';
+  const UI_VERSION = '1.5.14';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -3216,6 +3216,18 @@
       #rtst-personal-home .rtst-block-btn { position: relative !important; z-index: 2 !important; margin: 0 !important; }
       #rtst-personal-home .rtst-ph-card-actions .rtst-block-btn { margin-right: auto !important; }
       #rtst-personal-home .rtst-ph-empty, #rtst-personal-home .rtst-ph-loading { padding: 18px 4px !important; color: rgba(244,255,247,.62) !important; font: 12px/1.4 Arial, sans-serif !important; }
+      #rtst-personal-home .rtst-ph-loading.rtst-ph-brand {
+        display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important;
+        width: 100% !important; min-height: calc(100dvh - 96px) !important; padding: 24px 12px !important; box-sizing: border-box !important;
+        text-align: center !important;
+      }
+      #rtst-personal-home .rtst-ph-brand-title {
+        color: var(--rtst-ui-text) !important; font: 900 clamp(28px, 5vw, 46px)/1 Arial, sans-serif !important;
+        letter-spacing: .08em !important; text-transform: uppercase !important;
+      }
+      #rtst-personal-home .rtst-ph-brand-slogan {
+        margin-top: 12px !important; color: var(--rtst-ui-muted) !important; font: 500 clamp(14px, 2.5vw, 18px)/1.35 Arial, sans-serif !important;
+      }
       #rtst-personal-home .rtst-ph-score { color: rgba(244,255,247,.38) !important; }
       @media (max-width: 1080px) { #rtst-personal-home { padding: 12px 12px 34px !important; } #rtst-personal-home .rtst-ph-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)) !important; } }
       @media (max-width: 680px) {
@@ -9931,7 +9943,7 @@
     const seq = ++personalHomeRuntime.seq;
     const hadRenderedContent = root.dataset.rtstHomeRendered === '1' || root.querySelector('.rtst-ph-card');
     if (!hadRenderedContent) {
-      root.innerHTML = '<div class="rtst-ph-loading">Собираю главную: история → продолжения → related → витрина → фильтр → рейтинг…</div>';
+      root.innerHTML = '<div class="rtst-ph-loading rtst-ph-brand"><div class="rtst-ph-brand-title">РУТУБОЧИСТ</div><div class="rtst-ph-brand-slogan">Мне это не нравится!</div></div>';
     } else {
       root.setAttribute('aria-busy', 'true');
     }
