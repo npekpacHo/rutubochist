@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.5.14
+// @version      1.5.15
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki / npekpacHo
 // @license      MIT
@@ -39,7 +39,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.5.14';
+  const UI_VERSION = '1.5.15';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -3168,7 +3168,7 @@
       html[data-rtst-personal-home="1"] main > :not(#rtst-personal-home),
       html[data-rtst-personal-home="1"] [role="main"] > :not(#rtst-personal-home) { display: none !important; }
       #rtst-personal-home {
-        display: block !important; width: 100% !important; max-width: none !important; margin: 0 !important;
+        position: relative !important; display: block !important; width: 100% !important; max-width: none !important; margin: 0 !important;
         padding: 14px clamp(8px, 1.2vw, 24px) 42px !important; box-sizing: border-box !important; color: var(--rt-text-primary, #f4fff7) !important;
       }
       .rtst-header-tools {
@@ -3220,6 +3220,10 @@
         display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important;
         width: 100% !important; min-height: calc(100dvh - 96px) !important; padding: 24px 12px !important; box-sizing: border-box !important;
         text-align: center !important;
+      }
+      #rtst-personal-home .rtst-ph-loading.rtst-ph-brand.rtst-ph-brand-overlay {
+        position: absolute !important; inset: 0 !important; z-index: 50 !important;
+        min-height: calc(100dvh - 96px) !important; background: var(--rtst-ui-bg) !important;
       }
       #rtst-personal-home .rtst-ph-brand-title {
         color: var(--rtst-ui-text) !important; font: 900 clamp(28px, 5vw, 46px)/1 Arial, sans-serif !important;
@@ -9911,15 +9915,60 @@
     return personalHomeDocumentHtml(continueItems, forYouItems);
   }
 
-  function renderPersonalHomeInto(root, html, renderToken) {
+  function personalHomeBrandHtml() {
+    return '<div class="rtst-ph-loading rtst-ph-brand"><div class="rtst-ph-brand-title">РУТУБОЧИСТ</div><div class="rtst-ph-brand-slogan">Мне это не нравится!</div></div>';
+  }
+
+  function keepPersonalHomeBrandUntilFirstCard(root, brand) {
+    if (!root || !brand) return;
+    const firstCard = root.querySelector('.rtst-ph-card');
+    if (!firstCard) {
+      brand.remove();
+      return;
+    }
+
+    brand.classList.add('rtst-ph-brand-overlay');
+    let done = false;
+    const reveal = () => {
+      if (done) return;
+      done = true;
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (brand.isConnected) brand.remove();
+      }));
+    };
+
+    const img = firstCard.querySelector('.rtst-ph-thumb img');
+    if (!img) {
+      reveal();
+      return;
+    }
+    if (img.complete && img.naturalWidth > 0) {
+      reveal();
+      return;
+    }
+
+    img.addEventListener('load', reveal, { once: true });
+    img.addEventListener('error', () => {
+      queueMicrotask(() => {
+        // bindRtstThumbnailFallbacks оставляет тот же img, пока есть запасной URL.
+        // Если все варианты исчерпаны, img заменяется плейсхолдером: карточка уже готова к показу.
+        if (!img.isConnected) reveal();
+      });
+    });
+  }
+
+  function renderPersonalHomeInto(root, html, renderToken, { keepBrand = false } = {}) {
     if (!root || !html) return false;
     const token = String(renderToken || '');
     if (token && root.dataset.rtstHomeRenderToken === token) return false;
+    const brand = keepBrand ? root.querySelector('.rtst-ph-brand') : null;
     root.innerHTML = html;
+    if (brand) root.appendChild(brand);
     if (token) root.dataset.rtstHomeRenderToken = token;
     root.dataset.rtstHomeRendered = '1';
     bindRtstThumbnailFallbacks(root);
     root.querySelectorAll('[data-rtst-video-id]').forEach((el) => syncInterestControls(el.dataset.rtstVideoId || ''));
+    if (brand) keepPersonalHomeBrandUntilFirstCard(root, brand);
     return true;
   }
 
@@ -9943,7 +9992,7 @@
     const seq = ++personalHomeRuntime.seq;
     const hadRenderedContent = root.dataset.rtstHomeRendered === '1' || root.querySelector('.rtst-ph-card');
     if (!hadRenderedContent) {
-      root.innerHTML = '<div class="rtst-ph-loading rtst-ph-brand"><div class="rtst-ph-brand-title">РУТУБОЧИСТ</div><div class="rtst-ph-brand-slogan">Мне это не нравится!</div></div>';
+      root.innerHTML = personalHomeBrandHtml();
     } else {
       root.setAttribute('aria-busy', 'true');
     }
@@ -9963,7 +10012,7 @@
         // Если набор карточек не изменился, оставляем существующие DOM-узлы как есть:
         // изображения не перезагружаются, hover не сбрасывается, мерцания нет.
         if (!hadRenderedContent || html !== previousHtml || currentRoot.dataset.rtstHomeRenderToken !== personalHomeRuntime.renderToken) {
-          renderPersonalHomeInto(currentRoot, html, personalHomeRuntime.renderToken);
+          renderPersonalHomeInto(currentRoot, html, personalHomeRuntime.renderToken, { keepBrand: !hadRenderedContent });
         }
       }
     } catch (e) {
