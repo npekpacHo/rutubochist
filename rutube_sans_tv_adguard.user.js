@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.5.9
+// @version      1.5.10
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki / npekpacHo
 // @license      MIT
@@ -39,7 +39,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.5.9';
+  const UI_VERSION = '1.5.10';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -5322,7 +5322,6 @@
     document.querySelectorAll('.rtst-movie-results-backdrop').forEach((el) => el.remove());
     const candidates = resolved && Array.isArray(resolved.candidates) ? resolved.candidates : [];
     if (!candidates.length) return false;
-    const title = movieTitleLine(record.movie);
     const rows = candidates.map((candidate, index) => renderRutubeMovieResult(candidate, index === 0)).join('');
     const fallbackQuery = record.query || buildMovieQuery(record.movie);
     const modal = document.createElement('div');
@@ -5332,7 +5331,7 @@
         <div class="rtst-modal-head">
           <div>
             ${modalTitleHtml('Результаты RUTUBE')}
-            <div class="rtst-movie-results-note">${escapeHtml(title)} · фаворит учитывает совпадение, качество, свежесть, реакции и подтверждение несколькими поисковыми запросами. Уже просмотренная копия получает небольшой штраф. Выбор остаётся за человеком.</div>
+            <div class="rtst-movie-results-note">Запрос: ${escapeHtml(fallbackQuery)} · найдено: ${candidates.length}</div>
           </div>
           <button type="button" data-rtst-action="close-movie-results" aria-label="Закрыть">×</button>
         </div>
