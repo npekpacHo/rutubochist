@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.5.16
+// @version      1.5.18
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki / npekpacHo
 // @license      MIT
@@ -39,7 +39,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.5.16';
+  const UI_VERSION = '1.5.18';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -3039,6 +3039,24 @@
       }
       .rtst-chrome-hidden, .rtst-view-hidden { display: none !important; }
 
+      /* На страницах видео RUTUBE оставляет отдельный ballast под шапку даже после
+         скрытия самой шапки. Если Рутубочист уже спрятал mainHeader, убираем и его
+         резерв высоты, иначе над плеером остаётся пустая полоса. */
+      html[data-rtst-enabled="1"]
+      [class*="header-module__mainHeader"].rtst-view-hidden + [class*="header-module__headerBallast"],
+      html[data-rtst-enabled="1"]
+      [class*="header-module__mainHeader"][data-rtst-view-hidden="1"] + [class*="header-module__headerBallast"] {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        max-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: 0 !important;
+        overflow: hidden !important;
+      }
+
       /* Первый блок меню работает как белый список: RUTUBE может добавлять что угодно,
          но остаются только четыре нужных раздела и наш пункт «Что посмотреть». */
       @supports selector(ul:has(a[href])) {
@@ -3252,18 +3270,31 @@
 
       .rtst-home-link {
         display: inline-flex !important; align-items: center !important; justify-content: center !important;
-        min-height: 36px !important; min-width: 0 !important; margin: 0 8px 0 0 !important; text-decoration: none !important;
+        width: 36px !important; min-width: 36px !important; height: 36px !important; min-height: 36px !important;
+        padding: 0 !important; margin: 0 8px 0 0 !important; text-decoration: none !important;
         white-space: nowrap !important; box-sizing: border-box !important; flex: 0 0 auto !important;
       }
       .rtst-home-link:not([class*="__wdp_"]) {
-        padding: 0 14px !important; border: 1px solid rgba(255,255,255,.16) !important; border-radius: 6px !important;
+        border: 1px solid rgba(255,255,255,.16) !important; border-radius: 6px !important;
         background: var(--pen-button-primary, #00A1E7) !important; color: var(--pen-button-primary-text, #fff) !important;
-        font: 700 13px/1 Arial, sans-serif !important;
       }
       .rtst-home-link:not([class*="__wdp_"]):hover {
         background: var(--pen-button-primary-hover, #1EABE9) !important; color: var(--pen-button-primary-hover-text, #fff) !important;
       }
-      .rtst-home-link .rtst-home-content { display: inline-flex !important; align-items: center !important; justify-content: center !important; gap: 4px !important; }
+      .rtst-home-link .rtst-home-icon { display: block !important; width: 19px !important; height: 19px !important; flex: 0 0 auto !important; }
+
+      /* Нативные реакции RUTUBE остаются нативными кнопками, меняется только их лицо. */
+      .rtst-native-reaction-button [class*="wdp-animated-reaction-hand-module__wrapper"] { display: none !important; }
+      .rtst-native-reaction-icon {
+        display: inline-flex !important; align-items: center !important; justify-content: center !important;
+        width: 18px !important; height: 18px !important; pointer-events: none !important;
+      }
+      .rtst-native-reaction-icon svg { display: block !important; width: 18px !important; height: 18px !important; }
+      .rtst-native-reaction-button[data-rtst-reaction-active="1"] { color: var(--rtst-ui-good) !important; }
+      .rtst-native-reaction-button[data-rtst-native-reaction="-1"][data-rtst-reaction-active="1"] { color: var(--rtst-ui-bad) !important; }
+      .rtst-native-reaction-button[data-rtst-native-reaction="1"][data-rtst-reaction-active="1"] .rtst-interest-icon-on {
+        fill: currentColor !important;
+      }
 
       /* --- СЕРИАЛИЗАТОР: В СТРОКЕ ЗАГОЛОВКА --- */
       [data-rtst-series-title-row="1"] {
@@ -4803,6 +4834,13 @@
 
       if (event.target && event.target.closest && event.target.closest('#rtst-panel')) wakePanel(8000);
 
+      const nativeReactionButton = event.target && event.target.closest && event.target.closest('button[class*="wdp-video-like-dislike-reactions-module__button-like"], button[class*="wdp-video-like-dislike-reactions-module__button-dislike"], .rtst-native-reaction-button');
+      if (nativeReactionButton && event.isTrusted) {
+        // Не preventDefault и не stopPropagation: клик обязан дойти до RUTUBE.
+        recordNativeVideoReactionIntent(nativeReactionButton);
+        return;
+      }
+
       const actionEl = event.target && event.target.closest('[data-rtst-action]');
       if (!actionEl) return;
       const action = actionEl.dataset.rtstAction;
@@ -5456,6 +5494,10 @@
       return '<svg class="rtst-interest-icon rtst-interest-icon-off" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 3l18 18"/><path d="M19.5 12.572l-1.5 1.428m-2 2l-4 4l-7.5 -7.428a5 5 0 0 1 -1.288 -5.068a4.976 4.976 0 0 1 1.788 -2.504m3 -1c1.56 0 3.05 .727 4 2a5 5 0 1 1 7.5 6.572"/></svg>';
     }
     return '<svg class="rtst-interest-icon rtst-interest-icon-on" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"/></svg>';
+  }
+
+  function rutubeHomeIconSvg() {
+    return '<svg class="rtst-home-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M2 8a4 4 0 0 1 4 -4h12a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-12a4 4 0 0 1 -4 -4v-8"/><path d="M10 9l5 3l-5 3l0 -6"/></svg>';
   }
 
   function pooIconSvg() {
@@ -9096,6 +9138,7 @@
 
     addCurrentChannelButton();
     addHomeButtonNearSubscribe();
+    syncNativeVideoReactionButtons();
     syncSeriesNavigator();
 
     hiddenCount = removedCount;
@@ -10131,6 +10174,7 @@
   function cleanWatchPage() {
     if (!isWatchPage()) return;
     addHomeButtonNearSubscribe();
+    syncNativeVideoReactionButtons();
     hideWatchRecommendationsBySelector();
     hideSafeModeVideoBanner();
     hideRutubeSelfPromo();
@@ -10214,20 +10258,26 @@
     const old = document.getElementById('rtst-home-link');
     if (!isWatchPage()) { if (old) old.remove(); return; }
 
-    const subscribeButton = document.querySelector('section[aria-label="блок действий" i] button[aria-label*="Подпис" i], button[class*="subscribe" i], button[aria-label*="Подпис" i]');
-    const toolbarRight = (subscribeButton && subscribeButton.closest('.wdp-video-options-row-module__wdpVideoOptionsRow__toolbar-right')) || (subscribeButton && subscribeButton.parentElement) || document.querySelector('section[aria-label="блок действий" i] .wdp-video-options-row-module__wdpVideoOptionsRow__toolbar-right');
+    const subscribeButton = document.querySelector('button[class*="wdp-subscribe-button-module__button"][aria-label*="Подпис" i], button[class*="subscribe" i][aria-label*="Подпис" i], button[aria-label*="Подпис" i]');
+    const authorBlock =
+      (subscribeButton && subscribeButton.closest('[class*="wdp-video-options-row-module__author-block"]')) ||
+      document.querySelector('[aria-label="блок пользовательских действий" i] [class*="wdp-video-options-row-module__author-block"]');
 
-    if (!toolbarRight || toolbarRight.closest('#rtst-panel')) return;
+    if (!authorBlock || authorBlock.closest('#rtst-panel')) return;
 
     let link = old;
     if (!link) {
-      link = document.createElement('a'); link.id = 'rtst-home-link'; link.href = '/'; link.title = 'На главную RUTUBE'; link.setAttribute('aria-label', 'На главную RUTUBE');
+      link = document.createElement('a');
+      link.id = 'rtst-home-link';
+      link.href = '/';
+      link.title = 'На главную RUTUBE';
+      link.setAttribute('aria-label', 'На главную RUTUBE');
     }
     syncHomeButtonStyle(link, subscribeButton);
 
-    if (link.parentElement !== toolbarRight) {
-      if (subscribeButton && subscribeButton.parentElement === toolbarRight) toolbarRight.insertBefore(link, subscribeButton);
-      else toolbarRight.insertBefore(link, toolbarRight.firstChild);
+    // Домой действительно первая: до аватара, названия канала и подписки.
+    if (link.parentElement !== authorBlock || authorBlock.firstElementChild !== link) {
+      authorBlock.insertBefore(link, authorBlock.firstChild || null);
     }
   }
 
@@ -10235,11 +10285,12 @@
     if (!link) return;
     const baseClass = 'rtst-home-link';
     const subscribeClasses = subscribeButton && subscribeButton.className ? String(subscribeButton.className) : '';
-    const content = subscribeButton && subscribeButton.querySelector('span') ? subscribeButton.querySelector('span') : null;
-    const contentClass = content && content.className ? String(content.className) : '';
     link.className = `${baseClass}${subscribeClasses ? ' ' + subscribeClasses : ''}`;
-    link.href = '/'; link.title = 'На главную RUTUBE'; link.setAttribute('aria-label', 'На главную RUTUBE'); link.setAttribute('role', 'button');
-    link.innerHTML = contentClass ? `<span class="rtst-home-content ${escapeAttribute(contentClass)}">⌂ Главная</span>` : '<span class="rtst-home-content">⌂ Главная</span>';
+    link.href = '/';
+    link.title = 'На главную RUTUBE';
+    link.setAttribute('aria-label', 'На главную RUTUBE');
+    link.setAttribute('role', 'button');
+    link.innerHTML = rutubeHomeIconSvg();
   }
 
   function escapeAttribute(value) { return String(value || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
@@ -10879,6 +10930,91 @@
         btn.setAttribute('aria-pressed', btn.dataset.active === '1' ? 'true' : 'false');
       });
     }
+    if (isWatchPage() && (!id || id === getCurrentVideoId())) syncNativeVideoReactionButtons();
+  }
+
+  function nativeVideoReactionSignalFromButton(button) {
+    if (!button || !button.matches) return 0;
+    if (button.matches('button[class*="wdp-video-like-dislike-reactions-module__button-like"]')) return 1;
+    if (button.matches('button[class*="wdp-video-like-dislike-reactions-module__button-dislike"]')) return -1;
+    const marked = Number(button.dataset && button.dataset.rtstNativeReaction);
+    return marked > 0 ? 1 : marked < 0 ? -1 : 0;
+  }
+
+  function cleanupNativeVideoReactionButtons() {
+    document.querySelectorAll('.rtst-native-reaction-button').forEach((button) => {
+      button.classList.remove('rtst-native-reaction-button');
+      button.removeAttribute('data-rtst-native-reaction');
+      button.removeAttribute('data-rtst-reaction-active');
+      button.querySelectorAll(':scope > .rtst-native-reaction-icon').forEach((icon) => icon.remove());
+    });
+  }
+
+  function syncNativeVideoReactionButtons() {
+    if (!isWatchPage()) { cleanupNativeVideoReactionButtons(); return; }
+
+    const wrapper = document.querySelector('[aria-label="блок пользовательских действий" i] [class*="wdp-video-like-dislike-reactions-module__wrapper"], [class*="wdp-video-like-dislike-reactions-module__wrapper"]');
+    if (!wrapper || wrapper.closest('#rtst-panel')) return;
+
+    const like = wrapper.querySelector('button[class*="wdp-video-like-dislike-reactions-module__button-like"]');
+    const dislike = wrapper.querySelector('button[class*="wdp-video-like-dislike-reactions-module__button-dislike"]');
+    const buttons = [[like, 1], [dislike, -1]].filter(([button]) => Boolean(button));
+    if (!buttons.length) return;
+
+    // Если сам RUTUBE уже знает реакцию пользователя, визуально доверяем ему.
+    // Локальная оценка нужна как запасное состояние и для наших рекомендаций.
+    let nativeSignal = 0;
+    if (like && like.getAttribute('aria-pressed') === 'true') nativeSignal = 1;
+    else if (dislike && dislike.getAttribute('aria-pressed') === 'true') nativeSignal = -1;
+
+    const videoId = getCurrentVideoId();
+    const current = videoId ? getVideoInterest(videoId) : null;
+    const localSignal = current ? Number(current.signal) || 0 : 0;
+    const visualSignal = nativeSignal || localSignal;
+
+    buttons.forEach(([button, signal]) => {
+      button.classList.add('rtst-native-reaction-button');
+      button.dataset.rtstNativeReaction = String(signal);
+      button.dataset.rtstReactionActive = visualSignal === signal ? '1' : '0';
+
+      let icon = null;
+      try { icon = button.querySelector(':scope > .rtst-native-reaction-icon'); } catch (e) { icon = button.querySelector('.rtst-native-reaction-icon'); }
+      if (!icon) {
+        icon = document.createElement('span');
+        icon.className = 'rtst-native-reaction-icon';
+        icon.setAttribute('aria-hidden', 'true');
+        button.appendChild(icon);
+      }
+      const wanted = signal > 0 ? '1' : '-1';
+      if (icon.dataset.rtstSignal !== wanted) {
+        icon.dataset.rtstSignal = wanted;
+        icon.innerHTML = interestIconSvg(signal);
+      }
+    });
+  }
+
+  function recordNativeVideoReactionIntent(button) {
+    const requested = nativeVideoReactionSignalFromButton(button);
+    if (!requested || !isWatchPage()) return;
+    if (button.disabled || button.getAttribute('aria-disabled') === 'true' || button.getAttribute('aria-busy') === 'true') return;
+
+    const videoId = getCurrentVideoId();
+    if (!videoId) return;
+
+    // Это всё ещё родная кнопка RUTUBE. Мы не перехватываем её действие,
+    // лишь зеркалим тот же явный клик в локальную/общественную оценку.
+    const wasPressed = button.getAttribute('aria-pressed') === 'true';
+    const signal = wasPressed ? 0 : requested;
+    setVideoInterest(videoId, signal, {
+      title: getCurrentVideoTitle(),
+      channel: detectCurrentPageChannel(),
+      channelId: extractChannelIdFromUrl(detectCurrentVideoChannelUrl())
+    });
+
+    // React обновляет aria-pressed не синхронно с capture-фазой клика.
+    // Перерисовываем сердечки после того, как нативная реакция успеет примениться.
+    setTimeout(syncNativeVideoReactionButtons, 80);
+    setTimeout(syncNativeVideoReactionButtons, 360);
   }
 
   function addVideoInterestButtons(card, info, primaryLink) {
