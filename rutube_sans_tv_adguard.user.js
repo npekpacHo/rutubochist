@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.5.18
+// @version      1.5.19
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki / npekpacHo
 // @license      MIT
@@ -39,7 +39,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.5.18';
+  const UI_VERSION = '1.5.19';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -104,7 +104,7 @@
     enabled: true, showHidden: false, hideSideMenuPolitics: true, hideShorts: true, hardRemove: false,
     cleanRutubeChrome: true, cleanWatchPage: true, disableAutoplay: true, hideComments: false, hideVideoInfo: false,
     stripPlayerAds: true, unlockContextMenu: true, swipeVideoVolume: true, autoFullscreenOnRotate: false, hideVpnPopup: true, dimSearchTrash: true, markWatchedVideos: true, seriesNavigator: true, personalHome: true,
-    useCommunityFilter: true, contributeCommunitySignals: false,
+    useCommunityFilter: false, contributeCommunitySignals: true,
     safeRouterPatch060: true, safeDelayedScan070: true,
     blockedChannels: DEFAULT_BLOCKED_CHANNELS, blockedWords: DEFAULT_BLOCKED_WORDS, userChannels: [], userWords: []
   };
@@ -281,7 +281,6 @@
   const COMMUNITY_CHECK_KEY = 'rtstCommunityCheck:v1';
   const COMMUNITY_CLIENT_KEY = 'rtstCommunityClient:v1';
   const VIDEO_INTEREST_KEY = 'rtstVideoInterest:v1';
-  const COMMUNITY_UPDATE_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
   const COMMUNITY_REQUEST_TIMEOUT_MS = 10 * 1000;
   const COMMUNITY_QUEUE_MAX = 800;
   const VIDEO_INTEREST_MAX = 3000;
@@ -2667,7 +2666,7 @@
       applyCommunitySnapshot(data.snapshot, { savedAt: data.savedAt, source: data.source || 'local' });
       return true;
     } catch (e) {
-      console.warn('[Рутубочист] Не удалось прочитать общий фильтр:', e);
+      console.warn('[Рутубочист] Не удалось прочитать облачную базу:', e);
       return false;
     }
   }
@@ -2716,12 +2715,12 @@
         saveCommunityCache(json, new URL(base).hostname);
         syncPanel();
         rescanNow();
-        if (!options.silent) toast(`Общий фильтр обновлён: каналов ${communityCache.channels.length}, фраз ${communityCache.words.length}.`);
+        if (!options.silent) toast(`Облачный рейтинг обновлён: ${Object.keys(communityCache.videoInterest || {}).length} оценок.`);
         return true;
       } catch (e) { lastError = e; }
     }
-    if (!options.silent) toast(communityCache.savedAt ? 'Общий фильтр не обновился — оставлена сохранённая копия.' : 'Общий фильтр пока недоступен.');
-    if (lastError) console.warn('[Рутубочист] Общий фильтр:', lastError);
+    if (!options.silent) toast(communityCache.savedAt ? 'Облачный рейтинг не обновился — оставлена сохранённая копия.' : 'Облачный рейтинг пока недоступен.');
+    if (lastError) console.warn('[Рутубочист] Облачный рейтинг:', lastError);
     return false;
   }
 
@@ -2733,23 +2732,14 @@
     try { localStorage.setItem(COMMUNITY_CHECK_KEY, String(Number(value) || Date.now())); } catch (e) {}
   }
 
-  function maybeUpdateCommunityInBackground() {
-    if (settings.useCommunityFilter === false) return;
-    if (!communityCache.savedAt) loadCommunityCacheFromLocal();
-    const lastAttempt = Math.max(communityCache.savedAt || 0, communityLastCheckAt());
-    if (lastAttempt && Date.now() - lastAttempt < COMMUNITY_UPDATE_INTERVAL_MS) return;
-    // Даже неудачная автоматическая проверка считается попыткой. Иначе до запуска
-    // серверной части каждый новый визит на RUTUBE долбил бы WordPress снова.
-    saveCommunityLastCheckAt();
-    refreshCommunitySnapshot({ silent: true }).catch(() => {});
-  }
-
   function communityStatusText() {
-    if (settings.useCommunityFilter === false) return 'Общий фильтр выключен.';
-    if (!communityCache.savedAt) return 'Общий фильтр: локальной копии пока нет.';
+    const enabled = settings.useCommunityFilter !== false;
+    if (!communityCache.savedAt) return enabled
+      ? 'Облачный рейтинг: сохранённой копии пока нет.'
+      : 'Облачный рейтинг: учёт оценок других пользователей выключен · сохранённой копии пока нет.';
     const date = formatDateTime(new Date(communityCache.savedAt));
     const ratings = Object.keys(communityCache.videoInterest || {}).length;
-    return `Общий фильтр: ${communityCache.channels.length} каналов · ${communityCache.words.length} фраз · ${ratings} оценок · обновлён ${date}.`;
+    return `Облачный рейтинг: ${ratings} оценок · обновлён ${date}${enabled ? '' : ' · учёт чужих оценок выключен'}.`;
   }
 
   function loadVideoInterestStore() {
@@ -4770,7 +4760,7 @@
       if (target.id === 'rtst-mark-watched') { settings.markWatchedVideos = target.checked; saveSettings(); syncRootFlags(); personalHomeRuntime.builtAt = 0; markPersonalHomeRenderCacheDirty(); rescanNow(); }
       if (target.id === 'rtst-personal-home-toggle') { settings.personalHome = target.checked; saveSettings(); personalHomeRuntime.builtAt = 0; if (!target.checked) removePersonalHome(); syncRootFlags(); rescanNow(); }
       if (target.id === 'rtst-series-navigator') { settings.seriesNavigator = target.checked; saveSettings(); if (!target.checked) removeSeriesNavigator(); rescanNow(); }
-      if (target.id === 'rtst-community-filter') { settings.useCommunityFilter = target.checked; personalHomeRuntime.builtAt = 0; personalHomeRuntime.html = ''; personalHomeRuntime.renderToken = ''; clearPersonalHomeRenderCache(); saveSettings(); if (target.checked) { loadCommunityCacheFromLocal(); maybeUpdateCommunityInBackground(); } syncPanel(); rescanNow(); }
+      if (target.id === 'rtst-community-filter') { settings.useCommunityFilter = target.checked; personalHomeRuntime.builtAt = 0; personalHomeRuntime.html = ''; personalHomeRuntime.renderToken = ''; clearPersonalHomeRenderCache(); saveSettings(); if (target.checked) { loadCommunityCacheFromLocal(); if (!communityCache.savedAt) { saveCommunityLastCheckAt(); refreshCommunitySnapshot({ silent: true, force: true }).catch(() => {}); } } syncPanel(); rescanNow(); }
       if (target.id === 'rtst-community-contribute') { settings.contributeCommunitySignals = target.checked; saveSettings(); if (target.checked) setTimeout(() => flushCommunitySignalQueue(), 0); syncPanel(); }
       if (target.id === 'rtst-clean-watch') { settings.cleanWatchPage = target.checked; saveSettings(); syncRootFlags(); rescanNow(); }
       if (target.id === 'rtst-disable-autoplay') { settings.disableAutoplay = target.checked; saveSettings(); scanAutoplayVideos(); }
@@ -4887,7 +4877,6 @@
         setVideoInterest(videoId, signal, { title: actionEl.dataset.rtstTitle || '', channel: actionEl.dataset.rtstChannel || '', channelId: actionEl.dataset.rtstChannelId || '' });
         return;
       }
-      if (action === 'update-community-filter') { event.preventDefault(); event.stopPropagation(); saveCommunityLastCheckAt(); refreshCommunitySnapshot({ silent: false, force: true }); return; }
       if (action === 'open-movie-modal') { event.preventDefault(); event.stopPropagation(); openMovieModal(); return; }
       if (action === 'open-series-modal') { event.preventDefault(); event.stopPropagation(); openSeriesModal(); return; }
       if (action === 'open-settings-modal') { openSettingsModal(); return; }
@@ -4926,7 +4915,6 @@
         toast('Личные списки очищены.'); rescanNow();
         return;
       }
-      if (action === 'reset-interest') { clearVideoInterest(); return; }
       if (action === 'reset-view-history') { clearViewHistory(); return; }
       if (action === 'export-settings') { exportSettings(); return; }
       if (action === 'copy-player-diagnostics') { copyPlayerDiagnostics(); return; }
@@ -4978,14 +4966,11 @@
           </div>
 
           <div class="rtst-section">
-            <div class="rtst-section-title">Общий фильтр</div>
-            <div class="rtst-row"><label><input type="checkbox" id="rtst-community-filter"> использовать общий фильтр и рейтинг интереса</label></div>
-            <div class="rtst-row"><label><input type="checkbox" id="rtst-community-contribute"> участвовать в общем фильтре: передавать явные блокировки и оценки</label></div>
-            <div class="rtst-small">Передаются только явные действия: блокировка канала или фразы и оценки «интересно / неинтересно». История просмотров и поисковые запросы не отправляются.</div>
-            <div class="rtst-actions">
-              <button type="button" class="rtst-mini-btn" data-rtst-action="update-community-filter">Обновить общий фильтр</button>
-              <button type="button" class="rtst-mini-btn" data-rtst-action="reset-interest">Очистить мои оценки</button>
-            </div>
+            <div class="rtst-section-title">Облачный рейтинг видео</div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-community-filter"> Включить и учитывать оценки других пользователей</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-community-contribute"> Отправлять мои оценки контента в облако</label></div>
+            <div class="rtst-small">Передаются только явные действия: оценки «интересно / неинтересно» и явные блокировки каналов или фраз. История просмотров, поисковые запросы, адреса посещённых страниц и данные аккаунта RUTUBE не отправляются. Данные обезличены: случайный ID установки хранится локально, наружу передаётся только его SHA-256-хэш.</div>
+            <div class="rtst-small">Облачная база обновляется автоматически вместе с базой «Что посмотреть?» и вручную кнопкой «Обновить базу» ниже.</div>
           </div>
 
           <div class="rtst-section">
@@ -5726,7 +5711,7 @@
     else if (candidate.interest && candidate.interest.personalScore < 0) meta.push('♡̸ лично неинтересно');
     else if (candidate.interest && candidate.interest.community && Math.abs(candidate.interest.communityScore) >= 0.12) {
       const count = Number(candidate.interest.community.count) || (Number(candidate.interest.community.up) || 0) + (Number(candidate.interest.community.down) || 0);
-      meta.push(`${candidate.interest.communityScore > 0 ? '↑' : '↓'} общий интерес${count ? ` · ${count}` : ''}`);
+      meta.push(`${candidate.interest.communityScore > 0 ? '↑' : '↓'} облачный рейтинг${count ? ` · ${count}` : ''}`);
     }
     const match = Math.round((candidate.score || 0) * 100);
     const rank = Math.round((candidate.rankScore || candidate.score || 0) * 100);
@@ -6192,11 +6177,30 @@
     return { due: false, reason: '' };
   }
 
+  let movieAndCloudRefreshPromise = null;
+
+  function refreshMovieAndCloudData() {
+    if (movieAndCloudRefreshPromise) return movieAndCloudRefreshPromise;
+
+    saveCommunityLastCheckAt();
+    movieAndCloudRefreshPromise = Promise.all([
+      refreshMovieDbCache({ silent: true }),
+      refreshCommunitySnapshot({ silent: true, force: true })
+    ]).then(([movieOk, cloudOk]) => ({ movieOk: Boolean(movieOk), cloudOk: Boolean(cloudOk) }))
+      .finally(() => {
+        movieAndCloudRefreshPromise = null;
+        updateMovieCacheStatusText();
+        syncPanel();
+      });
+
+    return movieAndCloudRefreshPromise;
+  }
+
   function maybeUpdateMovieDbInBackground() {
     const decision = movieAutoUpdateDecision(Date.now());
     if (!decision.due) return;
     saveMovieAutoCheckState(decision.reason);
-    refreshMovieDbCache({ silent: true }).finally(updateMovieCacheStatusText);
+    refreshMovieAndCloudData().catch(() => {});
   }
 
   function movieDbSourceLabel(url) {
@@ -6280,9 +6284,23 @@
 
   async function updateMovieDbFromSettings(button) {
     if (button) { button.disabled = true; button.textContent = 'Обновляю...'; }
-    await refreshMovieDbCache({ silent: false });
-    updateMovieCacheStatusText();
-    if (button) { button.disabled = false; button.textContent = 'Обновить базу'; }
+    try {
+      const { movieOk, cloudOk } = await refreshMovieAndCloudData();
+      if (movieOk && cloudOk) {
+        toast('База «Что посмотреть?» и облачный рейтинг обновлены.');
+      } else if (movieOk) {
+        toast(communityCache.savedAt
+          ? 'База «Что посмотреть?» обновлена. Для облачного рейтинга оставлена сохранённая копия.'
+          : 'База «Что посмотреть?» обновлена. Облачный рейтинг пока недоступен.');
+      } else if (cloudOk) {
+        toast('Облачный рейтинг обновлён. Для базы «Что посмотреть?» оставлена сохранённая копия.');
+      } else {
+        toast('Обновление не удалось. Используются сохранённые копии.');
+      }
+    } finally {
+      updateMovieCacheStatusText();
+      if (button) { button.disabled = false; button.textContent = 'Обновить базу'; }
+    }
   }
 
   function movieCacheStatusText() {
@@ -11334,7 +11352,6 @@
     setTimeout(checkGithubAvailability, 1500);
     setTimeout(() => refreshPanelIconCacheInBackground(false), 2200);
     setTimeout(maybeUpdateMovieDbInBackground, 3500);
-    setTimeout(maybeUpdateCommunityInBackground, 4200);
     setTimeout(() => flushCommunitySignalQueue(), 5200);
 
     scheduleScan('boot', 0);
