@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рутубочист
 // @namespace    https://github.com/npekpacHo/rutubochist
-// @version      1.5.19
+// @version      1.5.21
 // @description  Рутубочист: очищает интерфейс RUTUBE. Добавляет ЧС и возможности блокировки нежелательных каналов. Есть рекомендации того, что посмотреть.
 // @author       elekt_riki / npekpacHo
 // @license      MIT
@@ -39,7 +39,7 @@
   const VIEW_COMPLETED_TTL_MS = 730 * 24 * 60 * 60 * 1000;
   const VIEW_MAX_PARTIAL = 700;
   const VIEW_MAX_TOTAL = 2600;
-  const UI_VERSION = '1.5.19';
+  const UI_VERSION = '1.5.21';
 
   const DEFAULT_BLOCKED_CHANNELS = [
     // Телевизор и пропаганда
@@ -103,7 +103,7 @@
   const SETTINGS_DEFAULTS = {
     enabled: true, showHidden: false, hideSideMenuPolitics: true, hideShorts: true, hardRemove: false,
     cleanRutubeChrome: true, cleanWatchPage: true, disableAutoplay: true, hideComments: false, hideVideoInfo: false,
-    stripPlayerAds: true, unlockContextMenu: true, swipeVideoVolume: true, autoFullscreenOnRotate: false, hideVpnPopup: true, dimSearchTrash: true, markWatchedVideos: true, seriesNavigator: true, personalHome: true,
+    stripPlayerAds: true, unlockContextMenu: true, swipeVideoVolume: true, autoFullscreenOnRotate: false, hideVpnPopup: true, dimSearchTrash: true, markWatchedVideos: true, seriesNavigator: true, personalHome: true, hideWatchedPersonalHome: true,
     useCommunityFilter: false, contributeCommunitySignals: true,
     safeRouterPatch060: true, safeDelayedScan070: true,
     blockedChannels: DEFAULT_BLOCKED_CHANNELS, blockedWords: DEFAULT_BLOCKED_WORDS, userChannels: [], userWords: []
@@ -4595,6 +4595,8 @@
     if (markWatchedToggle) markWatchedToggle.checked = Boolean(settings.markWatchedVideos !== false);
     const personalHomeToggle = document.getElementById('rtst-personal-home-toggle');
     if (personalHomeToggle) personalHomeToggle.checked = Boolean(settings.personalHome !== false);
+    const hideWatchedPersonalHomeToggle = document.getElementById('rtst-hide-watched-personal-home');
+    if (hideWatchedPersonalHomeToggle) hideWatchedPersonalHomeToggle.checked = Boolean(settings.hideWatchedPersonalHome !== false);
     const seriesNavigatorToggle = document.getElementById('rtst-series-navigator');
     if (seriesNavigatorToggle) seriesNavigatorToggle.checked = Boolean(settings.seriesNavigator !== false);
     const communityFilterToggle = document.getElementById('rtst-community-filter');
@@ -4759,6 +4761,7 @@
       if (target.id === 'rtst-dim-search-trash') { settings.dimSearchTrash = target.checked; saveSettings(); syncRootFlags(); rescanNow(); }
       if (target.id === 'rtst-mark-watched') { settings.markWatchedVideos = target.checked; saveSettings(); syncRootFlags(); personalHomeRuntime.builtAt = 0; markPersonalHomeRenderCacheDirty(); rescanNow(); }
       if (target.id === 'rtst-personal-home-toggle') { settings.personalHome = target.checked; saveSettings(); personalHomeRuntime.builtAt = 0; if (!target.checked) removePersonalHome(); syncRootFlags(); rescanNow(); }
+      if (target.id === 'rtst-hide-watched-personal-home') { settings.hideWatchedPersonalHome = target.checked; personalHomeRuntime.builtAt = 0; personalHomeRuntime.html = ''; personalHomeRuntime.renderToken = ''; clearPersonalHomeRenderCache(); saveSettings(); if (settings.personalHome !== false && (isHomePage() || isHomeFeedPage())) void syncPersonalHome(true); }
       if (target.id === 'rtst-series-navigator') { settings.seriesNavigator = target.checked; saveSettings(); if (!target.checked) removeSeriesNavigator(); rescanNow(); }
       if (target.id === 'rtst-community-filter') { settings.useCommunityFilter = target.checked; personalHomeRuntime.builtAt = 0; personalHomeRuntime.html = ''; personalHomeRuntime.renderToken = ''; clearPersonalHomeRenderCache(); saveSettings(); if (target.checked) { loadCommunityCacheFromLocal(); if (!communityCache.savedAt) { saveCommunityLastCheckAt(); refreshCommunitySnapshot({ silent: true, force: true }).catch(() => {}); } } syncPanel(); rescanNow(); }
       if (target.id === 'rtst-community-contribute') { settings.contributeCommunitySignals = target.checked; saveSettings(); if (target.checked) setTimeout(() => flushCommunitySignalQueue(), 0); syncPanel(); }
@@ -4945,6 +4948,7 @@
             <div class="rtst-row"><label><input type="checkbox" id="rtst-dim-search-trash"> помечать нежелательные результаты в поиске</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-mark-watched"> помечать просмотренные видео</label></div>
             <div class="rtst-row"><label><input type="checkbox" id="rtst-personal-home-toggle"> персональная главная по интересам</label></div>
+            <div class="rtst-row"><label><input type="checkbox" id="rtst-hide-watched-personal-home"> скрывать просмотренное на персональной главной</label></div>
           </div>
 
           <div class="rtst-section">
@@ -6932,6 +6936,48 @@
     return best;
   }
 
+  function seriesDistinctiveAliases(aliases) {
+    const list = Array.isArray(aliases) ? aliases : [];
+    if (list.length < 2) return [];
+    return list.slice(1).filter((alias) => normalizeSeriesAlias(alias).length >= 2);
+  }
+
+  function seriesLatinAliases(aliases) {
+    return (Array.isArray(aliases) ? aliases : []).filter((alias) => {
+      const value = normalizeSeriesAlias(alias);
+      return /[a-z]/i.test(value) && (value.match(/[a-z]/gi) || []).length >= 2;
+    });
+  }
+
+  function seriesAliasesConflict(currentAliases, candidateAliases) {
+    const currentList = Array.isArray(currentAliases) ? currentAliases : [];
+    const candidateList = Array.isArray(candidateAliases) ? candidateAliases : [];
+    if (!currentList.length || !candidateList.length) return false;
+
+    // Одно русское название может принадлежать разным сериалам. Типичный
+    // пример RUTUBE: «Ковчег / The Ark» и «Ковчег / El barco». Раньше
+    // maxSeriesAliasSimilarity() видел общий «Ковчег» и объявлял совпадение
+    // идеальным, полностью игнорируя противоречащий оригинальный заголовок.
+    // Если у обеих сторон есть латинские/оригинальные алиасы, конфликт между
+    // ними сильнее совпадения локализованного названия.
+    const currentLatin = seriesLatinAliases(currentList);
+    const candidateLatin = seriesLatinAliases(candidateList);
+    if (currentLatin.length && candidateLatin.length && maxSeriesAliasSimilarity(currentLatin, candidateLatin) < 0.46) return true;
+
+    // Та же защита для любых явных вторых названий после «/» или «|».
+    // Срабатывает только когда основной alias практически одинаков, а
+    // уточняющие названия явно не совпадают.
+    const currentDistinctive = seriesDistinctiveAliases(currentList);
+    const candidateDistinctive = seriesDistinctiveAliases(candidateList);
+    if (currentDistinctive.length && candidateDistinctive.length) {
+      const primarySimilarity = seriesAliasSimilarity(currentList[0], candidateList[0]);
+      const distinctiveSimilarity = maxSeriesAliasSimilarity(currentDistinctive, candidateDistinctive);
+      if (primarySimilarity >= 0.95 && distinctiveSimilarity < 0.30) return true;
+    }
+
+    return false;
+  }
+
   function stripSeriesTitleNoise(value) {
     return String(value || '')
       .replace(/\([^)]*(?:сериал|озвуч|(?:19|20)\d{2})[^)]*\)/giu, ' ')
@@ -7341,6 +7387,24 @@
     const currentAuthorId = String(context.authorId || '');
     const authorId = extractAuthorId(item);
     const sameAuthor = Boolean(currentAuthorId && authorId && currentAuthorId === authorId);
+
+    // Совпавшее локализованное название недостаточно, если оригинальные
+    // названия противоречат друг другу. Не даём «Ковчег / El barco»
+    // продолжать «Ковчег / The Ark» только потому, что обе карточки содержат
+    // слово «Ковчег».
+    if (seriesAliasesConflict(current.aliases, descriptor.aliases)) return null;
+
+    // Если у текущего сериала есть уточняющий alias (например The Ark), а
+    // основное название состоит всего из одного слова, общий поиск/related
+    // от другого автора обязан подтвердить именно уточняющее название.
+    // Родные TV/playlist связи и тот же автор остаются допустимыми, чтобы не
+    // ломать серии, где uploader иногда опускает оригинальное название.
+    const distinctiveAliases = seriesDistinctiveAliases(current.aliases);
+    if ((source === 'search' || source === 'related') && distinctiveAliases.length && !sameAuthor) {
+      const primaryTokenCount = seriesAliasTokens(current.aliases[0] || '').length;
+      const distinctiveSimilarity = maxSeriesAliasSimilarity(distinctiveAliases, descriptor.aliases);
+      if (primaryTokenCount <= 1 && distinctiveSimilarity < 0.56) return null;
+    }
     const sourceBonus = source === 'tv' ? 34 : source === 'playlist' ? 26 : source === 'related' ? 22 : 8;
     const authorBonus = sameAuthor ? 18 : 0;
     const seasonBonus = seasonDelta === 0 ? 14 : 5;
@@ -8015,7 +8079,7 @@
         showHidden: settings.showHidden, hideSideMenuPolitics: settings.hideSideMenuPolitics,
         hideShorts: settings.hideShorts, hardRemove: settings.hardRemove, cleanRutubeChrome: settings.cleanRutubeChrome,
         cleanWatchPage: settings.cleanWatchPage, disableAutoplay: settings.disableAutoplay, hideComments: settings.hideComments,
-        hideVideoInfo: settings.hideVideoInfo, stripPlayerAds: settings.stripPlayerAds, unlockContextMenu: settings.unlockContextMenu, swipeVideoVolume: settings.swipeVideoVolume, autoFullscreenOnRotate: settings.autoFullscreenOnRotate, hideVpnPopup: settings.hideVpnPopup, dimSearchTrash: settings.dimSearchTrash, markWatchedVideos: settings.markWatchedVideos, seriesNavigator: settings.seriesNavigator, personalHome: settings.personalHome,
+        hideVideoInfo: settings.hideVideoInfo, stripPlayerAds: settings.stripPlayerAds, unlockContextMenu: settings.unlockContextMenu, swipeVideoVolume: settings.swipeVideoVolume, autoFullscreenOnRotate: settings.autoFullscreenOnRotate, hideVpnPopup: settings.hideVpnPopup, dimSearchTrash: settings.dimSearchTrash, markWatchedVideos: settings.markWatchedVideos, seriesNavigator: settings.seriesNavigator, personalHome: settings.personalHome, hideWatchedPersonalHome: settings.hideWatchedPersonalHome,
         useCommunityFilter: settings.useCommunityFilter, contributeCommunitySignals: settings.contributeCommunitySignals,
         blockedChannels: allBlockedChannels(), blockedWords: allBlockedWords(), userChannels: settings.userChannels, userWords: settings.userWords
       },
@@ -8046,7 +8110,7 @@
     if (!src || typeof src !== 'object') throw new Error('bad settings json');
     const next = { ...settings };
     for (const key of ['blockedChannels', 'blockedWords', 'userChannels', 'userWords']) { if (Array.isArray(src[key])) next[key] = unique(src[key]); }
-    for (const key of ['showHidden', 'hideSideMenuPolitics', 'hideShorts', 'hardRemove', 'cleanRutubeChrome', 'cleanWatchPage', 'disableAutoplay', 'hideComments', 'hideVideoInfo', 'stripPlayerAds', 'unlockContextMenu', 'swipeVideoVolume', 'autoFullscreenOnRotate', 'hideVpnPopup', 'dimSearchTrash', 'markWatchedVideos', 'seriesNavigator', 'personalHome', 'useCommunityFilter', 'contributeCommunitySignals']) {
+    for (const key of ['showHidden', 'hideSideMenuPolitics', 'hideShorts', 'hardRemove', 'cleanRutubeChrome', 'cleanWatchPage', 'disableAutoplay', 'hideComments', 'hideVideoInfo', 'stripPlayerAds', 'unlockContextMenu', 'swipeVideoVolume', 'autoFullscreenOnRotate', 'hideVpnPopup', 'dimSearchTrash', 'markWatchedVideos', 'seriesNavigator', 'personalHome', 'hideWatchedPersonalHome', 'useCommunityFilter', 'contributeCommunitySignals']) {
       if (typeof src[key] === 'boolean') next[key] = src[key];
     }
     if (typeof src.cleanRutubeChrome === 'boolean' && typeof src.hideSideMenuPolitics !== 'boolean') next.hideSideMenuPolitics = src.cleanRutubeChrome;
@@ -9610,7 +9674,14 @@
     const interest = RutubeCandidateScorer.interest(candidate);
     if (interest.personalScore < 0 && options.allowDisliked !== true) return false;
     const history = RutubeCandidateScorer.history(candidate);
-    if (history && /^(?:complete|watched)$/i.test(history.status) && options.allowWatched !== true) return false;
+    const fullyWatched = Boolean(history && /^(?:complete|watched)$/i.test(history.status));
+    const likedByUser = interest.personalScore > 0;
+    const hideWatched = settings.hideWatchedPersonalHome !== false;
+    // Полностью просмотренное обычно убираем с персональной главной. Но собственный
+    // явный ♥ важнее фильтра: понравившийся ролик может вернуться как рекомендация.
+    // Для поиска именно следующей серии это исключение отключается отдельно, чтобы
+    // не предлагать уже просмотренную любимую серию вместо следующей непросмотренной.
+    if (fullyWatched && options.allowWatched !== true && hideWatched && !(likedByUser && options.allowLikedWatched !== false)) return false;
     return true;
   }
 
@@ -9662,7 +9733,7 @@
       const c = seriesCandidate(raw, 'related', current, { authorId });
       if (!c || !c.id || c.id === seedId) continue;
       const normalized = RutubeCandidateScorer.normalize(videoObjectFromApiItem(raw), { source: 'related', url: c.url });
-      if (!normalized || !homeCandidateAllowed(normalized)) continue;
+      if (!normalized || !homeCandidateAllowed(normalized, { allowLikedWatched: false })) continue;
       c.normalized = normalized;
       candidates.push(c);
     }
@@ -9690,7 +9761,7 @@
       const c = searchCandidates[0];
       const raw = search.find((item) => String((videoObjectFromApiItem(item) || {}).id || '') === String(c.id || '')) || { id: c.id, title: c.title, duration: c.duration || 0 };
       const normalized = RutubeCandidateScorer.normalize(videoObjectFromApiItem(raw), { source: 'search', url: c.url });
-      if (normalized && homeCandidateAllowed(normalized)) {
+      if (normalized && homeCandidateAllowed(normalized, { allowLikedWatched: false })) {
         normalized.homeBoost = .45;
         normalized.homeReason = `следующая серия · ${c.season} сезон, ${c.episode} серия`;
         return normalized;
