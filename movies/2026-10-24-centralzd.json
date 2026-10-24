@@ -1,0 +1,259 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.5",
+  "id": "2026-10-24-centralzd",
+  "title": "Что посмотреть от 24.10.2026",
+  "date": "2026-10-24",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_24102026_14454587",
+  "extractedAt": "2026-10-24T15:45:01.699Z",
+  "count": 10,
+  "items": [
+    {
+      "id": "lyuboy-cenoy-by-any-means-2026",
+      "title": "Любой ценой",
+      "originalTitle": "By Any Means",
+      "year": 2026,
+      "query": "Любой ценой By Any Means 2026",
+      "genres": [
+        "боевик",
+        "триллер",
+        "криминал"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 5.9,
+          "votes": 1099,
+          "percent": 59
+        },
+        "imdb": {
+          "value": 6.7,
+          "votes": 3783,
+          "percent": 67
+        },
+        "rottenTomatoes": {
+          "critics": 49,
+          "audience": 88
+        }
+      }
+    },
+    {
+      "id": "parshivye-ovcy-bad-apples-2025",
+      "title": "Паршивые овцы",
+      "originalTitle": "Bad Apples",
+      "year": 2025,
+      "query": "Паршивые овцы Bad Apples 2025",
+      "genres": [
+        "триллер",
+        "комедия",
+        "детектив"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.9,
+          "votes": 611,
+          "percent": 69
+        },
+        "imdb": {
+          "value": 7.5,
+          "votes": 202,
+          "percent": 75
+        },
+        "rottenTomatoes": {
+          "critics": 82,
+          "audience": 60
+        }
+      }
+    },
+    {
+      "id": "myuzikl-the-musical-2026",
+      "title": "Мюзикл",
+      "originalTitle": "The Musical",
+      "year": 2026,
+      "query": "Мюзикл The Musical 2026",
+      "genres": [
+        "комедия"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.7,
+          "votes": 102,
+          "percent": 77
+        },
+        "rottenTomatoes": {
+          "critics": 62,
+          "audience": 64
+        }
+      }
+    },
+    {
+      "id": "malen-kie-beglecy-tiny-fugitives-2026",
+      "title": "Маленькие беглецы",
+      "originalTitle": "Tiny Fugitives",
+      "year": 2026,
+      "query": "Маленькие беглецы Tiny Fugitives 2026",
+      "genres": [
+        "комедия"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 5.2,
+          "votes": 328,
+          "percent": 52
+        },
+        "rottenTomatoes": {
+          "critics": 53,
+          "audience": 82
+        }
+      }
+    },
+    {
+      "id": "babulya-kubik-rubika-mo-fang-xiao-jie-it-s-my-time-lady-r-2026",
+      "title": "Бабуля Кубик Рубика",
+      "originalTitle": "Mo fang xiao jie (It's My Time) (Lady R)",
+      "year": 2026,
+      "query": "Бабуля Кубик Рубика Mo fang xiao jie (It's My Time) (Lady R) 2026",
+      "genres": [
+        "драма",
+        "комедия"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.5,
+          "votes": 148,
+          "percent": 65
+        }
+      }
+    },
+    {
+      "id": "lyupen-lupin-4-sezon-2021",
+      "title": "Люпен",
+      "originalTitle": "Lupin (4 сезон)",
+      "year": 2021,
+      "query": "Люпен Lupin (4 сезон) 2021",
+      "genres": [
+        "криминал",
+        "детектив",
+        "драма",
+        "боевик"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.5,
+          "votes": 57879,
+          "percent": 75
+        },
+        "imdb": {
+          "value": 7.5,
+          "votes": 157000,
+          "percent": 75
+        }
+      }
+    },
+    {
+      "id": "podmena-phony-1-sezon-2026",
+      "title": "Подмена",
+      "originalTitle": "Phony (1 сезон)",
+      "year": 2026,
+      "query": "Подмена Phony (1 сезон) 2026",
+      "genres": [
+        "триллер",
+        "драма",
+        "комедия",
+        "детектив"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.9,
+          "votes": 321,
+          "percent": 69
+        },
+        "rottenTomatoes": {
+          "critics": 90,
+          "audience": 93
+        }
+      }
+    },
+    {
+      "id": "kiberpank-beguschie-po-krayu-cyberpunk-edgerunners-2-sezon-2022",
+      "title": "Киберпанк: Бегущие по краю",
+      "originalTitle": "Cyberpunk: Edgerunners (2 сезон)",
+      "year": 2022,
+      "query": "Киберпанк: Бегущие по краю Cyberpunk: Edgerunners (2 сезон) 2022",
+      "genres": [
+        "аниме",
+        "мультфильм",
+        "фантастика",
+        "боевик"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.9,
+          "votes": 241,
+          "percent": 79
+        },
+        "imdb": {
+          "value": 8.3,
+          "votes": 123000,
+          "percent": 83
+        },
+        "rottenTomatoes": {
+          "critics": 80,
+          "audience": 61
+        }
+      }
+    },
+    {
+      "id": "spisok-smertnikov-the-terminal-list-2-sezon-2022",
+      "title": "Список смертников",
+      "originalTitle": "The Terminal List (2 сезон)",
+      "year": 2022,
+      "query": "Список смертников The Terminal List (2 сезон) 2022",
+      "genres": [
+        "боевик",
+        "триллер",
+        "драма"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.4,
+          "votes": 22665,
+          "percent": 74
+        },
+        "imdb": {
+          "value": 7.9,
+          "votes": 129500,
+          "percent": 79
+        },
+        "rottenTomatoes": {
+          "critics": 57,
+          "audience": 88
+        }
+      }
+    },
+    {
+      "id": "nikto-etogo-ne-hochet-nobody-wants-this-3-sezon-2024",
+      "title": "Никто этого не хочет",
+      "originalTitle": "Nobody Wants This (3 сезон)",
+      "year": 2024,
+      "query": "Никто этого не хочет Nobody Wants This (3 сезон) 2024",
+      "genres": [
+        "комедия"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.7,
+          "votes": 16300,
+          "percent": 77
+        },
+        "imdb": {
+          "value": 7.7,
+          "votes": 82000,
+          "percent": 77
+        },
+        "rottenTomatoes": {
+          "critics": 87
+        }
+      }
+    }
+  ]
+}
