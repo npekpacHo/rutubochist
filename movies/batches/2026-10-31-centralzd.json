@@ -1,0 +1,275 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.5",
+  "id": "2026-10-31-centralzd",
+  "title": "Что посмотреть от 31.10.2026",
+  "date": "2026-10-31",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_31102026_14478411",
+  "extractedAt": "2026-10-31T11:40:17.444Z",
+  "count": 11,
+  "items": [
+    {
+      "id": "sobach-i-zvezdy-the-dog-stars-2026",
+      "title": "Собачьи звёзды",
+      "originalTitle": "The Dog Stars",
+      "year": 2026,
+      "query": "Собачьи звёзды The Dog Stars 2026",
+      "genres": [
+        "боевик",
+        "фантастика",
+        "приключения",
+        "триллер",
+        "экранизация"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.4,
+          "votes": 8061,
+          "percent": 64
+        },
+        "imdb": {
+          "value": 6.5,
+          "votes": 6848,
+          "percent": 65
+        },
+        "rottenTomatoes": {
+          "critics": 41,
+          "audience": 69
+        }
+      }
+    },
+    {
+      "id": "ali-dzhi-kto-ya-ali-g-who-iz-i-2026",
+      "title": "Али Джи: Кто я?",
+      "originalTitle": "Ali G: Who Iz I?",
+      "year": 2026,
+      "query": "Али Джи: Кто я? Ali G: Who Iz I? 2026",
+      "genres": [
+        "комедия"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 5.2,
+          "votes": 4500,
+          "percent": 52
+        },
+        "rottenTomatoes": {
+          "critics": 41
+        }
+      }
+    },
+    {
+      "id": "ostrov-zabveniya-forgotten-island-2026",
+      "title": "Остров забвения",
+      "originalTitle": "Forgotten Island",
+      "year": 2026,
+      "query": "Остров забвения Forgotten Island 2026",
+      "genres": [
+        "мультфильм",
+        "фэнтези",
+        "комедия",
+        "приключения",
+        "семейный"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.4,
+          "votes": 1052,
+          "percent": 74
+        },
+        "imdb": {
+          "value": 7.7,
+          "votes": 7276,
+          "percent": 77
+        },
+        "rottenTomatoes": {
+          "critics": 95,
+          "audience": 94
+        }
+      }
+    },
+    {
+      "id": "taynyy-dnevnik-veriti-verity-2026",
+      "title": "Тайный дневник Верити",
+      "originalTitle": "Verity",
+      "year": 2026,
+      "query": "Тайный дневник Верити Verity 2026",
+      "genres": [
+        "триллер",
+        "драма",
+        "мелодрама",
+        "криминал",
+        "детектив"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.4,
+          "votes": 12142,
+          "percent": 64
+        },
+        "imdb": {
+          "value": 6.1,
+          "votes": 7074,
+          "percent": 61
+        },
+        "rottenTomatoes": {
+          "critics": 31,
+          "audience": 72
+        }
+      }
+    },
+    {
+      "id": "razum-i-chuvstva-sense-and-sensibility-2026",
+      "title": "Разум и чувства",
+      "originalTitle": "Sense and Sensibility",
+      "year": 2026,
+      "query": "Разум и чувства Sense and Sensibility 2026",
+      "genres": [
+        "драма",
+        "мелодрама"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7,
+          "votes": 683,
+          "percent": 70
+        },
+        "imdb": {
+          "value": 7.3,
+          "votes": 3662,
+          "percent": 73
+        },
+        "rottenTomatoes": {
+          "critics": 78,
+          "audience": 88
+        }
+      }
+    },
+    {
+      "id": "voditel-kaskader-the-stunt-driver-2026",
+      "title": "Водитель-каскадёр",
+      "originalTitle": "The Stunt Driver",
+      "year": 2026,
+      "query": "Водитель-каскадёр The Stunt Driver 2026",
+      "genres": [
+        "драма",
+        "комедия",
+        "биография",
+        "история"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6,
+          "votes": 380,
+          "percent": 60
+        },
+        "rottenTomatoes": {
+          "critics": 74
+        }
+      }
+    },
+    {
+      "id": "koroleva-u-morya-queen-at-sea-2026",
+      "title": "Королева у моря",
+      "originalTitle": "Queen at Sea",
+      "year": 2026,
+      "query": "Королева у моря Queen at Sea 2026",
+      "genres": [
+        "триллер",
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.7,
+          "votes": 254,
+          "percent": 77
+        },
+        "rottenTomatoes": {
+          "critics": 93,
+          "audience": 88
+        }
+      }
+    },
+    {
+      "id": "illyuziya-yakusimy-l-illusion-de-yakushima-yakushima-s-illusion-2026",
+      "title": "Иллюзия Якусимы",
+      "originalTitle": "L'illusion de Yakushima (Yakushima's Illusion)",
+      "year": 2026,
+      "query": "Иллюзия Якусимы L'illusion de Yakushima (Yakushima's Illusion) 2026",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.8,
+          "votes": 132,
+          "percent": 68
+        }
+      }
+    },
+    {
+      "id": "komar-pod-uhom-a-mosquito-in-the-ear-2026",
+      "title": "Комар под ухом",
+      "originalTitle": "A Mosquito in the Ear",
+      "year": 2026,
+      "query": "Комар под ухом A Mosquito in the Ear 2026",
+      "genres": [
+        "комедия",
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.4,
+          "votes": 441,
+          "percent": 64
+        },
+        "rottenTomatoes": {
+          "critics": 100
+        }
+      }
+    },
+    {
+      "id": "demonolog-never-after-dark-neb-afut-d-ku-2025",
+      "title": "Демонолог",
+      "originalTitle": "Never After Dark (Nebâ Afutâ Dâku)",
+      "year": 2025,
+      "query": "Демонолог Never After Dark (Nebâ Afutâ Dâku) 2025",
+      "genres": [
+        "ужасы"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.4,
+          "votes": 2404,
+          "percent": 64
+        },
+        "imdb": {
+          "value": 6.9,
+          "votes": 643,
+          "percent": 69
+        },
+        "rottenTomatoes": {
+          "critics": 98,
+          "audience": 89
+        }
+      }
+    },
+    {
+      "id": "bezumnyy-den-v-komedi-fransez-de-la-com-die-fran-aise-2026",
+      "title": "Безумный день в Комеди Франсез",
+      "originalTitle": "De la Comédie-Française",
+      "year": 2026,
+      "query": "Безумный день в Комеди Франсез De la Comédie-Française 2026",
+      "genres": [
+        "комедия"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7,
+          "votes": 463,
+          "percent": 70
+        }
+      }
+    }
+  ]
+}
