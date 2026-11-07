@@ -1,0 +1,362 @@
+{
+  "version": 1,
+  "generator": "pikabu_movie_extractor 0.1.5",
+  "id": "2026-11-07-centralzd",
+  "title": "Что посмотреть от 07.11.2026",
+  "date": "2026-11-07",
+  "sourceUrl": "https://pikabu.ru/story/novinki_kino_poyavivshiesya_v_seti_na_07112026_14501783",
+  "extractedAt": "2026-11-07T15:53:35.543Z",
+  "count": 16,
+  "items": [
+    {
+      "id": "obitel-zla-resident-evil-2026",
+      "title": "Обитель зла",
+      "originalTitle": "Resident Evil",
+      "year": 2026,
+      "query": "Обитель зла Resident Evil 2026",
+      "genres": [
+        "ужасы"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.3,
+          "votes": 73701,
+          "percent": 73
+        },
+        "imdb": {
+          "value": 7.5,
+          "votes": 134395,
+          "percent": 75
+        },
+        "rottenTomatoes": {
+          "critics": 96,
+          "audience": 90
+        }
+      }
+    },
+    {
+      "id": "serdce-zverya-heart-of-the-beast-2026",
+      "title": "Сердце зверя",
+      "originalTitle": "Heart of the Beast",
+      "year": 2026,
+      "query": "Сердце зверя Heart of the Beast 2026",
+      "genres": [
+        "боевик",
+        "триллер",
+        "драма",
+        "приключения"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7.4,
+          "votes": 9276,
+          "percent": 74
+        },
+        "imdb": {
+          "value": 7.2,
+          "votes": 33764,
+          "percent": 72
+        },
+        "rottenTomatoes": {
+          "critics": 84,
+          "audience": 94
+        }
+      }
+    },
+    {
+      "id": "tvoya-mat-tvoya-mat-tvoya-mat-your-mother-your-mother-your-mother-2026",
+      "title": "Твоя мать, твоя мать, твоя мать",
+      "originalTitle": "Your Mother Your Mother Your Mother",
+      "year": 2026,
+      "query": "Твоя мать, твоя мать, твоя мать Your Mother Your Mother Your Mother 2026",
+      "genres": [
+        "боевик",
+        "триллер",
+        "драма",
+        "криминал"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6,
+          "votes": 271,
+          "percent": 60
+        },
+        "imdb": {
+          "value": 7.2,
+          "votes": 3450,
+          "percent": 72
+        },
+        "rottenTomatoes": {
+          "critics": 96,
+          "audience": 92
+        }
+      }
+    },
+    {
+      "id": "praym-taym-primetime-2026",
+      "title": "Прайм-тайм",
+      "originalTitle": "Primetime",
+      "year": 2026,
+      "query": "Прайм-тайм Primetime 2026",
+      "genres": [
+        "биография",
+        "криминал",
+        "драма"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 6.4,
+          "votes": 2856,
+          "percent": 64
+        },
+        "imdb": {
+          "value": 7,
+          "votes": 28976,
+          "percent": 70
+        },
+        "rottenTomatoes": {
+          "critics": 86,
+          "audience": 78
+        }
+      }
+    },
+    {
+      "id": "luchshie-blinchiki-v-okruge-best-pancakes-in-the-county-2026",
+      "title": "Лучшие блинчики в округе",
+      "originalTitle": "Best Pancakes in the County",
+      "year": 2026,
+      "query": "Лучшие блинчики в округе Best Pancakes in the County 2026",
+      "genres": [
+        "боевик",
+        "триллер",
+        "криминал"
+      ],
+      "ratings": {}
+    },
+    {
+      "id": "misti-grin-misty-green-2026",
+      "title": "Мисти Грин",
+      "originalTitle": "Misty Green",
+      "year": 2026,
+      "query": "Мисти Грин Misty Green 2026",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 5.8,
+          "votes": 279,
+          "percent": 58
+        },
+        "rottenTomatoes": {
+          "critics": 62,
+          "audience": 67
+        }
+      }
+    },
+    {
+      "id": "othodnaya-molitva-a-prayer-for-the-dying-2026",
+      "title": "Отходная молитва",
+      "originalTitle": "A Prayer for the Dying",
+      "year": 2026,
+      "query": "Отходная молитва A Prayer for the Dying 2026",
+      "genres": [
+        "драма",
+        "вестерн"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6,
+          "votes": 179,
+          "percent": 60
+        },
+        "rottenTomatoes": {
+          "critics": 56
+        }
+      }
+    },
+    {
+      "id": "charli-i-harper-charlie-harper-2025",
+      "title": "Чарли и Харпер",
+      "originalTitle": "Charlie Harper",
+      "year": 2025,
+      "query": "Чарли и Харпер Charlie Harper 2025",
+      "genres": [
+        "комедия",
+        "мелодрама"
+      ],
+      "ratings": {
+        "kinopoisk": {
+          "value": 7,
+          "votes": 413,
+          "percent": 70
+        },
+        "imdb": {
+          "value": 6.8,
+          "votes": 228,
+          "percent": 68
+        },
+        "rottenTomatoes": {
+          "critics": 59,
+          "audience": 81
+        }
+      }
+    },
+    {
+      "id": "vnezapno-soudain-all-of-a-sudden-2026",
+      "title": "Внезапно",
+      "originalTitle": "Soudain (All of a Sudden)",
+      "year": 2026,
+      "query": "Внезапно Soudain (All of a Sudden) 2026",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 8,
+          "votes": 544,
+          "percent": 80
+        },
+        "rottenTomatoes": {
+          "critics": 92
+        }
+      }
+    },
+    {
+      "id": "vozmozhnaya-lyubov-ganeunghan-sarang-possible-love-2026",
+      "title": "Возможная любовь",
+      "originalTitle": "Ganeunghan sarang (Possible Love)",
+      "year": 2026,
+      "query": "Возможная любовь Ganeunghan sarang (Possible Love) 2026",
+      "genres": [
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 8.1,
+          "votes": 1275,
+          "percent": 81
+        },
+        "rottenTomatoes": {
+          "critics": 98,
+          "audience": 86
+        }
+      }
+    },
+    {
+      "id": "dnevnik-gornichnoy-le-journal-d-une-femme-de-chambre-diary-of-a-chambermaid-2026",
+      "title": "Дневник горничной",
+      "originalTitle": "Le journal d'une femme de chambre (Diary of a Chambermaid)",
+      "year": 2026,
+      "query": "Дневник горничной Le journal d'une femme de chambre (Diary of a Chambermaid) 2026",
+      "genres": [
+        "драма",
+        "комедия"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7,
+          "votes": 365,
+          "percent": 70
+        },
+        "rottenTomatoes": {
+          "critics": 96
+        }
+      }
+    },
+    {
+      "id": "bremya-iskupleniya-r-demptions-2026",
+      "title": "Бремя искупления",
+      "originalTitle": "Rédemptions",
+      "year": 2026,
+      "query": "Бремя искупления Rédemptions 2026",
+      "genres": [
+        "криминал",
+        "драма",
+        "триллер"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 6.8,
+          "votes": 139,
+          "percent": 68
+        }
+      }
+    },
+    {
+      "id": "po-volch-i-vyt-dog-day-evening-jat-go-bou-mun-dik-daan-sang-2026",
+      "title": "По-волчьи выть",
+      "originalTitle": "Dog Day Evening (Jat go Bou Mun dik Daan Sang)",
+      "year": 2026,
+      "query": "По-волчьи выть Dog Day Evening (Jat go Bou Mun dik Daan Sang) 2026",
+      "genres": [
+        "комедия",
+        "криминал",
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7,
+          "votes": 314,
+          "percent": 70
+        }
+      }
+    },
+    {
+      "id": "bass-iz-mashiny-bass-x-machina-1-sezon-2026",
+      "title": "Басс из машины",
+      "originalTitle": "Bass X Machina (1 сезон)",
+      "year": 2026,
+      "query": "Басс из машины Bass X Machina (1 сезон) 2026",
+      "genres": [
+        "мультфильм",
+        "фантастика",
+        "боевик",
+        "вестерн"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.3,
+          "votes": 491,
+          "percent": 73
+        },
+        "rottenTomatoes": {
+          "critics": 100
+        }
+      }
+    },
+    {
+      "id": "velikiy-the-greatest-1-sezon-2026",
+      "title": "Великий",
+      "originalTitle": "The Greatest (1 сезон)",
+      "year": 2026,
+      "query": "Великий The Greatest (1 сезон) 2026",
+      "genres": [
+        "биография",
+        "спорт",
+        "драма"
+      ],
+      "ratings": {
+        "imdb": {
+          "value": 7.5,
+          "votes": 387,
+          "percent": 75
+        },
+        "rottenTomatoes": {
+          "critics": 88
+        }
+      }
+    },
+    {
+      "id": "ayda-1-sezon-2026",
+      "title": "Айда (1 сезон)",
+      "year": 2026,
+      "query": "Айда (1 сезон) 2026",
+      "genres": [
+        "криминал",
+        "драма"
+      ],
+      "ratings": {}
+    }
+  ]
+}
